@@ -1,4 +1,4 @@
-// app_calendario.js - Gestão da View de Calendário e Exceções, Tabela Reativa, Filtros e Importação/Exportação JSON/CSV
+// app_calendario.js - Lógica específica da View Calendário e Exceções
 let cacheExcecoes = [];
 const dataAtualObj = new Date();
 const anoCorrente = dataAtualObj.getFullYear().toString();
@@ -132,6 +132,16 @@ window.AppCalendario = {
     },
 
     async tratarCliques(e) {
+        // Modal de Ajuda Carga em Lote
+        if (e.target.closest('#btn-help-lote')) {
+            document.getElementById('modal-help-lote')?.classList.remove('hidden');
+            return true;
+        }
+        if (e.target.closest('#btn-close-help') || e.target.id === 'modal-help-lote') {
+            document.getElementById('modal-help-lote')?.classList.add('hidden');
+            return true;
+        }
+
         const btnData = e.target.closest('#btn-filter-data');
         if (btnData) {
             const ativo = (filtrosEstado.data.mes !== "" || filtrosEstado.data.ano !== "");
@@ -352,6 +362,10 @@ window.AppCalendario = {
                 this.atualizarTabelaExcecoes(); 
             }
             return true;
+        }
+
+        if (!e.target.closest('th')) {
+            this.fecharTodosModais();
         }
 
         return false;

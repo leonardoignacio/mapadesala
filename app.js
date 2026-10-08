@@ -108,18 +108,12 @@ window.addEventListener('hashchange', roteador);
 document.addEventListener('submit', async (e) => {
     if(window.usuarioAtual.cargo === 'apoio') { e.preventDefault(); return alert("Acesso de Leitura Apenas."); }
     
+    // Delega submissões da view de calendário para o submódulo
     if (window.AppCalendario && await window.AppCalendario.tratarSubmits(e)) return;
 
     if(e.target.id === 'form-curso') { e.preventDefault(); await window.Controller.salvarCurso(document.getElementById('curso-nome').value); alert("Curso salvo!"); roteador(); }
     if(e.target.id === 'form-uc') { e.preventDefault(); await window.Controller.salvarUC(document.getElementById('uc-idcurso').value, document.getElementById('uc-nome').value, document.getElementById('uc-tipo').value, document.getElementById('uc-ch').value); alert("UC salva!"); e.target.reset(); }
     if(e.target.id === 'form-admin') { e.preventDefault(); await window.Controller.salvarPermissao(document.getElementById('admin-email').value, document.getElementById('admin-cargo').value); alert("Permissão inserida!"); e.target.reset(); }
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.id === 'popover-input-desc') {
-        e.preventDefault();
-        document.getElementById('apply-filter-desc')?.click();
-    }
 });
 
 document.addEventListener('click', async (e) => {
@@ -131,6 +125,7 @@ document.addEventListener('click', async (e) => {
 
     if(e.target.closest('#btn-logout') || e.target.closest('#btn-logout-icon')) { window.auth.signOut(); return; }
 
+    // Delega cliques da view de calendário para o submódulo
     if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
 
     const tabBtn = e.target.closest('.tab-btn');
