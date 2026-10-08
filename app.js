@@ -5,6 +5,18 @@ let usuarioAtual = { email: null, cargo: null };
 let cacheExcecoes = []; 
 let isSidebarCollapsed = false; 
 
+// Estado centralizado dos filtros ativos em cada coluna (Ano e Mês atuais como padrão dinâmico: Outubro de 2026)
+const dataAtualObj = new Date();
+const anoCorrente = dataAtualObj.getFullYear().toString();
+const mesCorrente = (dataAtualObj.getMonth() + 1).toString().padStart(2, '0');
+
+let filtrosEstado = {
+    data: { mes: mesCorrente, ano: anoCorrente },
+    dias: ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
+    tipo: [],
+    desc: ""
+};
+
 const UI = {
     load: document.getElementById('loading-screen'),
     login: document.getElementById('login-screen'),
@@ -89,31 +101,70 @@ function applySidebarState() {
 }
 
 // ==========================================
-// 2. LÓGICA DA TABELA E FILTROS REATIVOS
+// 2. LÓGICA DA TABELA E FILTRAGEM POR COLUNA
 // ==========================================
 async function atualizarTabelaExcecoes() {
     const tbody = document.getElementById('tabela-excecoes');
     if(!tbody) return;
     tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 font-medium text-base">Carregando dados...</td></tr>`;
     
-    // Popula o Select de Anos dinamicamente (Ano atual + 3 próximos)
-    popularSelectAnos();
+    popularSelectAnosPopover();
 
     cacheExcecoes = await window.Controller.listarExcecoes();
     renderizarTabelaExcecoes(); 
 }
 
-function popularSelectAnos() {
-    const selectAno = document.getElementById('filtro-ano');
-    if (!selectAno || selectAno.options.length > 1) return; // Evita duplicar se já foi populado
+function popularSelectAnosPopover() {
+    const selectAno = document.getElementById('popover-ano');
+    const selectMes = document.getElementById('popover-mes');
+    
+    if (selectAno && selectAno.options.length <= 1) {
+        const anoAtualInt = new Date().getFullYear();
+        for (let i = 0; i < 4; i++) {
+            const anoStr = (anoAtualInt + i).toString();
+            const opt = document.createElement('option');
+            opt.value = anoStr;
+            opt.textContent = anoStr;
+            selectAno.appendChild(opt);
+        }
+    }
 
-    const anoAtual = new Date().getFullYear();
-    for (let i = 0; i < 4; i++) {
-        const anoStr = (anoAtual + i).toString();
-        const opt = document.createElement('option');
-        opt.value = anoStr;
-        opt.textContent = anoStr;
-        selectAno.appendChild(opt);
+    // Sincroniza os selects do popover com o estado atual ativo
+    if (selectAno) selectAno.value = filtrosEstado.data.ano;
+    if (selectMes) selectMes.value = filtrosEstado.data.mes;
+}
+
+function atualizarIconesFiltro() {
+    // Data
+    const iconData = document.getElementById('icon-filter-data');
+    if (iconData) {
+        const ativo = (filtrosEstado.data.mes !== "" || filtrosEstado.data.ano !== "");
+        iconData.textContent = ativo ? "✖️" : "🔎";
+        iconData.parentElement.title = ativo ? "Remover Filtro de Data" : "Filtrar Data";
+    }
+
+    // Dia da Semana (Ativo se não estiver com o padrão de 6 dias úteis)
+    const iconDia = document.getElementById('icon-filter-dia');
+    if (iconDia) {
+        const ativo = filtrosEstado.dias.length < 7;
+        iconDia.textContent = ativo ? "✖️" : "🔎";
+        iconDia.parentElement.title = ativo ? "Remover Filtro de Dias" : "Filtrar Dias da Semana";
+    }
+
+    // Tipo
+    const iconTipo = document.getElementById('icon-filter-tipo');
+    if (iconTipo) {
+        const ativo = filtrosEstado.tipo.length > 0;
+        iconTipo.textContent = ativo ? "✖️" : "🔎";
+        iconTipo.parentElement.title = ativo ? "Remover Filtro de Tipo" : "Filtrar Tipo";
+    }
+
+    // Descrição
+    const iconDesc = document.getElementById('icon-filter-desc');
+    if (iconDesc) {
+        const ativo = filtrosEstado.desc !== "";
+        iconDesc.textContent = ativo ? "✖️" : "🔎";
+        iconDesc.parentElement.title = ativo ? "Remover Filtro de Descrição" : "Filtrar Descrição";
     }
 }
 
@@ -121,26 +172,29 @@ function renderizarTabelaExcecoes() {
     const tbody = document.getElementById('tabela-excecoes');
     if(!tbody) return;
 
-    const filtroMes = document.getElementById('filtro-mes')?.value || ""; 
-    const filtroAno = document.getElementById('filtro-ano')?.value || "";
-    const filtroDesc = document.getElementById('filtro-desc')?.value.toLowerCase() || "";
-
-    const checkboxesDias = document.querySelectorAll('.filtro-dia-chk:checked');
-    const diasSelecionados = Array.from(checkboxesDias).map(chk => chk.value);
+    atualizarIconesFiltro();
 
     const dadosFiltrados = cacheExcecoes.filter(item => {
         const [anoItem, mesItem, diaItem] = item.data.split('-');
         
-        const matchAno = filtroAno ? (anoItem === filtroAno) : true;
-        const matchMes = filtroMes ? (mesItem === filtroMes) : true;
-        const matchDesc = filtroDesc ? (item.descricao && item.descricao.toLowerCase().includes(filtroDesc)) : true;
-        const matchDia = diasSelecionados.length === 0 ? true : diasSelecionados.includes(item.dia_semana);
+        // Filtro Data
+        const matchAno = filtrosEstado.data.ano ? (anoItem === filtrosEstado.data.ano) : true;
+        const matchMes = filtrosEstado.data.mes ? (mesItem === filtrosEstado.data.mes) : true;
+        
+        // Filtro Dias da Semana
+        const matchDia = filtrosEstado.dias.length === 0 ? true : filtrosEstado.dias.includes(item.dia_semana);
 
-        return matchAno && matchMes && matchDesc && matchDia;
+        // Filtro Tipo
+        const matchTipo = filtrosEstado.tipo.length === 0 ? true : filtrosEstado.tipo.includes(item.excecao);
+
+        // Filtro Descrição
+        const matchDesc = filtrosEstado.desc ? (item.descricao && item.descricao.toLowerCase().includes(filtrosEstado.desc.toLowerCase())) : true;
+
+        return matchAno && matchMes && matchDia && matchTipo && matchDesc;
     });
 
     if(dadosFiltrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 font-medium text-base">Nenhuma exceção encontrada para estes filtros.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-base">Nenhuma exceção encontrada para estes filtros.</td></tr>`;
         return;
     }
 
@@ -152,7 +206,6 @@ function renderizarTabelaExcecoes() {
 
         const dataBr = item.data.split('-').reverse().join('/');
 
-        // Botão extremamente compacto contendo apenas o ícone SVG puro (sem texto)
         return `
         <tr class="hover:bg-slate-50 transition">
             <td class="px-2 py-2 text-base border-b border-slate-200 align-middle text-center w-[7%]">
@@ -160,7 +213,7 @@ function renderizarTabelaExcecoes() {
             </td>
             <td class="py-2.5 px-4 text-base font-bold text-slate-800 border-b border-slate-200 align-middle w-[15%]">${dataBr}</td>
             <td class="py-2.5 px-4 text-base text-slate-600 border-b border-slate-200 align-middle whitespace-nowrap w-[20%]">${item.dia_semana || "-"}</td>
-            <td class="py-2.5 px-4 border-b border-slate-200 align-middle w-[15%]" ><span class="px-2.5 py-1 rounded text-sm font-bold shadow-sm ${badgeColor}">${item.excecao}</span></td>
+            <td class="py-2.5 px-4 border-b border-slate-200 align-middle w-[15%]"><span class="px-2.5 py-1 rounded text-sm font-bold shadow-sm ${badgeColor}">${item.excecao}</span></td>
             <td class="py-2.5 px-4 text-sm text-slate-700 border-b border-slate-200 align-middle whitespace-normal break-words w-[43%]">${item.descricao}</td>
         </tr>
         `;
@@ -168,31 +221,6 @@ function renderizarTabelaExcecoes() {
 
     tbody.innerHTML = html;
 }
-
-document.addEventListener('input', (e) => {
-    if(['filtro-mes', 'filtro-ano', 'filtro-desc'].includes(e.target.id)) {
-        renderizarTabelaExcecoes();
-    }
-});
-
-document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('filtro-dia-chk')) {
-        const checkboxes = document.querySelectorAll('.filtro-dia-chk:checked');
-        const label = document.getElementById('label-dias-selecionados');
-        
-        if (checkboxes.length === 0) {
-            label.textContent = "Nenhum dia selecionado";
-        } else if (checkboxes.length === 1) {
-            label.textContent = checkboxes[0].value;
-        } else if (checkboxes.length === 7) {
-            label.textContent = "Todos os dias";
-        } else {
-            label.textContent = `${checkboxes.length} dias selecionados`;
-        }
-        
-        renderizarTabelaExcecoes();
-    }
-});
 
 // ==========================================
 // 3. ROTEAMENTO
@@ -220,7 +248,7 @@ async function roteador() {
 window.addEventListener('hashchange', roteador);
 
 // ==========================================
-// 4. DELEGAÇÃO DE EVENTOS GERAIS
+// 4. DELEGAÇÃO DE EVENTOS GERAIS E POPOVERS DE FILTRO
 // ==========================================
 
 document.addEventListener('submit', async (e) => {
@@ -247,15 +275,134 @@ document.addEventListener('submit', async (e) => {
 
 document.addEventListener('click', async (e) => {
     
-    const btnDropdown = e.target.closest('#btn-dropdown-dias');
-    const menuDropdown = document.getElementById('menu-dropdown-dias');
-    
-    if (btnDropdown) {
-        menuDropdown.classList.toggle('hidden');
-    } else if (menuDropdown && !menuDropdown.contains(e.target) && !e.target.classList.contains('filtro-dia-chk')) {
-        menuDropdown.classList.add('hidden');
+    const fecharTodosModais = (excetoId = null) => {
+        ['modal-filter-data', 'modal-filter-dia', 'modal-filter-tipo', 'modal-filter-desc'].forEach(id => {
+            if (id !== excetoId) {
+                document.getElementById(id)?.classList.add('hidden');
+            }
+        });
+    };
+
+    // ----------------------------------------------------
+    // Controle por Estado Ativo e Foco Programático (Autofocus)
+    // ----------------------------------------------------
+    const btnData = e.target.closest('#btn-filter-data');
+    if (btnData) {
+        const ativo = (filtrosEstado.data.mes !== "" || filtrosEstado.data.ano !== "");
+        if (ativo) {
+            filtrosEstado.data = { mes: "", ano: "" };
+            renderizarTabelaExcecoes();
+        } else {
+            fecharTodosModais('modal-filter-data');
+            const modal = document.getElementById('modal-filter-data');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                popularSelectAnosPopover();
+                document.getElementById('popover-mes')?.focus(); // Foco no primeiro campo
+            }
+        }
+        return;
     }
 
+    const btnDia = e.target.closest('#btn-filter-dia');
+    if (btnDia) {
+        const ativo = filtrosEstado.dias.length < 7;
+        if (ativo) {
+            filtrosEstado.dias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            document.querySelectorAll('.popover-dia-chk').forEach(chk => chk.checked = true);
+            renderizarTabelaExcecoes();
+        } else {
+            fecharTodosModais('modal-filter-dia');
+            const modal = document.getElementById('modal-filter-dia');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                document.querySelector('.popover-dia-chk')?.focus(); // Foco no primeiro checkbox
+            }
+        }
+        return;
+    }
+
+    const btnTipo = e.target.closest('#btn-filter-tipo');
+    if (btnTipo) {
+        const ativo = filtrosEstado.tipo.length > 0;
+        if (ativo) {
+            filtrosEstado.tipo = [];
+            document.querySelectorAll('.popover-tipo-chk').forEach(chk => chk.checked = false);
+            renderizarTabelaExcecoes();
+        } else {
+            fecharTodosModais('modal-filter-tipo');
+            const modal = document.getElementById('modal-filter-tipo');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                document.querySelector('.popover-tipo-chk')?.focus(); // Foco no primeiro checkbox de tipo
+            }
+        }
+        return;
+    }
+
+    const btnDesc = e.target.closest('#btn-filter-desc');
+    if (btnDesc) {
+        const ativo = filtrosEstado.desc !== "";
+        if (ativo) {
+            filtrosEstado.desc = "";
+            const inputDesc = document.getElementById('popover-input-desc');
+            if (inputDesc) inputDesc.value = "";
+            renderizarTabelaExcecoes();
+        } else {
+            fecharTodosModais('modal-filter-desc');
+            const modal = document.getElementById('modal-filter-desc');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                const inputDesc = document.getElementById('popover-input-desc');
+                if (inputDesc) {
+                    inputDesc.value = filtrosEstado.desc;
+                    inputDesc.focus(); // Foco imediato no campo de texto da descrição
+                }
+            }
+        }
+        return;
+    }
+
+    // ----------------------------------------------------
+    // Aplicação dos Filtros dentro dos Modais
+    // ----------------------------------------------------
+    if (e.target.id === 'apply-filter-data') {
+        filtrosEstado.data.mes = document.getElementById('popover-mes').value;
+        filtrosEstado.data.ano = document.getElementById('popover-ano').value;
+        document.getElementById('modal-filter-data').classList.add('hidden');
+        renderizarTabelaExcecoes();
+        return;
+    }
+
+    if (e.target.id === 'apply-filter-dia') {
+        const checked = document.querySelectorAll('.popover-dia-chk:checked');
+        filtrosEstado.dias = Array.from(checked).map(chk => chk.value);
+        document.getElementById('modal-filter-dia').classList.add('hidden');
+        renderizarTabelaExcecoes();
+        return;
+    }
+
+    if (e.target.id === 'apply-filter-tipo') {
+        const checked = document.querySelectorAll('.popover-tipo-chk:checked');
+        filtrosEstado.tipo = Array.from(checked).map(chk => chk.value);
+        document.getElementById('modal-filter-tipo').classList.add('hidden');
+        renderizarTabelaExcecoes();
+        return;
+    }
+
+    if (e.target.id === 'apply-filter-desc') {
+        filtrosEstado.desc = document.getElementById('popover-input-desc').value;
+        document.getElementById('modal-filter-desc').classList.add('hidden');
+        renderizarTabelaExcecoes();
+        return;
+    }
+
+    // Se clicar fora dos modais, fecha todos
+    if (!e.target.closest('th')) {
+        fecharTodosModais();
+    }
+
+    // Demais ações globais
     if(e.target.closest('#btn-toggle-sidebar') || e.target.closest('#btn-toggle-sidebar-open')) {
         isSidebarCollapsed = !isSidebarCollapsed;
         applySidebarState();

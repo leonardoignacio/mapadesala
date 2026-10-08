@@ -55,91 +55,113 @@ window.Views = {
 
     excecoes() {
         return `
-        <div class="px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col">
-            <!-- Título compactado no topo para maximizar espaço -->
-            <h1 class="text-xl font-bold mb-3 text-slate-800 w-[90%] mx-auto">Calendário e Exceções</h1>
+        <div class="px-8 pt-3 pb-4 fade-in flex-1 overflow-hidden flex flex-col">
+            <h1 class="text-xl font-bold mb-2 text-slate-800 w-[90%] mx-auto">Calendário e Exceções</h1>
             
-            <div class="flex border-b border-slate-200 mb-4 gap-6 w-[90%] mx-auto">
+            <div class="flex border-b border-slate-200 mb-3 gap-6 w-[90%] mx-auto">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-base" data-target="tab-listar">Listar Exceções</button>
                 <button class="tab-btn font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-2 transition-colors text-base" data-target="tab-editar">Editar Exceções (Cadastros)</button>
             </div>
 
             <!-- CONTEÚDO: ABA LISTAR -->
             <div id="tab-listar" class="tab-content flex-1 flex flex-col overflow-hidden">
-                <div class="w-[90%] mx-auto flex-1 flex flex-col overflow-hidden pb-2">
+                <div class="w-[90%] mx-auto flex-1 flex flex-col overflow-hidden">
                     
-                    <!-- Filtros compactos em altura (p-3) -->
-                    <div class="bg-white p-3 rounded-t-xl border-t border-x border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-end">
-                        
-                        <div class="w-full md:w-1/3">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Filtrar por Mês / Ano</label>
-                            <div class="flex gap-2">
-                                <select id="filtro-mes" class="w-2/3 border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm cursor-pointer bg-white">
-                                    <option value="">Todos os Meses</option>
-                                    <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-                                    <option value="03">Março</option><option value="04">Abril</option>
-                                    <option value="05">Maio</option><option value="06">Junho</option>
-                                    <option value="07">Julho</option><option value="08">Agosto</option>
-                                    <option value="09">Setembro</option><option value="10">Outubro</option>
-                                    <option value="11">Novembro</option><option value="12">Dezembro</option>
-                                </select>
-                                <!-- O select de anos será populado dinamicamente pelo app.js (Ano atual + 3 anos) -->
-                                <select id="filtro-ano" class="w-1/3 border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm cursor-pointer bg-white">
-                                    <option value="">Ano</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="w-full md:w-1/3 relative">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Dias da Semana (Múltiplos)</label>
-                            <button id="btn-dropdown-dias" class="w-full border border-slate-300 p-2 rounded-lg outline-none text-sm cursor-pointer bg-white flex justify-between items-center transition focus:border-blue-500 text-slate-700">
-                                <span id="label-dias-selecionados" class="truncate">6 dias selecionados</span>
-                                <svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </button>
-                            
-                            <div id="menu-dropdown-dias" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-30 p-2 flex flex-col gap-1 max-h-56 overflow-y-auto">
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Domingo" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer"> Domingo
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Segunda-feira" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Segunda-feira
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Terça-feira" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Terça-feira
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Quarta-feira" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Quarta-feira
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Quinta-feira" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Quinta-feira
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Sexta-feira" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Sexta-feira
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 hover:bg-slate-50 p-2 rounded transition">
-                                    <input type="checkbox" value="Sábado" class="filtro-dia-chk w-4 h-4 text-blue-600 rounded cursor-pointer" checked> Sábado
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="w-full md:w-1/3">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Pesquisar Descrição</label>
-                            <input type="text" id="filtro-desc" placeholder="Ex: Confraternização..." class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm">
-                        </div>
-                    </div>
-
-                    <!-- Tabela com altura mínima garantida de 75% da tela -->
-                    <div class="bg-white border border-slate-200 rounded-b-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[75vh]">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[75vh]">
                         <div class="overflow-x-auto overflow-y-auto flex-1 w-full bg-white relative">
                             <table class="w-full min-w-[700px] text-left border-separate border-spacing-0 table-fixed">
                                 <thead class="bg-slate-100 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                                     <tr>
-                                        <!-- Cabeçalho compacto de menor altura (py-3) -->
                                         <th class="py-3 px-2 text-xs font-bold text-slate-600 uppercase tracking-wider w-[7%] text-center bg-slate-100 border-b border-slate-200">Ação</th>
-                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] bg-slate-100 border-b border-slate-200">Data</th>
-                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[20%] bg-slate-100 border-b border-slate-200">Dia da Semana</th>
-                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] bg-slate-100 border-b border-slate-200">Tipo</th>
-                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[43%] bg-slate-100 border-b border-slate-200">Descrição</th>
+                                        
+                                        <!-- COLUNA: DATA -->
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] bg-slate-100 border-b border-slate-200 relative">
+                                            <div class="flex items-center justify-between">
+                                                <span>Data</span>
+                                                <button id="btn-filter-data" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Data">
+                                                    <span id="icon-filter-data">🔎</span>
+                                                </button>
+                                            </div>
+                                            <div id="modal-filter-data" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-64 text-normal font-normal text-slate-700">
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Filtrar por Mês/Ano</p>
+                                                <div class="space-y-2">
+                                                    <select id="popover-mes" class="w-full border border-slate-300 p-2 rounded-lg text-sm bg-white outline-none focus:border-blue-500">
+                                                        <option value="">Todos os Meses</option>
+                                                        <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                                                        <option value="03">Março</option><option value="04">Abril</option>
+                                                        <option value="05">Maio</option><option value="06">Junho</option>
+                                                        <option value="07">Julho</option><option value="08">Agosto</option>
+                                                        <option value="09">Setembro</option><option value="10">Outubro</option>
+                                                        <option value="11">Novembro</option><option value="12">Dezembro</option>
+                                                    </select>
+                                                    <select id="popover-ano" class="w-full border border-slate-300 p-2 rounded-lg text-sm bg-white outline-none focus:border-blue-500">
+                                                        <option value="">Todos os Anos</option>
+                                                    </select>
+                                                    <button id="apply-filter-data" class="w-full bg-blue-600 text-white font-bold py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">Aplicar Filtro</button>
+                                                </div>
+                                            </div>
+                                        </th>
+
+                                        <!-- COLUNA: DIA DA SEMANA -->
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[20%] bg-slate-100 border-b border-slate-200 relative">
+                                            <div class="flex items-center justify-between">
+                                                <span>Dia da Semana</span>
+                                                <button id="btn-filter-dia" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Dia da Semana">
+                                                    <span id="icon-filter-dia">🔎</span>
+                                                </button>
+                                            </div>
+                                            <div id="modal-filter-dia" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-60 text-normal font-normal text-slate-700">
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Dias</p>
+                                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Domingo" class="popover-dia-chk w-4 h-4 text-blue-600 rounded"> Domingo</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Segunda-feira" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Segunda-feira</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Terça-feira" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Terça-feira</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Quarta-feira" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Quarta-feira</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Quinta-feira" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Quinta-feira</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Sexta-feira" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Sexta-feira</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Sábado" class="popover-dia-chk w-4 h-4 text-blue-600 rounded" checked> Sábado</label>
+                                                </div>
+                                                <button id="apply-filter-dia" class="w-full mt-3 bg-blue-600 text-white font-bold py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">Aplicar Filtro</button>
+                                            </div>
+                                        </th>
+
+                                        <!-- COLUNA: TIPO -->
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] bg-slate-100 border-b border-slate-200 relative">
+                                            <div class="flex items-center justify-between">
+                                                <span>Tipo</span>
+                                                <button id="btn-filter-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Tipo">
+                                                    <span id="icon-filter-tipo">🔎</span>
+                                                </button>
+                                            </div>
+                                            <div id="modal-filter-tipo" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-normal font-normal text-slate-700">
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Tipos</p>
+                                                <div class="space-y-1.5">
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Feriado" class="popover-tipo-chk w-4 h-4 text-blue-600 rounded"> Feriado</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Ponte" class="popover-tipo-chk w-4 h-4 text-blue-600 rounded"> Ponte</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Domingo" class="popover-tipo-chk w-4 h-4 text-blue-600 rounded"> Domingo</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Reunião Pedagógica" class="popover-tipo-chk w-4 h-4 text-blue-600 rounded"> Reunião Pedagógica</label>
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer"><input type="checkbox" value="Cancelamento" class="popover-tipo-chk w-4 h-4 text-blue-600 rounded"> Cancelamento</label>
+                                                </div>
+                                                <button id="apply-filter-tipo" class="w-full mt-3 bg-blue-600 text-white font-bold py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">Aplicar Filtro</button>
+                                            </div>
+                                        </th>
+
+                                        <!-- COLUNA: DESCRIÇÃO -->
+                                        <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider w-[43%] bg-slate-100 border-b border-slate-200 relative">
+                                            <div class="flex items-center justify-between">
+                                                <span>Descrição</span>
+                                                <button id="btn-filter-desc" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Descrição">
+                                                    <span id="icon-filter-desc">🔎</span>
+                                                </button>
+                                            </div>
+                                            <div id="modal-filter-desc" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-64 text-normal font-normal text-slate-700">
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Pesquisar por Descrição</p>
+                                                <div class="space-y-2">
+                                                    <input type="text" id="popover-input-desc" placeholder="Ex: Natal, Páscoa..." class="w-full border border-slate-300 p-2 rounded-lg text-sm outline-none focus:border-blue-500">
+                                                    <button id="apply-filter-desc" class="w-full bg-blue-600 text-white font-bold py-1.5 rounded-lg text-xs hover:bg-blue-700 transition">Pesquisar</button>
+                                                </div>
+                                            </div>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-excecoes" class="divide-y divide-slate-100">
