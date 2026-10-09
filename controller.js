@@ -1,4 +1,4 @@
-// controller.js - Global (Permissões e Entidades Básicas)
+// controller.js - Regras de Negócio Globais
 window.Controller = {
     async obterPerfil(email, isSuperUser) {
         if (isSuperUser) return 'admin';
