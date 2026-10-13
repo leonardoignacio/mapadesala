@@ -1,6 +1,12 @@
 // views_calendario.js - Interface Visual da View Calendário e Exceções
 window.ViewsCalendario = {
     renderizar() {
+        const anoAtual = new Date().getFullYear();
+        const optionsAno = [0, 1, 2, 3].map(offset => {
+            const ano = anoAtual + offset;
+            return `<option value="${ano}">${ano}</option>`;
+        }).join('');
+
         return `
         <div class="px-4 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full">
             <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto">Calendário e Exceções</h1>
@@ -108,47 +114,62 @@ window.ViewsCalendario = {
             <div id="tab-editar" class="tab-content hidden space-y-6 overflow-y-auto pb-6">
                 <div class="w-full lg:w-[90%] mx-auto space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                        
+                        <!-- Lado Esquerdo: Processamento em Lote (Gerar Base & Importar Base) -->
                         <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                            <h2 class="font-bold mb-2 text-slate-800 text-base md:text-lg">Exportar Domingos</h2>
-                            <p class="text-sm md:text-base text-slate-500 mb-4">Gere e baixe arquivos para o ano letivo.</p>
-                            <div class="flex flex-col gap-3 mt-auto">
-                                <input type="number" id="ano-domingos" placeholder="Ex: 2027" class="border border-slate-300 rounded-lg px-4 py-2 w-full outline-none focus:border-blue-500 transition text-sm md:text-base">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h2 class="font-bold text-slate-800 text-base md:text-lg">Processamento em Lote (CSV)</h2>
+                                <button id="btn-help-lote" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-full text-xs font-bold inline-flex items-center justify-center cursor-pointer transition shadow-sm" title="Ajuda sobre a estrutura do arquivo">?</button>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <p class="text-sm md:text-base text-slate-600 font-bold mb-2">1. Gerar Calendário Base</p>
                                 <div class="flex gap-2">
-                                    <button id="btn-baixar-domingos" class="flex-1 bg-slate-800 text-white px-2 md:px-4 py-2 rounded-lg font-bold hover:bg-slate-900 transition shadow-sm text-xs md:text-sm whitespace-nowrap">Baixar JSON</button>
-                                    <button id="btn-baixar-domingos-csv" class="flex-1 bg-emerald-700 text-white px-2 md:px-4 py-2 rounded-lg font-bold hover:bg-emerald-800 transition shadow-sm text-xs md:text-sm whitespace-nowrap">Baixar CSV</button>
+                                    <select id="ano-domingos" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
+                                        ${optionsAno}
+                                    </select>
+                                    <button id="btn-baixar-domingos-csv" class="flex-1 bg-emerald-700 text-white px-2 md:px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-800 transition shadow-sm text-xs md:text-sm whitespace-nowrap">Baixar Modelo</button>
+                                </div>
+                            </div>
+
+                            <hr class="my-6 border-slate-200">
+
+                            <div class="mb-2">
+                                <p class="text-sm md:text-base text-slate-600 font-bold mb-2">2. Importar Calendário Modificado</p>
+                                <p class="text-xs md:text-sm text-slate-500 mb-3">Após ajustes de datas de feriados variáveis, carregue e processe o arquivo CSV.</p>
+                                <div class="flex flex-col gap-3">
+                                    <input type="file" id="arquivo-lote" accept=".csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-lg">
+                                    <button id="btn-carregar-lote" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-sm text-sm md:text-base">
+                                        Confirmar Processamento
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Lado Direito: Cadastro Manual Único -->
                         <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                             <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Cadastro Manual Único</h2>
                             <form id="form-excecao" class="space-y-3 md:space-y-4">
-                                <input type="date" id="exc-data" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
-                                <select id="exc-tipo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
-                                    <option value="Feriado">Feriado (Gera pontes automáticas)</option>
-                                    <option value="Reunião Pedagógica">Reunião Pedagógica</option>
-                                    <option value="Cancelamento">Cancelamento (Outros)</option>
-                                </select>
-                                <input type="text" id="exc-desc" placeholder="Descrição curta..." class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
-                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Salvar Exceção</button>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Data da Exceção</label>
+                                    <input type="date" id="exc-data" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Evento</label>
+                                    <select id="exc-tipo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
+                                        <option value="Feriado">Feriado (Gera pontes automáticas)</option>
+                                        <option value="Reunião Pedagógica">Reunião Pedagógica</option>
+                                        <option value="Cancelamento">Cancelamento (Outros)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Descrição</label>
+                                    <input type="text" id="exc-desc" placeholder="Ex: Antecipação de Feriado..." class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base mt-2">Salvar Exceção</button>
                             </form>
                         </div>
-                    </div>
 
-                    <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm mt-6">
-                        <div class="flex items-center gap-2 mb-2">
-                            <h2 class="font-bold text-slate-800 text-base md:text-lg">Carga em Lote (Importar JSON ou CSV)</h2>
-                            <button id="btn-help-lote" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-full text-xs font-bold inline-flex items-center justify-center cursor-pointer transition shadow-sm" title="Ajuda sobre a estrutura do arquivo">?</button>
-                        </div>
-                        <p class="text-sm md:text-base text-slate-500 mb-4 md:mb-6">Importe arquivos estruturados (.json ou .csv). O sistema converte automaticamente e ignora duplicadas.</p>
-                        <div class="flex flex-col md:flex-row gap-4 items-center">
-                            <div class="flex-1 w-full relative">
-                                <input type="file" id="arquivo-json" accept=".json, .csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 md:file:py-3 file:px-4 md:file:px-6 file:rounded-lg file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-lg">
-                            </div>
-                            <button id="btn-carregar-json" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold whitespace-nowrap transition shadow-sm text-sm md:text-base">
-                                Confirmar Processamento
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -158,20 +179,26 @@ window.ViewsCalendario = {
         <div id="modal-help-lote" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative fade-in text-slate-700 text-sm mx-4">
                 <button id="btn-close-help" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
-                <h3 class="font-bold text-base text-slate-800 mb-3">Instruções de Importação em Lote</h3>
-                <p class="text-slate-600 mb-3">O sistema aceita arquivos nos formatos <strong>.csv</strong> e <strong>.json</strong>. Veja abaixo a estrutura esperada:</p>
+                <h3 class="font-bold text-base text-slate-800 mb-4">Instruções de Processamento em Lote</h3>
                 
-                <div class="mb-3">
-                    <span class="font-semibold text-slate-700 block mb-1">Formato CSV (Separado por ponto e vírgula ou vírgula):</span>
-                    <pre class="bg-slate-100 p-2.5 rounded-lg text-xs font-mono text-slate-800 overflow-x-auto">data;excecao;descricao\n2026-01-01;Feriado;Confraternização Universal\n01/05/2026;Feriado;Dia do Trabalho</pre>
-                </div>
+                <ol class="list-decimal list-inside text-slate-600 mb-5 space-y-2">
+                    <li>Utilize o botão <span class="font-bold text-emerald-700">Baixar Modelo</span> para gerar o CSV base do ano letivo.</li>
+                    <li>Abra o arquivo gerado (preferencialmente no Bloco de Notas ou Excel).</li>
+                    <li>As primeiras linhas correspondem aos <strong>Feriados Variáveis</strong>. Digite as datas correspondentes no lugar do espaço vazio. A data deve estar no formato: <code class="bg-slate-100 text-slate-800 px-1 py-0.5 rounded">DD/MM/AAAA</code> ou <code class="bg-slate-100 text-slate-800 px-1 py-0.5 rounded">AAAA-MM-DD</code>.</li>
+                    <li>Salve o arquivo CSV e faça o upload no sistema.</li>
+                </ol>
 
-                <div class="mb-4">
-                    <span class="font-semibold text-slate-700 block mb-1">Formato JSON (Array de objetos):</span>
-                    <pre class="bg-slate-100 p-2.5 rounded-lg text-xs font-mono text-slate-800 overflow-x-auto">[\n  {\n    "data": "2026-01-01",\n    "excecao": "Feriado",\n    "descricao": "Confraternização Universal"\n  }\n]</pre>
+                <div class="mb-3">
+                    <span class="font-semibold text-slate-700 block mb-1">Exemplo de Arquivo CSV preenchido:</span>
+                    <pre class="bg-slate-100 p-3 rounded-lg text-xs font-mono text-slate-800 overflow-x-auto border border-slate-200">data;excecao;descricao
+09/02/2027;Feriado;Carnaval
+26/03/2027;Feriado;Paixão de Cristo
+2027-01-01;Feriado Nacional;Confraternização Universal</pre>
                 </div>
                 
-                <p class="text-xs text-slate-500">Nota: O campo <strong>excecao</strong> aceita valores como Feriado, Reunião Pedagógica ou Cancelamento. Datas duplicadas são ignoradas automaticamente.</p>
+                <p class="text-xs text-slate-500 mt-4 bg-blue-50 p-2 rounded-lg border border-blue-100">
+                    <span class="font-bold text-blue-700">Nota inteligente:</span> Se algum feriado variável ficar sem data na tabela CSV, o sistema o ignorará automaticamente. Da mesma forma, o sistema protege o banco de dados contra datas duplicadas.
+                </p>
             </div>
         </div>
         `;

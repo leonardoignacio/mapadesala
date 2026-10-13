@@ -250,37 +250,26 @@ window.AppCalendario = {
             return true;
         }
 
-        if (e.target.closest('#btn-baixar-domingos')) {
-            const ano = document.getElementById('ano-domingos').value;
-            if(!ano) { alert("Por favor, digite o ano desejado."); return true; }
-            const domingos = window.ControllerCalendario.gerarArrayDomingos(ano);
-            const blob = new Blob([JSON.stringify(domingos, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `domingos_${ano}.json`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-            return true;
-        }
-
+        // Aciona o download do calendário CSV completo
         if (e.target.closest('#btn-baixar-domingos-csv')) {
             const ano = document.getElementById('ano-domingos').value;
-            if(!ano) { alert("Por favor, digite o ano desejado."); return true; }
-            const domingos = window.ControllerCalendario.gerarArrayDomingos(ano);
+            if(!ano) { alert("Por favor, selecione o ano desejado."); return true; }
             
-            let csvContent = "data;excecao;descricao\n";
-            domingos.forEach(d => { csvContent += `${d.data};${d.excecao};${d.descricao}\n`; });
+            const csvContent = window.ControllerCalendario.gerarCalendarioBaseCSV(ano);
 
             const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `domingos_${ano}.csv`;
+            const a = document.createElement('a'); a.href = url; a.download = `calendario_base_${ano}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
             return true;
         }
 
-        if (e.target.closest('#btn-carregar-json')) {
-            const fileInput = document.getElementById('arquivo-json');
-            if(!fileInput.files.length) { alert("Escolha um arquivo .json ou .csv."); return true; }
+        // Upload do Arquivo (Processamento em Lote exclusivo via CSV)
+        if (e.target.closest('#btn-carregar-lote')) {
+            const fileInput = document.getElementById('arquivo-lote');
+            if(!fileInput.files.length) { alert("Por favor, selecione um arquivo .csv para processar."); return true; }
 
-            const btnConfirma = e.target.closest('#btn-carregar-json');
+            const btnConfirma = e.target.closest('#btn-carregar-lote');
             btnConfirma.innerText = "Processando...";
             btnConfirma.disabled = true;
 
@@ -292,9 +281,7 @@ window.AppCalendario = {
                     const conteudoTexto = event.target.result;
                     let dadosArray = [];
 
-                    if (file.name.endsWith('.json')) {
-                        dadosArray = JSON.parse(conteudoTexto);
-                    } else if (file.name.endsWith('.csv')) {
+                    if (file.name.endsWith('.csv')) {
                         const linhas = conteudoTexto.split(/\r\n|\n/);
                         if (linhas.length === 0) throw new Error("Arquivo CSV vazio.");
 
@@ -307,7 +294,7 @@ window.AppCalendario = {
                         const idxDesc = cabecalho.findIndex(h => h.includes('descricao'));
 
                         if (idxData === -1 || idxExc === -1) {
-                            throw new Error("O CSV precisa conter colunas para 'data' e 'excecao/tipo'.");
+                            throw new Error("O CSV precisa conter as colunas 'data' e 'excecao'.");
                         }
 
                         for (let i = 1; i < linhas.length; i++) {
@@ -315,6 +302,9 @@ window.AppCalendario = {
                             if (!linha) continue;
                             const colunas = linha.split(delimitador).map(c => c.trim().replace(/^"(.*)"$/, '$1'));
                             
+                            // Se a data estiver vazia (ex: Feriado variável não preenchido pelo usuário), nós ignoramos a linha
+                            if (!colunas[idxData] || colunas[idxData].trim() === "") continue;
+
                             if (colunas.length > idxData && colunas.length > idxExc) {
                                 dadosArray.push({
                                     data: colunas[idxData],
@@ -324,17 +314,17 @@ window.AppCalendario = {
                             }
                         }
                     } else {
-                        throw new Error("Formato de arquivo não suportado. Use .json ou .csv");
+                        throw new Error("Formato de arquivo não suportado. Por favor, utilize apenas arquivos .csv");
                     }
 
-                    if(!Array.isArray(dadosArray) || dadosArray.length === 0) {
-                        throw new Error("Nenhum dado válido encontrado no arquivo.");
+                    if(dadosArray.length === 0) {
+                        throw new Error("Nenhuma data válida encontrada no arquivo. Verifique se as datas foram preenchidas.");
                     }
 
                     const qtdInseridos = await window.ControllerCalendario.carregarExcecoesLote(dadosArray);
                     
                     if(qtdInseridos === 0) {
-                        alert("Concluído: Nenhuma nova data foi inserida (todas já existiam no banco).");
+                        alert("Concluído: Nenhuma nova data foi inserida (todas já existiam no sistema).");
                     } else {
                         alert(`Sucesso! ${qtdInseridos} novas exceções/pontes foram inseridas.`);
                         this.atualizarTabelaExcecoes(); 
@@ -362,7 +352,7 @@ window.AppCalendario = {
             return true;
         }
 
-        if (!e.target.closest('th')) {
+        if (!e.target.closest('th') && !e.target.closest('#modal-help-lote')) {
             this.fecharTodosModais();
         }
 

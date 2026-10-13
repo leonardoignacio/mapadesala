@@ -64,23 +64,52 @@ window.ControllerCalendario = {
         return pontes;
     },
 
-    gerarArrayDomingos(ano) {
+    // Nova Função Unificada: Gera o CSV completo e estruturado para o ano
+    gerarCalendarioBaseCSV(ano) {
         const anoInt = parseInt(ano);
-        let dataAtual = new Date(anoInt, 0, 1);
-        const domingos = [];
+        let csv = "data;excecao;descricao\n";
+        
+        // 1. Feriados com datas variáveis no topo (Campo Data Vazio)
+        csv += ";Feriado;Carnaval\n";
+        csv += ";Feriado;Paixão de Cristo (Sexta-feira Santa)\n";
+        csv += ";Feriado;Páscoa\n";
+        csv += ";Feriado;Corpus Christi\n";
+        
+        // 2. Feriados fixos (Nacionais, Estaduais SP e Municipais Catanduva)
+        const feriadosFixos = [
+            { data: `${anoInt}-01-01`, tipo: "Feriado Nacional", desc: "Confraternização Universal" },
+            { data: `${anoInt}-04-14`, tipo: "Feriado Municipal", desc: "Aniversário de Catanduva" },
+            { data: `${anoInt}-04-21`, tipo: "Feriado Nacional", desc: "Tiradentes" },
+            { data: `${anoInt}-05-01`, tipo: "Feriado Nacional", desc: "Dia Mundial do Trabalho" },
+            { data: `${anoInt}-07-09`, tipo: "Feriado Estadual", desc: "Revolução Constitucionalista de 1932" },
+            { data: `${anoInt}-08-08`, tipo: "Feriado Municipal", desc: "São Domingos de Gusmão (Padroeiro de Catanduva)" },
+            { data: `${anoInt}-09-07`, tipo: "Feriado Nacional", desc: "Independência do Brasil" },
+            { data: `${anoInt}-10-12`, tipo: "Feriado Nacional", desc: "Nossa Senhora Aparecida" },
+            { data: `${anoInt}-11-02`, tipo: "Feriado Nacional", desc: "Finados" },
+            { data: `${anoInt}-11-15`, tipo: "Feriado Nacional", desc: "Proclamação da República" },
+            { data: `${anoInt}-11-20`, tipo: "Feriado Nacional", desc: "Dia Nacional de Zumbi e da Consciência Negra" },
+            { data: `${anoInt}-12-25`, tipo: "Feriado Nacional", desc: "Natal" }
+        ];
 
+        // Ordena os feriados fixos cronologicamente
+        feriadosFixos.sort((a, b) => a.data.localeCompare(b.data));
+        feriadosFixos.forEach(f => {
+            csv += `${f.data};${f.tipo};${f.desc}\n`;
+        });
+
+        // 3. Domingos do ano
+        let dataAtual = new Date(anoInt, 0, 1);
         while (dataAtual.getFullYear() === anoInt) {
             if (dataAtual.getDay() === 0) { 
-                const dataFormatada = new Date(dataAtual.getTime() - (dataAtual.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                domingos.push({ 
-                    data: dataFormatada, 
-                    excecao: "Domingo", 
-                    descricao: "Descanso Automático"
-                });
+                const mesPad = String(dataAtual.getMonth() + 1).padStart(2, '0');
+                const diaPad = String(dataAtual.getDate()).padStart(2, '0');
+                const dataFormatada = `${anoInt}-${mesPad}-${diaPad}`;
+                csv += `${dataFormatada};Domingo;Descanso Automático\n`;
             }
             dataAtual.setDate(dataAtual.getDate() + 1);
         }
-        return domingos;
+
+        return csv;
     },
 
     async listarExcecoes() {
