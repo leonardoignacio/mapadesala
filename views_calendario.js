@@ -28,19 +28,29 @@ window.ViewsCalendario = {
                                         
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[22%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Data</span>
-                                                <button id="btn-filter-data" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Data"><span id="icon-filter-data">🔎</span></button>
+                                                <span>Data 
+                                                <button id="btn-filter-data" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Data"><span id="icon-filter-data">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-data" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700">
-                                                <p class="text-xs font-bold text-slate-500 mb-2">Filtrar por Mês/Ano</p>
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Mês</p>
+                                                <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1 mb-3">
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Todos" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Todos os Meses</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="01" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Janeiro</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="02" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Fevereiro</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="03" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Março</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="04" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Abril</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="05" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Maio</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="06" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Junho</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="07" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Julho</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="08" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Agosto</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="09" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Setembro</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="10" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Outubro</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="11" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Novembro</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="12" class="popover-mes-chk w-4 h-4 text-blue-600 rounded" checked> Dezembro</label>
+                                                </div>
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Ano</p>
                                                 <div class="space-y-2">
-                                                    <select id="popover-mes" class="w-full border border-slate-300 p-2 rounded-lg text-sm bg-white outline-none focus:border-blue-500">
-                                                        <option value="">Todos os Meses</option>
-                                                        <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option>
-                                                        <option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option>
-                                                        <option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-                                                    </select>
-                                                    <select id="popover-ano" class="w-full border border-slate-300 p-2 rounded-lg text-sm bg-white outline-none focus:border-blue-500">
+                                                    <select id="popover-ano" class="w-full border border-slate-300 p-2 rounded-lg text-sm bg-white outline-none focus:border-blue-500 cursor-pointer">
                                                         <option value="">Todos os Anos</option>
                                                     </select>
                                                     <button id="apply-filter-data" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
@@ -50,8 +60,8 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[25%] md:w-[20%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Dia da Semana</span>
-                                                <button id="btn-filter-dia" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Dia da Semana"><span id="icon-filter-dia">🔎</span></button>
+                                                <span>Dia da Semana 
+                                                <button id="btn-filter-dia" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Dia da Semana"><span id="icon-filter-dia">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-dia" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-60 text-sm font-normal text-slate-700">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Dias</p>
@@ -70,8 +80,8 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[18%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Tipo</span>
-                                                <button id="btn-filter-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Tipo"><span id="icon-filter-tipo">🔎</span></button>
+                                                <span>Tipo
+                                                <button id="btn-filter-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Tipo"><span id="icon-filter-tipo">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-tipo" class="hidden absolute top-full right-0 md:left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Tipos</p>
@@ -88,8 +98,8 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[23%] md:w-[43%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Descrição</span>
-                                                <button id="btn-filter-desc" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Descrição"><span id="icon-filter-desc">🔎</span></button>
+                                                <span>Descrição 
+                                                <button id="btn-filter-desc" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Descrição"><span id="icon-filter-desc">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-desc" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Pesquisar por Descrição</p>
@@ -123,7 +133,8 @@ window.ViewsCalendario = {
                             </div>
                             
                             <div class="mt-4">
-                                <p class="text-sm md:text-base text-slate-600 font-bold mb-2">1. Gerar Calendário Base</p>
+                                <p class="text-sm md:text-base text-slate-600 font-bold my-1">1. Gerar Calendário Base</p>
+                                <p class="text-xs md:text-sm text-slate-500 mb-3">Gere um modelo em CSV contendo os domingos e feriados.</p>
                                 <div class="flex gap-2">
                                     <select id="ano-domingos" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
                                         ${optionsAno}
@@ -135,8 +146,7 @@ window.ViewsCalendario = {
                             <hr class="my-6 border-slate-200">
 
                             <div class="mb-2">
-                                <p class="text-sm md:text-base text-slate-600 font-bold mb-2">2. Importar Calendário Modificado</p>
-                                <p class="text-xs md:text-sm text-slate-500 mb-3">Após ajustes de datas de feriados variáveis, carregue e processe o arquivo CSV.</p>
+                                <p class="text-sm md:text-base text-slate-600 font-bold my-2">2. Importar Calendário Modificado</p>
                                 <div class="flex flex-col gap-3">
                                     <input type="file" id="arquivo-lote" accept=".csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-lg">
                                     <button id="btn-carregar-lote" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-sm text-sm md:text-base">
