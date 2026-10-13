@@ -64,18 +64,17 @@ window.ControllerCalendario = {
         return pontes;
     },
 
-    // Nova Função Unificada: Gera o CSV completo e estruturado para o ano
     gerarCalendarioBaseCSV(ano) {
         const anoInt = parseInt(ano);
         let csv = "data;excecao;descricao\n";
         
-        // 1. Feriados com datas variáveis no topo (Campo Data Vazio)
+        // 1. Feriados com datas variáveis no topo com data vazia
         csv += ";Feriado;Carnaval\n";
         csv += ";Feriado;Paixão de Cristo (Sexta-feira Santa)\n";
         csv += ";Feriado;Páscoa\n";
         csv += ";Feriado;Corpus Christi\n";
         
-        // 2. Feriados fixos (Nacionais, Estaduais SP e Municipais Catanduva)
+        // 2. Feriados fixos (nacionais, estaduais de SP e municipais de Catanduva)
         const feriadosFixos = [
             { data: `${anoInt}-01-01`, tipo: "Feriado Nacional", desc: "Confraternização Universal" },
             { data: `${anoInt}-04-14`, tipo: "Feriado Municipal", desc: "Aniversário de Catanduva" },
@@ -91,7 +90,6 @@ window.ControllerCalendario = {
             { data: `${anoInt}-12-25`, tipo: "Feriado Nacional", desc: "Natal" }
         ];
 
-        // Ordena os feriados fixos cronologicamente
         feriadosFixos.sort((a, b) => a.data.localeCompare(b.data));
         feriadosFixos.forEach(f => {
             csv += `${f.data};${f.tipo};${f.desc}\n`;

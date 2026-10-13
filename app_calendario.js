@@ -46,7 +46,6 @@ window.AppCalendario = {
     atualizarIconesFiltro() {
         const iconData = document.getElementById('icon-filter-data');
         if (iconData) {
-            // Está ativo (com x) se NÃO estiver em "Todos" ou se alterou o ano atual
             const ativo = (!filtrosEstado.data.meses.includes("Todos") || filtrosEstado.data.ano !== anoCorrente);
             iconData.textContent = ativo ? "✖️" : "🔎";
             iconData.parentElement.title = ativo ? "Remover Filtro de Data" : "Filtrar Data";
@@ -84,7 +83,6 @@ window.AppCalendario = {
             const [anoItem, mesItem, diaItem] = item.data.split('-');
             
             const matchAno = filtrosEstado.data.ano ? (anoItem === filtrosEstado.data.ano) : true;
-            // Se "Todos" estiver na lista, exibe qualquer mês. Se estiver vazio, não exibe nada (matchMes = false).
             const matchMes = filtrosEstado.data.meses.includes("Todos") ? true : filtrosEstado.data.meses.includes(mesItem);
             const matchDia = filtrosEstado.dias.length === 0 ? true : filtrosEstado.dias.includes(item.dia_semana);
             const matchTipo = filtrosEstado.tipo.length === 0 ? true : filtrosEstado.tipo.some(t => t.toLowerCase() === (item.excecao || "").toLowerCase());
@@ -133,31 +131,24 @@ window.AppCalendario = {
 
     async tratarCliques(e) {
         
-        // --- Lógica Interativa das Checkboxes de Meses ---
         if (e.target.classList.contains('popover-mes-chk')) {
             const chkTodos = document.querySelector('.popover-mes-chk[value="Todos"]');
             const chkMeses = Array.from(document.querySelectorAll('.popover-mes-chk')).filter(chk => chk.value !== "Todos");
 
             if (e.target.value === "Todos") {
-                // Se clicou em "Todos", replica o estado para todos os meses
                 const isChecked = e.target.checked;
                 chkMeses.forEach(chk => chk.checked = isChecked);
             } else {
-                // Se clicou em um mês específico
                 if (!e.target.checked) {
-                    // Se desmarcou um único mês, "Todos" não pode estar marcado
                     if (chkTodos) chkTodos.checked = false;
                 } else {
-                    // Se marcou um mês, valida se todos os 12 ficaram marcados. Se sim, marca "Todos"
                     const todosMarcados = chkMeses.every(chk => chk.checked);
                     if (chkTodos) chkTodos.checked = todosMarcados;
                 }
             }
-            // Retorna sem fechar modal, permitindo multiplos cliques
             return true;
         }
 
-        // --- Modais de Ajuda ---
         if (e.target.closest('#btn-help-lote')) {
             this.fecharTodosModais('modal-help-lote');
             document.getElementById('modal-help-lote')?.classList.remove('hidden');
@@ -168,12 +159,10 @@ window.AppCalendario = {
             return true;
         }
 
-        // --- Botões de Filtragem (Abrir e Limpar Popovers) ---
         const btnData = e.target.closest('#btn-filter-data');
         if (btnData) {
             const ativo = (!filtrosEstado.data.meses.includes("Todos") || filtrosEstado.data.ano !== anoCorrente);
             if (ativo) {
-                // Se ativo, clicar no ícone limpa o filtro de data restaurando o padrão
                 filtrosEstado.data = { meses: ["Todos"], ano: anoCorrente };
                 this.renderizarTabelaExcecoes();
             } else {
@@ -182,10 +171,9 @@ window.AppCalendario = {
                 modal.classList.toggle('hidden');
                 if (!modal.classList.contains('hidden')) {
                     this.popularSelectAnosPopover();
-                    // Restaura estado visual dos checkboxes com base no state global
                     document.querySelectorAll('.popover-mes-chk').forEach(chk => {
                         if (filtrosEstado.data.meses.includes("Todos")) {
-                            chk.checked = true; // Se "Todos" está no estado, todos aparecem marcados
+                            chk.checked = true;
                         } else {
                             chk.checked = filtrosEstado.data.meses.includes(chk.value);
                         }
@@ -254,14 +242,13 @@ window.AppCalendario = {
             return true;
         }
 
-        // --- Botões de APLICAR FILTRO dentro dos popovers ---
         if (e.target.closest('#apply-filter-data')) {
             const checkedChks = Array.from(document.querySelectorAll('.popover-mes-chk:checked')).map(chk => chk.value);
             
             if (checkedChks.includes("Todos")) {
                 filtrosEstado.data.meses = ["Todos"];
             } else {
-                filtrosEstado.data.meses = checkedChks; // Salva o array exato de meses selecionados
+                filtrosEstado.data.meses = checkedChks;
             }
             
             filtrosEstado.data.ano = document.getElementById('popover-ano').value;
@@ -293,10 +280,9 @@ window.AppCalendario = {
             return true;
         }
 
-        // --- Botões de Processamento em Lote (Upload/Download CSV) ---
         if (e.target.closest('#btn-baixar-domingos-csv')) {
             const ano = document.getElementById('ano-domingos').value;
-            if(!ano) { alert("Por favor, selecione o ano desejado."); return true; }
+            if(!ano || ano.length !== 4) { alert("Por favor, informe um ano com 4 dígitos."); return true; }
             
             const csvContent = window.ControllerCalendario.gerarCalendarioBaseCSV(ano);
 
@@ -393,7 +379,6 @@ window.AppCalendario = {
             return true;
         }
 
-        // Fechar modais ao clicar fora
         if (!e.target.closest('th') && !e.target.closest('#modal-help-lote')) {
             this.fecharTodosModais();
         }

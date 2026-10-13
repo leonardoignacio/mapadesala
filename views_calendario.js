@@ -21,14 +21,15 @@ window.ViewsCalendario = {
                 <div class="w-full lg:w-[90%] mx-auto flex-1 flex flex-col overflow-hidden">
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[75vh]">
                         <div class="overflow-x-auto overflow-y-auto flex-1 w-full bg-white relative">
-                            <table class="w-full text-left border-separate border-spacing-0 table-fixed min-w-[700px]">
+                            <!-- Removido o min-w-[700px] para garantir a fluidez em telas mobile -->
+                            <table class="w-full text-left border-separate border-spacing-0 table-fixed">
                                 <thead class="bg-slate-100 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                                     <tr>
                                         <th class="p-2 md:py-3 md:px-2 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[12%] md:w-[7%] text-center bg-slate-100 border-b border-slate-200">Ação</th>
                                         
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[22%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Data 
+                                                <span class="flex items-center gap-1">Data 
                                                 <button id="btn-filter-data" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Data"><span id="icon-filter-data">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-data" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700">
@@ -60,7 +61,7 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[25%] md:w-[20%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Dia da Semana 
+                                                <span class="flex items-center gap-1">Dia da Semana 
                                                 <button id="btn-filter-dia" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Dia da Semana"><span id="icon-filter-dia">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-dia" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-60 text-sm font-normal text-slate-700">
@@ -80,7 +81,7 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[18%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Tipo
+                                                <span class="flex items-center gap-1">Tipo
                                                 <button id="btn-filter-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Tipo"><span id="icon-filter-tipo">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-tipo" class="hidden absolute top-full right-0 md:left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700">
@@ -98,7 +99,7 @@ window.ViewsCalendario = {
 
                                         <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[23%] md:w-[43%] bg-slate-100 border-b border-slate-200 relative">
                                             <div class="flex items-center justify-between">
-                                                <span>Descrição 
+                                                <span class="flex items-center gap-1">Descrição 
                                                 <button id="btn-filter-desc" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none" title="Filtrar Descrição"><span id="icon-filter-desc">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-desc" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700">
@@ -137,19 +138,17 @@ window.ViewsCalendario = {
                                 <p class="text-xs md:text-sm text-slate-500 mb-3">Gere um modelo em CSV contendo os domingos e feriados.</p>
                                 <div class="flex gap-2">
                                     <input 
-                                        type="numeric" 
+                                        type="text" 
                                         id="ano-domingos" 
                                         list="opcoes-ano-domingos" 
                                         class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base"
                                         placeholder="ex.: 2027"
-                                        mimlength="4"
+                                        minlength="4"
                                         maxlength="4"
-                                        pattern="\d{4}"
+                                        pattern="\\d{4}"
                                         inputmode="numeric"
                                         oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                     >
-
-                                    <!-- O datalist armazena as opções e deve ter o ID igual ao atributo list do input -->
                                     <datalist id="opcoes-ano-domingos">
                                         ${optionsAno}
                                     </datalist>
