@@ -136,9 +136,23 @@ window.ViewsCalendario = {
                                 <p class="text-sm md:text-base text-slate-600 font-bold my-1">1. Gerar Calendário Base</p>
                                 <p class="text-xs md:text-sm text-slate-500 mb-3">Gere um modelo em CSV contendo os domingos e feriados.</p>
                                 <div class="flex gap-2">
-                                    <select id="ano-domingos" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
+                                    <input 
+                                        type="numeric" 
+                                        id="ano-domingos" 
+                                        list="opcoes-ano-domingos" 
+                                        class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base"
+                                        placeholder="ex.: 2027"
+                                        mimlength="4"
+                                        maxlength="4"
+                                        pattern="\d{4}"
+                                        inputmode="numeric"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                    >
+
+                                    <!-- O datalist armazena as opções e deve ter o ID igual ao atributo list do input -->
+                                    <datalist id="opcoes-ano-domingos">
                                         ${optionsAno}
-                                    </select>
+                                    </datalist>
                                     <button id="btn-baixar-domingos-csv" class="flex-1 bg-emerald-700 text-white px-2 md:px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-800 transition shadow-sm text-xs md:text-sm whitespace-nowrap">Baixar Modelo</button>
                                 </div>
                             </div>
