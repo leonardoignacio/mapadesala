@@ -12,19 +12,6 @@ window.Controller = {
         await window.db.collection("usuarios_permissoes").doc(email).set({ cargo, data: new Date() });
     },
 
-    async salvarCurso(nome) { 
-        await window.db.collection("cursos").add({ nome }); 
-    },
-
-    async salvarUC(idCurso, nome, descricao, cargaHoraria) {
-        await window.db.collection("ucs").add({ 
-            id_curso: idCurso, 
-            nome: nome, 
-            descricao: descricao, 
-            carga_horaria_minima: parseInt(cargaHoraria) 
-        });
-    },
-
     async listarDocs(colecao) {
         const snap = await window.db.collection(colecao).get();
         return snap.docs.map(d => ({ id: d.id, ...d.data() }));

@@ -2,7 +2,6 @@
 window.Views = {
     sidebar(usuario, isCollapsed = false) {
         const isAdmin = usuario.cargo === 'admin';
-        // A lógica de responsividade aplica-se via app.js
         const asideClass = isCollapsed ? 'w-16 md:w-20' : 'w-64 absolute md:relative z-50 h-full';
         const textClass = isCollapsed ? 'hidden' : '';
         const paddingClass = isCollapsed ? 'px-0 justify-center' : 'px-4';
@@ -19,46 +18,41 @@ window.Views = {
         };
 
         return `
-        <aside id="main-sidebar" class="${asideClass} bg-white border-r border-slate-200 flex flex-col justify-between transition-all duration-300 flex-shrink-0 shadow-sm relative">
+        <aside id="main-sidebar" class="hidden bg-white border-r border-slate-200 flex-col justify-between z-50 md:z-30 transition-transform duration-300 shadow-xl md:shadow-sm">
             <div>
                 <div class="h-16 flex items-center justify-between px-4 border-b border-slate-100 overflow-hidden">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold flex-shrink-0">IT</div>
-                        <span class="font-bold text-lg sidebar-text ${textClass} whitespace-nowrap">InovaTech</span>
+                        <span class="font-bold text-lg sidebar-text whitespace-nowrap">InovaTech</span>
                     </div>
-                    <button id="btn-toggle-sidebar" class="text-slate-400 hover:text-blue-600 focus:outline-none flex-shrink-0 ${isCollapsed ? 'hidden' : ''}" title="Ocultar Menu">
+                    <button id="btn-toggle-sidebar" class="text-slate-400 hover:text-blue-600 focus:outline-none flex-shrink-0 hidden md:block" title="Ocultar Menu">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
                     </button>
-                    <button id="btn-toggle-sidebar-open" class="text-slate-400 hover:text-blue-600 focus:outline-none flex-shrink-0 mx-auto ${!isCollapsed ? 'hidden' : ''}" title="Expandir Menu">
+                    <button id="btn-toggle-sidebar-open" class="text-slate-400 hover:text-blue-600 focus:outline-none flex-shrink-0 mx-auto hidden" title="Expandir Menu">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
                 </div>
                 <nav class="p-4 space-y-2 text-sm font-medium">
-                    <a href="#/dashboard" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Dashboard">${icons.dashboard} <span class="sidebar-text ${textClass} whitespace-nowrap">Dashboard</span></a>
-                    <a href="#/excecoes" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Calendário / Exceções">${icons.excecoes} <span class="sidebar-text ${textClass} whitespace-nowrap">Calendário / Exceções</span></a>
-                    <a href="#/cursos" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Cursos e UCs">${icons.cursos} <span class="sidebar-text ${textClass} whitespace-nowrap">Cursos e UCs</span></a>
-                    <a href="#/turmas" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Turmas">${icons.turmas} <span class="sidebar-text ${textClass} whitespace-nowrap">Turmas</span></a>
-                    <a href="#/docentes" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Docentes">${icons.docentes} <span class="sidebar-text ${textClass} whitespace-nowrap">Docentes</span></a>
-                    <a href="#/espelho" class="flex items-center gap-3 ${paddingClass} py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Espelho de Classe">${icons.espelho} <span class="sidebar-text ${textClass} whitespace-nowrap">Espelho de Classe</span></a>
-                    ${isAdmin ? `<a href="#/admin" class="flex items-center gap-3 ${paddingClass} py-3 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Painel Admin">${icons.admin} <span class="sidebar-text ${textClass} whitespace-nowrap">Painel Admin</span></a>` : ''}
+                    <a href="#/dashboard" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Dashboard">${icons.dashboard} <span class="sidebar-text whitespace-nowrap">Dashboard</span></a>
+                    <a href="#/excecoes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Calendário / Exceções">${icons.excecoes} <span class="sidebar-text whitespace-nowrap">Calendário / Exceções</span></a>
+                    <a href="#/cursos" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Cursos e UCs">${icons.cursos} <span class="sidebar-text whitespace-nowrap">Cursos e UCs</span></a>
+                    <a href="#/turmas" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Turmas">${icons.turmas} <span class="sidebar-text whitespace-nowrap">Turmas</span></a>
+                    <a href="#/docentes" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Docentes">${icons.docentes} <span class="sidebar-text whitespace-nowrap">Docentes</span></a>
+                    <a href="#/espelho" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors" title="Espelho de Classe">${icons.espelho} <span class="sidebar-text whitespace-nowrap">Espelho de Classe</span></a>
+                    ${isAdmin ? `<a href="#/admin" class="flex items-center gap-3 px-4 py-3 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors" title="Painel Admin">${icons.admin} <span class="sidebar-text whitespace-nowrap">Painel Admin</span></a>` : ''}
                 </nav>
             </div>
-            <div class="p-4 bg-slate-50 border-t border-slate-200 overflow-hidden flex flex-col ${isCollapsed ? 'items-center px-0' : ''}">
-                <p class="text-xs font-bold truncate sidebar-text ${textClass}" title="${usuario.email}">${usuario.email}</p>
-                <p class="text-xs text-slate-500 uppercase sidebar-text ${textClass} mt-1">${usuario.cargo}</p>
-                <button id="btn-logout" class="text-xs text-red-600 font-bold mt-2 hover:underline sidebar-text ${textClass} text-left w-full">Sair do Sistema</button>
-                <button id="btn-logout-icon" class="text-red-600 hover:text-red-800 ${!isCollapsed ? 'hidden' : ''}" title="Sair do Sistema">${icons.logout}</button>
+            <div class="p-4 bg-slate-50 border-t border-slate-200 overflow-hidden flex flex-col items-center md:items-start px-0 md:px-4">
+                <p class="text-xs font-bold truncate sidebar-text" title="${usuario.email}">${usuario.email}</p>
+                <p class="text-xs text-slate-500 uppercase sidebar-text mt-1">${usuario.cargo}</p>
+                <button id="btn-logout" class="text-xs text-red-600 font-bold mt-2 hover:underline sidebar-text text-left w-full">Sair do Sistema</button>
+                <button id="btn-logout-icon" class="text-red-600 hover:text-red-800 hidden" title="Sair do Sistema">${icons.logout}</button>
             </div>
         </aside>
         `;
     },
 
-    async cursos() {
-        const cursosList = await window.Controller.listarDocs("cursos");
-        const optionsCursos = cursosList.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-        return `<div class="p-4 md:p-8 fade-in flex-1 overflow-y-auto"><h1 class="text-2xl font-bold mb-6 text-slate-800 w-full lg:w-[90%] mx-auto">Cadastro de Cursos e UCs</h1><div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full lg:w-[90%] mx-auto"><div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><h2 class="font-bold mb-4 text-lg">Adicionar Curso Base</h2><form id="form-curso" class="space-y-4"><input type="text" id="curso-nome" placeholder="Ex: Técnico em Informática" class="w-full border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 text-base" required><button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition text-base">Salvar Curso</button></form></div><div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm"><h2 class="font-bold mb-4 text-lg">Adicionar UC ou Curso Livre</h2><form id="form-uc" class="space-y-4"><select id="uc-idcurso" class="w-full border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 text-base" required><option value="" disabled selected>Vincular a qual curso?</option>${optionsCursos}</select><input type="text" id="uc-nome" placeholder="Ex: Lógica de Programação" class="w-full border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 text-base" required><select id="uc-tipo" class="w-full border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 text-base" required><option value="UC">Unidade Curricular (UC)</option><option value="Curso Livre">Curso Livre</option></select><input type="number" id="uc-ch" placeholder="Carga Horária Mínima (Ex: 108)" class="w-full border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 text-base" required><button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition text-base">Salvar UC</button></form></div></div></div>`;
-    },
-    dashboard() { return `<div class="p-4 md:p-8 fade-in flex-1"><h1 class="text-2xl font-bold w-full lg:w-[90%] mx-auto">Dashboard Executivo</h1><div class="w-full lg:w-[90%] mx-auto"><button onclick="window.location.hash='#/turmas'" class="mt-4 bg-blue-600 text-white font-bold px-4 py-2 rounded shadow-sm">+ Configurar Nova Turma</button></div></div>`; },
+    dashboard() { return `<div class="p-4 md:p-8 fade-in flex-1"><h1 class="text-2xl font-bold w-full lg:w-[90%] mx-auto">Dashboard Executivo</h1></div>`; },
     turmas() { return `<div class="p-4 md:p-8 fade-in flex-1"><h1 class="text-2xl font-bold w-full lg:w-[90%] mx-auto">Turmas</h1></div>`; },
     docentes() { return `<div class="p-4 md:p-8 fade-in flex-1"><h1 class="text-2xl font-bold w-full lg:w-[90%] mx-auto">Docentes</h1></div>`; },
     espelho() { return `<div class="p-4 md:p-8 fade-in flex-1"><h1 class="text-2xl font-bold w-full lg:w-[90%] mx-auto">Espelho de Classe</h1></div>`; },

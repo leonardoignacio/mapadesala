@@ -48,18 +48,29 @@
     <!-- SPA Root -->
     <main id="app-root" class="flex-1 flex hidden"></main>
 
-    <!-- Scripts Firebase v8 Compat (Essenciais para rodar localmente) -->
+    <!-- Scripts Firebase v8 Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <!-- Arquivos Modulares da Aplicação -->
     <script src="firebase-config.js"></script>
+    
+    <!-- Módulos Globais -->
     <script src="controller.js"></script>
-    <script src="controller_calendario.js"></script>
     <script src="views.js"></script>
+    
+    <!-- Módulo: Calendário -->
+    <script src="controller_calendario.js"></script>
     <script src="views_calendario.js"></script>
     <script src="app_calendario.js"></script>
+    
+    <!-- Módulo: Cursos -->
+    <script src="controller_cursos.js"></script>
+    <script src="views_cursos.js"></script>
+    <script src="app_cursos.js"></script>
+    
+    <!-- Orquestrador -->
     <script src="app.js"></script>
 </body>
 </html>

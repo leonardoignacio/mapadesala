@@ -3,7 +3,6 @@ const EMAIL_SUPERUSUARIO = "leoignacio@gmail.com";
 
 window.usuarioAtual = { email: null, cargo: null };
 
-// Inicia colapsado se for mobile (menor que 768px), aberto se for desktop
 let isSidebarCollapsed = window.innerWidth < 768; 
 
 const UI = {
@@ -12,9 +11,6 @@ const UI = {
     root: document.getElementById('app-root')
 };
 
-// ==========================================
-// 1. AUTENTICAÇÃO
-// ==========================================
 window.auth.onAuthStateChanged(async (user) => {
     if (user) {
         UI.login.classList.add('hidden');
@@ -57,9 +53,6 @@ document.getElementById('btn-primeiro-acesso').onclick = () => {
         .catch(err => alert(err.message));
 };
 
-// ==========================================
-// 2. CONTROLE VISUAL (SIDEBAR RESPONSIVA)
-// ==========================================
 function applySidebarState() {
     const sidebar = document.getElementById('main-sidebar');
     if(!sidebar) return;
@@ -120,9 +113,6 @@ window.addEventListener('resize', () => {
     }
 });
 
-// ==========================================
-// 3. ROTEAMENTO
-// ==========================================
 async function roteador() {
     let hash = window.location.hash || '#/dashboard';
     if(hash === '#/admin' && window.usuarioAtual.cargo !== 'admin') { window.location.hash = '#/dashboard'; return; }
@@ -149,7 +139,10 @@ async function roteador() {
             viewContainer.innerHTML = window.ViewsCalendario.renderizar(); 
             if (window.AppCalendario) await window.AppCalendario.iniciarView();
             break;
-        case '#/cursos': viewContainer.innerHTML = await window.Views.cursos(); break;
+        case '#/cursos': 
+            viewContainer.innerHTML = window.ViewsCursos.renderizar(); 
+            if (window.AppCursos) await window.AppCursos.iniciarView();
+            break;
         case '#/turmas': viewContainer.innerHTML = window.Views.turmas(); break;
         case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
         case '#/espelho': viewContainer.innerHTML = window.Views.espelho(); break;
@@ -159,43 +152,29 @@ async function roteador() {
 }
 window.addEventListener('hashchange', roteador);
 
-// ==========================================
-// 4. DELEGAÇÃO DE EVENTOS GLOBAIS
-// ==========================================
 document.addEventListener('submit', async (e) => {
     if(window.usuarioAtual.cargo === 'apoio') { e.preventDefault(); return alert("Acesso de Leitura Apenas."); }
     
     if (window.AppCalendario && await window.AppCalendario.tratarSubmits(e)) return;
+    if (window.AppCursos && await window.AppCursos.tratarSubmits(e)) return;
 
-    if(e.target.id === 'form-curso') { e.preventDefault(); await window.Controller.salvarCurso(document.getElementById('curso-nome').value); alert("Curso salvo!"); roteador(); }
-    if(e.target.id === 'form-uc') { e.preventDefault(); await window.Controller.salvarUC(document.getElementById('uc-idcurso').value, document.getElementById('uc-nome').value, document.getElementById('uc-tipo').value, document.getElementById('uc-ch').value); alert("UC salva!"); e.target.reset(); }
     if(e.target.id === 'form-admin') { e.preventDefault(); await window.Controller.salvarPermissao(document.getElementById('admin-email').value, document.getElementById('admin-cargo').value); alert("Permissão inserida!"); e.target.reset(); }
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.id === 'popover-input-desc') {
-        e.preventDefault();
-        document.getElementById('apply-filter-desc')?.click();
-    }
 });
 
 document.addEventListener('click', async (e) => {
     
-    // Toggle Menu Mobile
     if (e.target.closest('#btn-mobile-menu')) {
         isSidebarCollapsed = !isSidebarCollapsed;
         applySidebarState();
         return;
     }
 
-    // Toggle Sidebar PC
     if(e.target.closest('#btn-toggle-sidebar') || e.target.closest('#btn-toggle-sidebar-open')) {
         isSidebarCollapsed = !isSidebarCollapsed;
         applySidebarState();
         return;
     }
 
-    // Oculta menu no mobile se clicar em um link
     if (window.innerWidth < 768 && e.target.closest('nav a') && !isSidebarCollapsed) {
         isSidebarCollapsed = true;
         applySidebarState();
@@ -203,10 +182,9 @@ document.addEventListener('click', async (e) => {
 
     if(e.target.closest('#btn-logout') || e.target.closest('#btn-logout-icon')) { window.auth.signOut(); return; }
 
-    // Delega eventos da view de calendário
     if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
+    if (window.AppCursos && await window.AppCursos.tratarCliques(e)) return;
 
-    // Gerenciador de Abas (Tabs) Global
     const tabBtn = e.target.closest('.tab-btn');
     if (tabBtn) {
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -215,7 +193,10 @@ document.addEventListener('click', async (e) => {
         });
         tabBtn.classList.remove('font-medium', 'text-slate-500', 'border-transparent');
         tabBtn.classList.add('font-bold', 'text-blue-600', 'border-blue-600');
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+        
+        // Pega o contêiner de abas mais próximo para não conflitar com modais
+        const tabContainer = tabBtn.closest('.flex-col').querySelectorAll('.tab-content');
+        tabContainer.forEach(content => content.classList.add('hidden'));
         document.getElementById(tabBtn.getAttribute('data-target')).classList.remove('hidden');
     }
 });
