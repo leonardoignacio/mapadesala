@@ -41,11 +41,11 @@ window.AppCursos = {
         if (popoverTipo) popoverTipo.value = filtrosCursos.tipo;
 
         const datalistArea = document.getElementById('add-curso-datalist-area');
-        if (datalistArea) {
-            datalistArea.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
-        }
+        if (datalistArea) datalistArea.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
 
-        // Renderiza o select de cursos nas duas áreas (Manual e Lote)
+        const datalistAreaEdit = document.getElementById('edit-curso-datalist-area');
+        if (datalistAreaEdit) datalistAreaEdit.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
+
         const selectCursoAddUC = document.getElementById('add-uc-curso');
         const selectCursoLote = document.getElementById('add-uc-lote-curso');
         const optionsCursos = `<option value="" disabled selected>Selecione o Curso...</option>` +
@@ -121,8 +121,8 @@ window.AppCursos = {
                 htmlUCs = `<tr><td colspan="4" class="py-4 text-center text-slate-400 text-xs md:text-sm">Nenhuma UC vinculada a este curso.</td></tr>`;
             } else {
                 htmlUCs = ucsDoCurso.map(uc => `
-                    <tr class="hover:bg-slate-100 transition border-b border-slate-100 last:border-0">
-                        <td class="p-2 w-[15%] md:w-[8%] text-center flex items-center justify-center gap-2">
+                    <tr class="hover:bg-slate-200 transition border-b border-slate-100 last:border-0 cursor-pointer row-uc" data-id="${uc.id}">
+                        <td class="p-2 w-[15%] md:w-[8%] text-center flex items-center justify-center gap-2 relative z-10">
                             <span class="btn-excluir-uc" data-id="${uc.id}" title="Excluir UC">${svgLixeira}</span>
                             <span class="btn-detalhes-uc" data-id="${uc.id}" title="Detalhes / Editar UC">${svgFolha}</span>
                         </td>
@@ -135,7 +135,7 @@ window.AppCursos = {
 
             return `
             <tr class="hover:bg-blue-50 transition cursor-pointer row-curso group" data-curso-id="${curso.id}">
-                <td class="p-2 md:py-3 md:px-2 text-center align-middle w-[15%] md:w-[8%]">
+                <td class="p-2 md:py-3 md:px-2 text-center align-middle w-[15%] md:w-[8%] relative z-10">
                     ${window.usuarioAtual && window.usuarioAtual.cargo !== 'apoio' ? `
                     <div class="flex items-center justify-center gap-2">
                         <span class="btn-editar-curso" data-id="${curso.id}" title="Editar Curso">${svgLapis}</span>
@@ -171,6 +171,18 @@ window.AppCursos = {
         });
     },
 
+    abrirModalEditarCurso(idCurso) {
+        const curso = cacheCursos.find(c => c.id === idCurso);
+        if(!curso) return;
+
+        document.getElementById('edit-curso-id').value = curso.id;
+        document.getElementById('edit-curso-titulo').value = curso.titulo;
+        document.getElementById('edit-curso-area').value = curso.area;
+        document.getElementById('edit-curso-tipo').value = curso.tipo;
+
+        document.getElementById('modal-edit-curso').classList.remove('hidden');
+    },
+
     abrirModalDetalhesUC(idUC) {
         const uc = cacheUCs.find(u => u.id === idUC);
         if(!uc) return;
@@ -185,8 +197,31 @@ window.AppCursos = {
         document.getElementById('modal-edit-uc').classList.remove('hidden');
     },
 
+    abrirModalEditAreas() {
+        const container = document.getElementById('lista-edit-areas');
+        if (!container) return;
+
+        // Utilizamos o ícone padrão de disquete (Salvar) do Tailwind
+        const saveIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>`;
+
+        if (cacheAreas.length === 0) {
+            container.innerHTML = `<p class="text-sm text-slate-500">Nenhuma área cadastrada.</p>`;
+        } else {
+            container.innerHTML = cacheAreas.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map(area => `
+                <div class="flex items-center gap-2">
+                    <input type="text" value="${area.nome}" id="input-area-${area.id}" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base font-semibold text-slate-700">
+                    <button type="button" data-id="${area.id}" class="btn-save-area bg-blue-600 hover:bg-blue-700 text-white p-2 md:p-2.5 rounded-lg transition shadow-sm flex items-center justify-center" title="Salvar Área">
+                        ${saveIcon}
+                    </button>
+                </div>
+            `).join('');
+        }
+        document.getElementById('modal-edit-area').classList.remove('hidden');
+    },
+
     async tratarCliques(e) {
         
+        // --- Comportamento Acordeon e UX de UCs ---
         const rowCurso = e.target.closest('.row-curso');
         if (rowCurso && !e.target.closest('.btn-editar-curso') && !e.target.closest('.btn-excluir-curso')) {
             const cursoId = rowCurso.getAttribute('data-curso-id');
@@ -195,7 +230,14 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Modais ---
+        const rowUc = e.target.closest('.row-uc');
+        if (rowUc && !e.target.closest('.btn-excluir-uc') && !e.target.closest('.btn-detalhes-uc')) {
+            const id = rowUc.getAttribute('data-id');
+            this.abrirModalDetalhesUC(id);
+            return true;
+        }
+
+        // --- Modais Add/Edit Áreas ---
         if (e.target.closest('#btn-open-modal-area')) {
             document.getElementById('modal-add-area')?.classList.remove('hidden');
             setTimeout(() => document.getElementById('add-area-nome')?.focus(), 100);
@@ -205,6 +247,54 @@ window.AppCursos = {
             document.getElementById('modal-add-area')?.classList.add('hidden');
             return true;
         }
+        if (e.target.closest('#btn-open-modal-edit-area')) {
+            this.abrirModalEditAreas();
+            return true;
+        }
+        if (e.target.closest('#btn-close-modal-edit-area')) {
+            document.getElementById('modal-edit-area')?.classList.add('hidden');
+            return true;
+        }
+
+        if (e.target.closest('.btn-save-area')) {
+            const btn = e.target.closest('.btn-save-area');
+            const id = btn.getAttribute('data-id');
+            const input = document.getElementById(`input-area-${id}`);
+            const novoNome = input.value;
+
+            if (!novoNome.trim()) { alert("O nome da área não pode ser vazio."); return true; }
+
+            const iconeOriginal = btn.innerHTML;
+            btn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`;
+            btn.disabled = true;
+
+            try {
+                await window.ControllerCursos.editarArea(id, novoNome);
+                // Fecha silenciosamente após salvar
+                document.getElementById('modal-edit-area')?.classList.add('hidden');
+                
+                await this.carregarDadosBase();
+                this.popularSelectsEFormularios();
+                this.renderizarTabelaCursos(); 
+            } catch (error) {
+                alert(error.message);
+                btn.innerHTML = iconeOriginal;
+                btn.disabled = false;
+            }
+            return true;
+        }
+        
+        // --- Modais de Cursos e UCs ---
+        if (e.target.closest('.btn-editar-curso')) {
+            const id = e.target.closest('.btn-editar-curso').getAttribute('data-id');
+            this.abrirModalEditarCurso(id);
+            return true;
+        }
+        if (e.target.closest('#btn-close-modal-edit-curso') || e.target.closest('#btn-cancel-edit-curso')) {
+            document.getElementById('modal-edit-curso')?.classList.add('hidden');
+            return true;
+        }
+
         if (e.target.closest('#btn-close-modal-uc') || e.target.closest('#btn-cancel-edit-uc')) {
             document.getElementById('modal-edit-uc')?.classList.add('hidden');
             return true;
@@ -254,7 +344,7 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Carga em Lote ---
+        // --- Carga em Lote (Upload CSV) ---
         if (e.target.closest('#btn-carregar-lote-ucs')) {
             const idCurso = document.getElementById('add-uc-lote-curso').value;
             const fileInput = document.getElementById('arquivo-lote-ucs');
@@ -331,7 +421,7 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Filtros ---
+        // --- Filtros (Popovers) ---
         const toggleFilter = (btnId, prop, defValue, modalId, focusId) => {
             const btn = e.target.closest(`#${btnId}`);
             if (btn) {
@@ -381,6 +471,7 @@ window.AppCursos = {
             return true;
         }
 
+        // Clicar fora de Popovers fecha apenas os Popovers (Modais ficam intactos)
         if (!e.target.closest('th') && !e.target.closest('.popover-modal')) {
             this.fecharPopovers();
         }
@@ -389,6 +480,8 @@ window.AppCursos = {
     },
 
     async tratarSubmits(e) {
+        
+        // Add Curso Base
         if (e.target.id === 'form-curso') {
             e.preventDefault();
             try {
@@ -411,6 +504,34 @@ window.AppCursos = {
             return true;
         }
 
+        // Editar Curso Base (Modal)
+        if (e.target.id === 'form-edit-curso') {
+            e.preventDefault();
+            try {
+                const id = document.getElementById('edit-curso-id').value;
+                const titulo = document.getElementById('edit-curso-titulo').value;
+                const area = document.getElementById('edit-curso-area').value;
+                const tipo = document.getElementById('edit-curso-tipo').value;
+
+                await window.ControllerCursos.editarCurso(id, {
+                    titulo: titulo.trim(), area: area.trim(), tipo: tipo
+                });
+
+                if (!cacheAreas.find(a => a.nome.toLowerCase() === area.toLowerCase().trim())) {
+                    await window.ControllerCursos.salvarArea(area);
+                }
+
+                alert("Curso atualizado com sucesso!");
+                document.getElementById('modal-edit-curso').classList.add('hidden');
+                
+                await this.carregarDadosBase();
+                this.renderizarTabelaCursos();
+                this.popularSelectsEFormularios();
+            } catch (error) { alert(error.message); }
+            return true;
+        }
+
+        // Add UC Manual
         if (e.target.id === 'form-uc') {
             e.preventDefault();
             try {
@@ -431,6 +552,7 @@ window.AppCursos = {
             return true;
         }
 
+        // Add Nova Área Modal
         if (e.target.id === 'form-area') {
             e.preventDefault();
             try {
@@ -447,6 +569,7 @@ window.AppCursos = {
             return true;
         }
 
+        // Editar UC Modal
         if (e.target.id === 'form-edit-uc') {
             e.preventDefault();
             try {

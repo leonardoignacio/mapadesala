@@ -1,19 +1,26 @@
 // views_cursos.js - Interface Visual da View Cursos e UCs
 window.ViewsCursos = {
     renderizar() {
+        const anoAtual = new Date().getFullYear();
+        const optionsAno = [0, 1, 2, 3].map(offset => {
+            const ano = anoAtual + offset;
+            return `<option value="${ano}">${ano}</option>`;
+        }).join('');
+
         return `
-        <div class="px-4 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full">
-            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto">Cursos e UCs</h1>
+        <div class="px-4 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
             
-            <div class="flex border-b border-slate-200 mb-4 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto">
+            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0">Cursos e UCs</h1>
+            
+            <div class="flex border-b border-slate-200 mb-4 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-listar-cursos">Listar Cursos/UCs</button>
                 <button class="tab-btn font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-add-cursos">Add Cursos/UCs</button>
             </div>
 
             <!-- CONTEÚDO: ABA LISTAR -->
-            <div id="tab-listar-cursos" class="tab-content flex-1 flex flex-col overflow-hidden">
+            <div id="tab-listar-cursos" class="tab-content flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="w-full lg:w-[90%] mx-auto flex-1 flex flex-col overflow-hidden">
-                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[75vh]">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[50vh]">
                         <div class="overflow-x-auto overflow-y-auto flex-1 w-full bg-white relative">
                             <table class="w-full text-left border-separate border-spacing-0 table-fixed">
                                 <thead class="bg-slate-100 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
@@ -104,13 +111,12 @@ window.ViewsCursos = {
             </div>
 
             <!-- CONTEÚDO: ABA ADD -->
-            <div id="tab-add-cursos" class="tab-content hidden space-y-6 overflow-y-auto pb-6">
+            <div id="tab-add-cursos" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6">
                 <div class="w-full lg:w-[90%] mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
                         
                         <!-- Lado Esquerdo: Add Cursos + Carga Lote UCs -->
                         <div class="flex flex-col gap-4 lg:gap-6">
-                            
                             <!-- Formulário Add Cursos -->
                             <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
                                 <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Adicionar Curso Base</h2>
@@ -126,6 +132,9 @@ window.ViewsCursos = {
                                             <input list="add-curso-datalist-area" id="add-curso-area" placeholder="Selecione ou digite a Área..." class="flex-1 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                                             <datalist id="add-curso-datalist-area"></datalist>
                                             <button type="button" id="btn-open-modal-area" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 rounded-lg transition" title="Cadastrar nova Área">➕</button>
+                                            <button type="button" id="btn-open-modal-edit-area" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 rounded-lg transition flex items-center justify-center" title="Listar e Editar Áreas">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
+                                            </button>
                                         </div>
                                     </div>
 
@@ -204,12 +213,12 @@ window.ViewsCursos = {
 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores (Opcional)</label>
-                                    <textarea id="add-uc-indicadores" placeholder="Digite os indicadores..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-none"></textarea>
+                                    <textarea id="add-uc-indicadores" placeholder="Digite os indicadores..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">Conhecimentos (Opcional)</label>
-                                    <textarea id="add-uc-conhecimentos" placeholder="Digite os conhecimentos formativos..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-none"></textarea>
+                                    <textarea id="add-uc-conhecimentos" placeholder="Digite os conhecimentos formativos..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                                 </div>
 
                                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base mt-2">Salvar UC</button>
@@ -234,43 +243,88 @@ window.ViewsCursos = {
             </div>
         </div>
 
-        <!-- Modal Detalhes/Edição da UC -->
-        <div id="modal-edit-uc" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative fade-in overflow-y-auto max-h-[90vh]">
-                <button type="button" id="btn-close-modal-uc" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
-                <h3 class="font-bold text-base text-slate-800 mb-4">Detalhes e Edição da UC</h3>
+        <!-- Modal Editar Áreas -->
+        <div id="modal-edit-area" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative fade-in max-h-[90vh] flex flex-col">
+                <button type="button" id="btn-close-modal-edit-area" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
+                <h3 class="font-bold text-base text-slate-800 mb-4">Editar Áreas</h3>
+                <p class="text-xs text-slate-500 mb-3">Ao editar o nome de uma área, todos os cursos vinculados a ela serão atualizados automaticamente.</p>
+                <div id="lista-edit-areas" class="space-y-3 overflow-y-auto pr-2">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Edição de Curso -->
+        <div id="modal-edit-curso" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative fade-in">
+                <button type="button" id="btn-close-modal-edit-curso" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
+                <h3 class="font-bold text-base text-slate-800 mb-4">Editar Curso</h3>
+                <form id="form-edit-curso" class="space-y-4">
+                    <input type="hidden" id="edit-curso-id">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Título do Curso</label>
+                        <input type="text" id="edit-curso-titulo" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Área do Curso</label>
+                        <input list="edit-curso-datalist-area" id="edit-curso-area" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                        <datalist id="edit-curso-datalist-area"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Curso</label>
+                        <select id="edit-curso-tipo" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm cursor-pointer" required>
+                            <option value="Técnico">Técnico</option>
+                            <option value="Livre">Livre</option>
+                            <option value="Aprendizagem">Aprendizagem</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" id="btn-cancel-edit-curso" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition text-sm">Cancelar</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm text-sm">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Detalhes/Edição da UC (Tamanho Maior 70%) -->
+        <div id="modal-edit-uc" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 md:p-6">
+            <div class="bg-white rounded-xl shadow-2xl w-[95%] lg:w-[70%] max-w-5xl h-[90vh] p-4 md:p-8 relative fade-in flex flex-col">
+                <button type="button" id="btn-close-modal-uc" class="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-700 font-bold text-xl md:text-2xl focus:outline-none">✕</button>
+                <h3 class="font-bold text-lg md:text-xl text-slate-800 mb-4 shrink-0">Detalhes e Edição da UC</h3>
                 
-                <form id="form-edit-uc" class="space-y-4">
+                <form id="form-edit-uc" class="flex-1 flex flex-col space-y-4 overflow-y-auto pr-2">
                     <input type="hidden" id="edit-uc-id">
-                    <div class="flex gap-4">
-                        <div class="w-1/3">
+                    <div class="flex flex-col md:flex-row gap-4 shrink-0">
+                        <div class="w-full md:w-1/3">
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Ref.</label>
-                            <input type="text" id="edit-uc-ref" class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm font-bold bg-slate-50" readonly title="A referência da UC não pode ser alterada.">
+                            <input type="text" id="edit-uc-ref" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base font-bold bg-slate-50" readonly title="A referência da UC não pode ser alterada.">
                         </div>
-                        <div class="w-2/3">
+                        <div class="w-full md:w-2/3">
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Carga Horária (h)</label>
-                            <input type="number" id="edit-uc-ch" class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                            <input type="number" id="edit-uc-ch" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                         </div>
                     </div>
                     
-                    <div>
+                    <div class="shrink-0">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Título / Competência</label>
-                        <input type="text" id="edit-uc-titulo" class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                        <input type="text" id="edit-uc-titulo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                     </div>
 
-                    <div>
+                    <!-- Textareas flexíveis (flex-1) para dividirem o espaço restante do formulário -->
+                    <div class="flex-1 flex flex-col min-h-[150px]">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores</label>
-                        <textarea id="edit-uc-indicadores" rows="4" class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm resize-none"></textarea>
+                        <textarea id="edit-uc-indicadores" class="w-full flex-1 border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                     </div>
 
-                    <div>
+                    <div class="flex-1 flex flex-col min-h-[150px]">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Conhecimentos</label>
-                        <textarea id="edit-uc-conhecimentos" rows="4" class="w-full border border-slate-300 p-2 rounded-lg outline-none focus:border-blue-500 transition text-sm resize-none"></textarea>
+                        <textarea id="edit-uc-conhecimentos" class="w-full flex-1 border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                     </div>
 
-                    <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" id="btn-cancel-edit-uc" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition text-sm">Cancelar</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-sm text-sm">Salvar Alterações</button>
+                    <div class="flex justify-end gap-3 pt-4 shrink-0 border-t border-slate-100 mt-2">
+                        <button type="button" id="btn-cancel-edit-uc" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-6 rounded-lg transition text-sm md:text-base">Cancelar</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition shadow-sm text-sm md:text-base">Salvar Alterações</button>
                     </div>
                 </form>
             </div>
@@ -282,7 +336,7 @@ window.ViewsCursos = {
                 <button type="button" id="btn-close-help-ucs" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
                 <h3 class="font-bold text-base text-slate-800 mb-4">Instruções para Carga de UCs (CSV)</h3>
                 
-                <p class="text-slate-600 mb-3">Clique em <strong>📥 Modelo CSV</strong> para baixar um arquivo pronto com o cabeçalho correto. O sistema exige a primeira linha de cabeçalho idêntica ao modelo.</p>
+                <p class="text-slate-600 mb-3">Clique em <strong class="text-blue-600">📥 Modelo CSV</strong> para baixar um arquivo pronto com o cabeçalho correto. O sistema exige a primeira linha de cabeçalho idêntica ao modelo.</p>
 
                 <ul class="list-disc list-inside text-slate-600 mb-4 space-y-1">
                     <li><strong>referencia:</strong> Obrigatório (Ex: UC-1, 2, UC-03)</li>

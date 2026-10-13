@@ -10,6 +10,27 @@ window.ControllerCursos = {
         await window.db.collection("areas").add({ nome: nome.trim() });
     },
 
+    // Nova Função: Edita a área e atualiza todos os cursos vinculados a ela (Cascata)
+    async editarArea(id, novoNome) {
+        const docRef = window.db.collection("areas").doc(id);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists) throw new Error("Área não encontrada no banco de dados.");
+        
+        const nomeAntigo = docSnap.data().nome;
+        const nomeNovoFormatado = novoNome.trim();
+
+        const batch = window.db.batch();
+        batch.update(docRef, { nome: nomeNovoFormatado });
+
+        // Atualização em cascata: Atualiza a área nos cursos vinculados
+        const cursosSnap = await window.db.collection("cursos").where("area", "==", nomeAntigo).get();
+        cursosSnap.forEach(cursoDoc => {
+            batch.update(cursoDoc.ref, { area: nomeNovoFormatado });
+        });
+
+        await batch.commit();
+    },
+
     async listarCursos() {
         const snap = await window.db.collection("cursos").orderBy("titulo", "asc").get();
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));

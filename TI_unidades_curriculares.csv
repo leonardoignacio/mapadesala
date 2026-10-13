@@ -1,0 +1,17 @@
+﻿referencia;titulo;carga_horaria;indicadores;conhecimentos
+UC4;Projeto Integrador Assistente de Suporte e Manutenção de Computadores;20;;
+UC1;Planejar e executar a montagem de computadores.;84;;
+UC2;Planejar e executar a instalação de hardware e software para computadores.;96;;
+UC3;Planejar e executar a manutenção de computadores.;72;;
+UC8;Projeto Integrador Assistente de Operação de Redes de Computadores;20;;
+UC5;Planejar e executar a instalação de redes locais de computadores.;96;;
+UC6;Planejar e executar a manutenção de redes locais de computadores.;96;;
+UC7;Planejar e executar a instalação, a configuração e o monitoramento de sistemas operacionais de redes locais (servidores).;96;;
+UC16;Projeto Integrador Assistente de Desenvolvimento de Aplicativos Computacionais;32;;
+UC9;Desenvolver Algoritmos.;108;;
+UC10;Desenvolver banco de dados.;72;;
+UC11;Executar teste e implantação de aplicativos computacionais.;60;;
+UC12;Executar os processos de codificação, manutenção e documentação de aplicativos computacionais para desktop.;96;;
+UC13;Executar os processos de codificação, manutenção e documentação de aplicativos computacionais para internet.;96;;
+UC14;Manipular e otimizar imagens vetoriais, bitmaps gráficos e elementos visuais de navegação para web.;48;;
+UC15;Desenvolver e organizar elementos estruturais de sites.;108;;
