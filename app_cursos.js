@@ -5,8 +5,8 @@ let cacheAreas = [];
 
 let filtrosCursos = {
     titulo: "",
-    area: "Todos",
-    tipo: "Todos",
+    areas: ["Todos"],
+    tipos: ["Todos"],
     ch_sinal: "=",
     ch_valor: ""
 };
@@ -29,16 +29,70 @@ window.AppCursos = {
         ]);
     },
 
-    popularSelectsEFormularios() {
-        const popoverArea = document.getElementById('popover-select-area');
-        if (popoverArea) {
-            popoverArea.innerHTML = `<option value="Todos">Todos</option>` + 
-                cacheAreas.map(a => `<option value="${a.nome}">${a.nome}</option>`).join('');
-            popoverArea.value = filtrosCursos.area;
+    // Controla ativação/desativação do campo CH Total quando o Tipo de Curso muda
+    aoMudarTipoCurso(contexto = 'add', valorInicial = '') {
+        const selectTipo = document.getElementById(`${contexto}-curso-tipo`);
+        const inputCH = document.getElementById(`${contexto}-curso-ch`);
+        const hintCH = document.getElementById(`hint-${contexto}-curso-ch`);
+        if (!selectTipo || !inputCH) return;
+
+        if (hintCH) hintCH.classList.add('hidden');
+
+        if (selectTipo.value === 'Livre') {
+            inputCH.disabled = false;
+            inputCH.value = valorInicial !== null && valorInicial !== undefined ? valorInicial : '';
+            inputCH.placeholder = "Digite a CH (máx. 39h) ou deixe vazio p/ somar UCs";
+            inputCH.className = contexto === 'add'
+                ? "w-full border border-slate-300 bg-white text-slate-800 p-2 md:p-3 rounded-lg text-sm md:text-base outline-none focus:border-blue-500 transition"
+                : "w-full border border-slate-300 bg-white text-slate-800 p-2 md:p-2.5 rounded-lg text-sm outline-none focus:border-blue-500 transition";
+        } else {
+            inputCH.disabled = true;
+            inputCH.value = '';
+            inputCH.placeholder = "Calculado via UCs automaticamente.";
+            inputCH.className = contexto === 'add'
+                ? "w-full border border-slate-200 bg-slate-50 text-slate-400 p-2 md:p-3 rounded-lg text-sm md:text-base cursor-not-allowed outline-none transition"
+                : "w-full border border-slate-200 bg-slate-50 text-slate-400 p-2 md:p-2.5 rounded-lg text-sm cursor-not-allowed outline-none transition";
+        }
+    },
+
+    // Valida a digitação no campo CH Total para Cursos Livres (máximo 39h)
+    aoDigitarCHCurso(contexto = 'add') {
+        const inputCH = document.getElementById(`${contexto}-curso-ch`);
+        const hintCH = document.getElementById(`hint-${contexto}-curso-ch`);
+        if (!inputCH) return;
+
+        const limpo = inputCH.value.replace(/[^0-9]/g, '');
+        if (limpo === '') {
+            inputCH.value = '';
+            return;
         }
 
-        const popoverTipo = document.getElementById('popover-select-tipo');
-        if (popoverTipo) popoverTipo.value = filtrosCursos.tipo;
+        const numero = parseInt(limpo, 10);
+        if (numero >= 40) {
+            inputCH.value = '';
+            if (hintCH) hintCH.classList.remove('hidden');
+        } else if (numero === 0) {
+            inputCH.value = '';
+        } else {
+            inputCH.value = numero.toString();
+            if (hintCH) hintCH.classList.add('hidden');
+        }
+    },
+
+    popularSelectsEFormularios() {
+        const containerAreas = document.getElementById('popover-container-areas');
+        if (containerAreas) {
+            const isTodosChecked = filtrosCursos.areas.includes("Todos");
+            const chksAreas = cacheAreas.map(a => {
+                const isChecked = isTodosChecked || filtrosCursos.areas.includes(a.nome);
+                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${a.nome}" class="popover-area-curso-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${a.nome}">${a.nome}</span></label>`;
+            }).join('');
+            
+            containerAreas.innerHTML = `
+                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-area-curso-chk w-4 h-4 text-blue-600 rounded" ${isTodosChecked ? 'checked' : ''}> Todos</label>
+                ${chksAreas}
+            `;
+        }
 
         const datalistArea = document.getElementById('add-curso-datalist-area');
         if (datalistArea) datalistArea.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
@@ -57,22 +111,47 @@ window.AppCursos = {
 
     atualizarIconesFiltro() {
         const iconTitulo = document.getElementById('icon-filter-curso-titulo');
-        if (iconTitulo) iconTitulo.textContent = (filtrosCursos.titulo !== "") ? "✖️" : "🔎";
+        if (iconTitulo) {
+            const ativo = filtrosCursos.titulo !== "";
+            iconTitulo.textContent = ativo ? "✖️" : "🔎";
+            iconTitulo.parentElement.title = ativo ? "Remover Filtro de Título" : "Filtrar Título";
+        }
 
         const iconArea = document.getElementById('icon-filter-curso-area');
-        if (iconArea) iconArea.textContent = (filtrosCursos.area !== "Todos") ? "✖️" : "🔎";
+        if (iconArea) {
+            const ativo = !filtrosCursos.areas.includes("Todos");
+            iconArea.textContent = ativo ? "✖️" : "🔎";
+            iconArea.parentElement.title = ativo ? "Remover Filtro de Área" : "Filtrar Área";
+        }
 
         const iconTipo = document.getElementById('icon-filter-curso-tipo');
-        if (iconTipo) iconTipo.textContent = (filtrosCursos.tipo !== "Todos") ? "✖️" : "🔎";
+        if (iconTipo) {
+            const ativo = !filtrosCursos.tipos.includes("Todos");
+            iconTipo.textContent = ativo ? "✖️" : "🔎";
+            iconTipo.parentElement.title = ativo ? "Remover Filtro de Tipo" : "Filtrar Tipo";
+        }
 
         const iconCh = document.getElementById('icon-filter-curso-ch');
-        if (iconCh) iconCh.textContent = (filtrosCursos.ch_valor !== "") ? "✖️" : "🔎";
+        if (iconCh) {
+            const ativo = filtrosCursos.ch_valor !== "";
+            iconCh.textContent = ativo ? "✖️" : "🔎";
+            iconCh.parentElement.title = ativo ? "Remover Filtro de CH" : "Filtrar CH";
+        }
     },
 
     calcularCHTotal(cursoId) {
-        return cacheUCs
+        const somaUCs = cacheUCs
             .filter(uc => uc.id_curso === cursoId)
             .reduce((total, uc) => total + (parseInt(uc.carga_horaria) || 0), 0);
+
+        if (somaUCs > 0) return somaUCs;
+
+        const curso = cacheCursos.find(c => c.id === cursoId);
+        if (curso && curso.tipo === "Livre" && curso.carga_horaria && parseInt(curso.carga_horaria) <= 39) {
+            return parseInt(curso.carga_horaria);
+        }
+
+        return 0;
     },
 
     renderizarTabelaCursos() {
@@ -88,8 +167,8 @@ window.AppCursos = {
             const chTotal = this.calcularCHTotal(curso.id);
             
             const matchTitulo = filtrosCursos.titulo === "" || curso.titulo.toLowerCase().includes(filtrosCursos.titulo.toLowerCase().trim()) || (curso.sigla && curso.sigla.toLowerCase().includes(filtrosCursos.titulo.toLowerCase().trim()));
-            const matchArea = filtrosCursos.area === "Todos" || curso.area === filtrosCursos.area;
-            const matchTipo = filtrosCursos.tipo === "Todos" || curso.tipo === filtrosCursos.tipo;
+            const matchArea = filtrosCursos.areas.includes("Todos") ? true : filtrosCursos.areas.includes(curso.area);
+            const matchTipo = filtrosCursos.tipos.includes("Todos") ? true : filtrosCursos.tipos.includes(curso.tipo);
             
             let matchCH = true;
             if (filtrosCursos.ch_valor !== "") {
@@ -115,7 +194,6 @@ window.AppCursos = {
                 return numA - numB;
             });
 
-            // Em telas pequenas exibe apenas a cor do texto; em telas médias/grandes (md:) aplica fundo e borda do badge
             let badgeColor = "text-slate-700 md:bg-slate-50 md:border-slate-200";
             if (curso.tipo === "Técnico") badgeColor = "text-blue-700 md:bg-blue-50 md:border-blue-200";
             else if (curso.tipo === "Livre") badgeColor = "text-emerald-700 md:bg-emerald-50 md:border-emerald-200";
@@ -123,7 +201,10 @@ window.AppCursos = {
 
             let htmlUCs = "";
             if(ucsDoCurso.length === 0) {
-                htmlUCs = `<tr><td colspan="4" class="py-4 text-center text-slate-400 text-xs md:text-sm">Nenhuma UC vinculada a este curso.</td></tr>`;
+                const msgSemUC = (curso.tipo === "Livre" && curso.carga_horaria && parseInt(curso.carga_horaria) <= 39)
+                    ? `Curso Livre de curta duração (${curso.carga_horaria}h) — não possui UCs vinculadas.`
+                    : `Nenhuma UC vinculada a este curso.`;
+                htmlUCs = `<tr><td colspan="4" class="py-4 text-center text-slate-400 text-xs md:text-sm">${msgSemUC}</td></tr>`;
             } else {
                 htmlUCs = ucsDoCurso.map(uc => `
                     <tr class="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer row-uc group/uc border-b border-slate-100 last:border-0" data-id="${uc.id}">
@@ -155,10 +236,6 @@ window.AppCursos = {
             <tr class="hidden row-ucs bg-slate-50 shadow-inner" id="accordion-${curso.id}">
                 <td colspan="6" class="p-0 border-b-2 border-blue-100">
                     <div class="p-3 md:p-5 pl-3 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
-                        <div class="flex items-center gap-2 mb-2 md:mb-3">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                            <p class="text-[11px] md:text-sm font-bold text-blue-800 uppercase tracking-wider">Unidades Curriculares Vinculadas</p>
-                        </div>
                         <div class="bg-white rounded-xl shadow-sm border border-blue-100/50 overflow-hidden">
                             <table class="w-full text-left table-fixed">
                                 <tbody class="divide-y divide-slate-50">${htmlUCs}</tbody>
@@ -190,6 +267,11 @@ window.AppCursos = {
         document.getElementById('edit-curso-sigla').value = curso.sigla || "";
         document.getElementById('edit-curso-area').value = curso.area;
         document.getElementById('edit-curso-tipo').value = curso.tipo;
+
+        const chInicial = (curso.tipo === "Livre" && curso.carga_horaria && parseInt(curso.carga_horaria) <= 39)
+            ? curso.carga_horaria.toString()
+            : "";
+        this.aoMudarTipoCurso('edit', chInicial);
 
         document.getElementById('modal-edit-curso').classList.remove('hidden');
     },
@@ -231,6 +313,42 @@ window.AppCursos = {
 
     async tratarCliques(e) {
         
+        if (e.target.classList.contains('popover-area-curso-chk')) {
+            const chkTodos = document.querySelector('.popover-area-curso-chk[value="Todos"]');
+            const chkItens = Array.from(document.querySelectorAll('.popover-area-curso-chk')).filter(chk => chk.value !== "Todos");
+
+            if (e.target.value === "Todos") {
+                const isChecked = e.target.checked;
+                chkItens.forEach(chk => chk.checked = isChecked);
+            } else {
+                if (!e.target.checked) {
+                    if (chkTodos) chkTodos.checked = false;
+                } else {
+                    const todosMarcados = chkItens.every(chk => chk.checked);
+                    if (chkTodos) chkTodos.checked = todosMarcados;
+                }
+            }
+            return true;
+        }
+
+        if (e.target.classList.contains('popover-tipo-curso-chk')) {
+            const chkTodos = document.querySelector('.popover-tipo-curso-chk[value="Todos"]');
+            const chkItens = Array.from(document.querySelectorAll('.popover-tipo-curso-chk')).filter(chk => chk.value !== "Todos");
+
+            if (e.target.value === "Todos") {
+                const isChecked = e.target.checked;
+                chkItens.forEach(chk => chk.checked = isChecked);
+            } else {
+                if (!e.target.checked) {
+                    if (chkTodos) chkTodos.checked = false;
+                } else {
+                    const todosMarcados = chkItens.every(chk => chk.checked);
+                    if (chkTodos) chkTodos.checked = todosMarcados;
+                }
+            }
+            return true;
+        }
+
         const rowCurso = e.target.closest('.row-curso');
         if (rowCurso && !e.target.closest('.btn-editar-curso') && !e.target.closest('.btn-excluir-curso')) {
             const cursoId = rowCurso.getAttribute('data-curso-id');
@@ -419,47 +537,120 @@ window.AppCursos = {
             return true;
         }
 
-        const toggleFilter = (btnId, prop, defValue, modalId, focusId) => {
-            const btn = e.target.closest(`#${btnId}`);
-            if (btn) {
-                if (filtrosCursos[prop] !== defValue) {
-                    filtrosCursos[prop] = defValue;
-                    if(prop === 'ch_valor') filtrosCursos['ch_sinal'] = '=';
-                    this.renderizarTabelaCursos();
-                } else {
-                    this.fecharPopovers(modalId);
-                    const modal = document.getElementById(modalId);
-                    modal.classList.toggle('hidden');
-                    if (!modal.classList.contains('hidden')) document.getElementById(focusId)?.focus();
-                }
-                return true;
+        // --- Botões de Abrir/Resetar Filtros (Popovers) ---
+        const btnTitulo = e.target.closest('#btn-filter-curso-titulo');
+        if (btnTitulo) {
+            if (filtrosCursos.titulo !== "") {
+                filtrosCursos.titulo = "";
+                const inputTit = document.getElementById('popover-input-curso-titulo');
+                if (inputTit) inputTit.value = "";
+                this.renderizarTabelaCursos();
+            } else {
+                this.fecharPopovers('modal-filter-curso-titulo');
+                const modal = document.getElementById('modal-filter-curso-titulo');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) document.getElementById('popover-input-curso-titulo')?.focus();
             }
-            return false;
-        };
+            return true;
+        }
 
-        if (toggleFilter('btn-filter-curso-titulo', 'titulo', '', 'modal-filter-curso-titulo', 'popover-input-curso-titulo')) return true;
-        if (toggleFilter('btn-filter-curso-area', 'area', 'Todos', 'modal-filter-curso-area', 'popover-select-area')) return true;
-        if (toggleFilter('btn-filter-curso-tipo', 'tipo', 'Todos', 'modal-filter-curso-tipo', 'popover-select-tipo')) return true;
-        if (toggleFilter('btn-filter-curso-ch', 'ch_valor', '', 'modal-filter-curso-ch', 'popover-input-ch')) return true;
+        const btnArea = e.target.closest('#btn-filter-curso-area');
+        if (btnArea) {
+            const ativo = !filtrosCursos.areas.includes("Todos");
+            if (ativo) {
+                filtrosCursos.areas = ["Todos"];
+                document.querySelectorAll('.popover-area-curso-chk').forEach(chk => chk.checked = true);
+                this.renderizarTabelaCursos();
+            } else {
+                this.fecharPopovers('modal-filter-curso-area');
+                const modal = document.getElementById('modal-filter-curso-area');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) {
+                    document.querySelectorAll('.popover-area-curso-chk').forEach(chk => {
+                        if (filtrosCursos.areas.includes("Todos")) {
+                            chk.checked = true;
+                        } else {
+                            chk.checked = filtrosCursos.areas.includes(chk.value);
+                        }
+                    });
+                }
+            }
+            return true;
+        }
 
+        const btnTipo = e.target.closest('#btn-filter-curso-tipo');
+        if (btnTipo) {
+            const ativo = !filtrosCursos.tipos.includes("Todos");
+            if (ativo) {
+                filtrosCursos.tipos = ["Todos"];
+                document.querySelectorAll('.popover-tipo-curso-chk').forEach(chk => chk.checked = true);
+                this.renderizarTabelaCursos();
+            } else {
+                this.fecharPopovers('modal-filter-curso-tipo');
+                const modal = document.getElementById('modal-filter-curso-tipo');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) {
+                    document.querySelectorAll('.popover-tipo-curso-chk').forEach(chk => {
+                        if (filtrosCursos.tipos.includes("Todos")) {
+                            chk.checked = true;
+                        } else {
+                            chk.checked = filtrosCursos.tipos.includes(chk.value);
+                        }
+                    });
+                }
+            }
+            return true;
+        }
+
+        const btnCh = e.target.closest('#btn-filter-curso-ch');
+        if (btnCh) {
+            if (filtrosCursos.ch_valor !== "") {
+                filtrosCursos.ch_valor = "";
+                filtrosCursos.ch_sinal = "=";
+                const inputCh = document.getElementById('popover-input-ch');
+                if (inputCh) inputCh.value = "";
+                this.renderizarTabelaCursos();
+            } else {
+                this.fecharPopovers('modal-filter-curso-ch');
+                const modal = document.getElementById('modal-filter-curso-ch');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) document.getElementById('popover-input-ch')?.focus();
+            }
+            return true;
+        }
+
+        // --- Botões de Aplicar Filtro ---
         if (e.target.closest('#apply-filter-curso-titulo')) {
             filtrosCursos.titulo = document.getElementById('popover-input-curso-titulo').value;
             document.getElementById('modal-filter-curso-titulo').classList.add('hidden');
             this.renderizarTabelaCursos();
             return true;
         }
+
         if (e.target.closest('#apply-filter-curso-area')) {
-            filtrosCursos.area = document.getElementById('popover-select-area').value;
+            const checkedChks = Array.from(document.querySelectorAll('.popover-area-curso-chk:checked')).map(chk => chk.value);
+            if (checkedChks.includes("Todos")) {
+                filtrosCursos.areas = ["Todos"];
+            } else {
+                filtrosCursos.areas = checkedChks;
+            }
             document.getElementById('modal-filter-curso-area').classList.add('hidden');
             this.renderizarTabelaCursos();
             return true;
         }
+
         if (e.target.closest('#apply-filter-curso-tipo')) {
-            filtrosCursos.tipo = document.getElementById('popover-select-tipo').value;
+            const checkedChks = Array.from(document.querySelectorAll('.popover-tipo-curso-chk:checked')).map(chk => chk.value);
+            if (checkedChks.includes("Todos")) {
+                filtrosCursos.tipos = ["Todos"];
+            } else {
+                filtrosCursos.tipos = checkedChks;
+            }
             document.getElementById('modal-filter-curso-tipo').classList.add('hidden');
             this.renderizarTabelaCursos();
             return true;
         }
+
         if (e.target.closest('#apply-filter-curso-ch')) {
             filtrosCursos.ch_sinal = document.getElementById('popover-sinal-ch').value;
             filtrosCursos.ch_valor = document.getElementById('popover-input-ch').value;
@@ -485,8 +676,9 @@ window.AppCursos = {
                 const sigla = document.getElementById('add-curso-sigla').value;
                 const area = document.getElementById('add-curso-area').value;
                 const tipo = document.getElementById('add-curso-tipo').value;
+                const chManual = document.getElementById('add-curso-ch').value;
                 
-                await window.ControllerCursos.salvarCurso(titulo, sigla, area, tipo);
+                await window.ControllerCursos.salvarCurso(titulo, sigla, area, tipo, chManual);
                 
                 if (!cacheAreas.find(a => a.nome.toLowerCase() === area.toLowerCase().trim())) {
                     await window.ControllerCursos.salvarArea(area);
@@ -494,6 +686,7 @@ window.AppCursos = {
 
                 alert("Curso cadastrado com sucesso!");
                 e.target.reset();
+                this.aoMudarTipoCurso('add');
                 await this.carregarDadosBase();
                 this.renderizarTabelaCursos();
                 this.popularSelectsEFormularios();
@@ -510,9 +703,14 @@ window.AppCursos = {
                 const sigla = document.getElementById('edit-curso-sigla').value;
                 const area = document.getElementById('edit-curso-area').value;
                 const tipo = document.getElementById('edit-curso-tipo').value;
+                const chManual = document.getElementById('edit-curso-ch').value;
 
                 await window.ControllerCursos.editarCurso(id, {
-                    titulo: titulo.trim(), sigla: sigla.trim().toUpperCase(), area: area.trim(), tipo: tipo
+                    titulo: titulo.trim(),
+                    sigla: sigla.trim().toUpperCase(),
+                    area: area.trim(),
+                    tipo: tipo,
+                    carga_horaria: chManual
                 });
 
                 if (!cacheAreas.find(a => a.nome.toLowerCase() === area.toLowerCase().trim())) {

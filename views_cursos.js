@@ -40,24 +40,22 @@ window.ViewsCursos = {
                                             </div>
                                         </th>
 
-                                        <!-- Coluna Área -->
+                                        <!-- Coluna Área (Checkboxes) -->
                                         <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[18%] md:w-[20%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Área 
                                                 <button id="btn-filter-curso-area" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-area">🔎</span></button></span>
                                             </div>
-                                            <div id="modal-filter-curso-area" class="hidden absolute top-full right-0 md:left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
+                                            <div id="modal-filter-curso-area" class="hidden absolute top-full right-0 md:left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Área</p>
-                                                <div class="space-y-2">
-                                                    <select id="popover-select-area" class="w-full border border-slate-300 p-2 rounded-lg bg-white outline-none focus:border-blue-500 cursor-pointer">
-                                                        <option value="Todos">Todos</option>
-                                                    </select>
-                                                    <button id="apply-filter-curso-area" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
+                                                <div id="popover-container-areas" class="space-y-1.5 max-h-48 overflow-y-auto pr-1 mb-3">
+                                                    <!-- Checkboxes injetados dinamicamente via JS -->
                                                 </div>
+                                                <button id="apply-filter-curso-area" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
                                             </div>
                                         </th>
 
-                                        <!-- Coluna Tipo -->
+                                        <!-- Coluna Tipo (Checkboxes) -->
                                         <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[14%] md:w-[13%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Tipo 
@@ -65,15 +63,13 @@ window.ViewsCursos = {
                                             </div>
                                             <div id="modal-filter-curso-tipo" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Tipo</p>
-                                                <div class="space-y-2">
-                                                    <select id="popover-select-tipo" class="w-full border border-slate-300 p-2 rounded-lg bg-white outline-none focus:border-blue-500 cursor-pointer">
-                                                        <option value="Todos">Todos</option>
-                                                        <option value="Técnico">Técnico</option>
-                                                        <option value="Livre">Livre</option>
-                                                        <option value="Aprendizagem">Aprendizagem</option>
-                                                    </select>
-                                                    <button id="apply-filter-curso-tipo" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
+                                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1 mb-3">
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-tipo-curso-chk w-4 h-4 text-blue-600 rounded" checked> Todos</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Técnico" class="popover-tipo-curso-chk w-4 h-4 text-blue-600 rounded" checked> Técnico</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Livre" class="popover-tipo-curso-chk w-4 h-4 text-blue-600 rounded" checked> Livre</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Aprendizagem" class="popover-tipo-curso-chk w-4 h-4 text-blue-600 rounded" checked> Aprendizagem</label>
                                                 </div>
+                                                <button id="apply-filter-curso-tipo" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
                                             </div>
                                         </th>
 
@@ -115,8 +111,8 @@ window.ViewsCursos = {
                         <!-- Lado Esquerdo: Add Cursos + Carga Lote UCs -->
                         <div class="flex flex-col gap-4 lg:gap-6">
                             <!-- Formulário Add Cursos -->
-                            <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
-                                <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Adicionar Curso Base</h2>
+                            <div class="bg-white p-3 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
+                                <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Adicionar Curso</h2>
                                 <form id="form-curso" class="space-y-4">
                                     <!-- Linha com Título e Sigla lado a lado -->
                                     <div class="flex gap-2">
@@ -144,7 +140,7 @@ window.ViewsCursos = {
 
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Curso</label>
-                                        <select id="add-curso-tipo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
+                                        <select id="add-curso-tipo" onchange="window.AppCursos.aoMudarTipoCurso('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
                                             <option value="" disabled selected>Selecione o Tipo...</option>
                                             <option value="Técnico">Técnico</option>
                                             <option value="Livre">Livre</option>
@@ -154,7 +150,18 @@ window.ViewsCursos = {
 
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-500 mb-1">CH Total do Curso</label>
-                                        <input type="text" value="Calculado via UCs automaticamente." class="w-full border border-slate-200 bg-slate-50 text-slate-400 p-2 md:p-3 rounded-lg text-sm md:text-base cursor-not-allowed" disabled>
+                                        <input 
+                                            type="text" 
+                                            id="add-curso-ch" 
+                                            inputmode="numeric"
+                                            placeholder="Calculado via UCs automaticamente." 
+                                            oninput="window.AppCursos.aoDigitarCHCurso('add')"
+                                            class="w-full border border-slate-200 bg-slate-50 text-slate-400 p-2 md:p-3 rounded-lg text-sm md:text-base cursor-not-allowed outline-none transition" 
+                                            disabled
+                                        >
+                                        <p id="hint-add-curso-ch" class="hidden text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-lg mt-1.5">
+                                            ⚠️ Cursos livres a partir de 40h devem ter UCs vinculadas (deixe o campo em branco e cadastre as UCs).
+                                        </p>
                                     </div>
 
                                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base mt-2">Salvar Curso</button>
@@ -171,21 +178,22 @@ window.ViewsCursos = {
                                     <button type="button" id="btn-baixar-modelo-ucs" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-3 py-1.5 rounded-lg text-xs transition shadow-sm border border-slate-200 flex items-center gap-1">📥 Modelo CSV</button>
                                 </div>
                                 
-                                <p class="text-xs md:text-sm text-slate-500 mb-4">Importe várias UCs de uma vez. Selecione o curso de destino e o arquivo CSV formatado.</p>
+                                <p class="text-xs md:text-sm text-slate-500 mb-4">Importe várias UCs de uma vez.</p>
+                                <p class="text-xs md:text-sm text-slate-500 mb-4">Selecione o curso de destino e o arquivo CSV formatado.</p>
                                 
                                 <div class="space-y-3">
                                     <select id="add-uc-lote-curso" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
                                         <option value="" disabled selected>Vincular a qual Curso?</option>
                                     </select>
-                                    <input type="file" id="arquivo-lote-ucs" accept=".csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg">
-                                    <button type="button" id="btn-carregar-lote-ucs" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Confirmar Processamento em Lote</button>
+                                    <input type="file" id="arquivo-lote-ucs" accept=".csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-3 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg">
+                                    <button type="button" id="btn-carregar-lote-ucs" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Confirmar Processamento em Lote</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Lado Direito: Formulário Add UCs Manual -->
-                        <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
-                            <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Adicionar UC Manualmente</h2>
+                        <div class="bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
+                            <h2 class="font-bold mb-2 text-slate-800 text-base md:text-lg">Adicionar UC</h2>
                             <form id="form-uc" class="space-y-4">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">Vincular a qual Curso?</label>
@@ -216,13 +224,11 @@ window.ViewsCursos = {
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores (Opcional)</label>
-                                    <textarea id="add-uc-indicadores" placeholder="Digite os indicadores..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
+                                    <textarea id="add-uc-indicadores" placeholder="Indicadores (Opcional)" rows="7" class="w-full border border-slate-300 p-1 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Conhecimentos (Opcional)</label>
-                                    <textarea id="add-uc-conhecimentos" placeholder="Digite os conhecimentos formativos..." rows="2" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
+                                    <textarea id="add-uc-conhecimentos" placeholder="Conhecimentos (Opcional)" rows="5" class="w-full border border-slate-300 p-1 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>
                                 </div>
 
                                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base mt-2">Salvar UC</button>
@@ -259,7 +265,7 @@ window.ViewsCursos = {
             </div>
         </div>
 
-        <!-- Modal Edição de Curso (Com campo Sigla) -->
+        <!-- Modal Edição de Curso (Com campo Sigla e CH condicional) -->
         <div id="modal-edit-curso" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative fade-in">
                 <button type="button" id="btn-close-modal-edit-curso" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
@@ -283,11 +289,26 @@ window.ViewsCursos = {
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Curso</label>
-                        <select id="edit-curso-tipo" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm cursor-pointer" required>
+                        <select id="edit-curso-tipo" onchange="window.AppCursos.aoMudarTipoCurso('edit')" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm cursor-pointer" required>
                             <option value="Técnico">Técnico</option>
                             <option value="Livre">Livre</option>
                             <option value="Aprendizagem">Aprendizagem</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">CH Total do Curso</label>
+                        <input 
+                            type="text" 
+                            id="edit-curso-ch" 
+                            inputmode="numeric"
+                            placeholder="Soma da ch das UCs - Cálculo automaticamente." 
+                            oninput="window.AppCursos.aoDigitarCHCurso('edit')"
+                            class="w-full border border-slate-200 bg-slate-50 text-slate-400 p-2 md:p-2.5 rounded-lg text-sm cursor-not-allowed outline-none transition" 
+                            disabled
+                        >
+                        <p id="hint-edit-curso-ch" class="hidden text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-lg mt-1.5">
+                            ⚠️ Cursos livres a partir de 40h devem ter UCs vinculadas (deixe o campo em branco e cadastre as UCs).
+                        </p>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" id="btn-cancel-edit-curso" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg transition text-sm">Cancelar</button>

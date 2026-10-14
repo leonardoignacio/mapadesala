@@ -34,19 +34,31 @@ window.ControllerCursos = {
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
-    async salvarCurso(titulo, sigla, area, tipo) {
+    async salvarCurso(titulo, sigla, area, tipo, cargaHorariaManual = null) {
+        const chValida = (tipo === "Livre" && cargaHorariaManual && parseInt(cargaHorariaManual) <= 39)
+            ? parseInt(cargaHorariaManual)
+            : null;
+
         await window.db.collection("cursos").add({ 
             titulo: titulo.trim(), 
             sigla: sigla.trim().toUpperCase(),
             area: area.trim(), 
-            tipo: tipo 
+            tipo: tipo,
+            carga_horaria: chValida
         });
     },
 
     async editarCurso(id, dados) {
-        if(dados.sigla) dados.sigla = dados.sigla.trim().toUpperCase();
-        if(dados.titulo) dados.titulo = dados.titulo.trim();
-        if(dados.area) dados.area = dados.area.trim();
+        if (dados.sigla) dados.sigla = dados.sigla.trim().toUpperCase();
+        if (dados.titulo) dados.titulo = dados.titulo.trim();
+        if (dados.area) dados.area = dados.area.trim();
+        
+        if (dados.tipo === "Livre" && dados.carga_horaria && parseInt(dados.carga_horaria) <= 39) {
+            dados.carga_horaria = parseInt(dados.carga_horaria);
+        } else {
+            dados.carga_horaria = null;
+        }
+
         await window.db.collection("cursos").doc(id).update(dados);
     },
 
