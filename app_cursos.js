@@ -115,10 +115,11 @@ window.AppCursos = {
                 return numA - numB;
             });
 
-            let badgeColor = "bg-slate-50 text-slate-700 border-slate-200";
-            if (curso.tipo === "Técnico") badgeColor = "bg-blue-50 text-blue-700 border-blue-200";
-            else if (curso.tipo === "Livre") badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
-            else if (curso.tipo === "Aprendizagem") badgeColor = "bg-purple-50 text-purple-700 border-purple-200";
+            // Em telas pequenas exibe apenas a cor do texto; em telas médias/grandes (md:) aplica fundo e borda do badge
+            let badgeColor = "text-slate-700 md:bg-slate-50 md:border-slate-200";
+            if (curso.tipo === "Técnico") badgeColor = "text-blue-700 md:bg-blue-50 md:border-blue-200";
+            else if (curso.tipo === "Livre") badgeColor = "text-emerald-700 md:bg-emerald-50 md:border-emerald-200";
+            else if (curso.tipo === "Aprendizagem") badgeColor = "text-purple-700 md:bg-purple-50 md:border-purple-200";
 
             let htmlUCs = "";
             if(ucsDoCurso.length === 0) {
@@ -126,37 +127,37 @@ window.AppCursos = {
             } else {
                 htmlUCs = ucsDoCurso.map(uc => `
                     <tr class="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer row-uc group/uc border-b border-slate-100 last:border-0" data-id="${uc.id}">
-                        <td class="p-3 w-[15%] md:w-[8%] text-center flex items-center justify-center relative z-10">
+                        <td class="px-1.5 py-2 md:p-3 w-[12%] md:w-[8%] text-center flex items-center justify-center relative z-10">
                             <span class="btn-excluir-uc transform hover:scale-110 transition-transform" data-id="${uc.id}" title="Excluir UC">${svgLixeira}</span>
                         </td>
-                        <td class="p-3 w-[20%] text-xs md:text-sm font-bold text-slate-500 whitespace-normal break-words group-hover/uc:text-blue-600 transition-colors">${uc.referencia}</td>
-                        <td class="p-3 w-[50%] text-xs md:text-sm font-medium text-slate-600 whitespace-normal break-words group-hover/uc:text-slate-800 transition-colors">${uc.titulo}</td>
-                        <td class="p-3 w-[15%] text-xs md:text-sm font-bold text-blue-600 whitespace-normal break-words text-right group-hover/uc:text-blue-700 transition-colors">${uc.carga_horaria}h</td>
+                        <td class="px-1.5 py-2 md:p-3 w-[20%] text-[11px] md:text-sm font-bold text-slate-500 whitespace-normal break-words group-hover/uc:text-blue-600 transition-colors">${uc.referencia}</td>
+                        <td class="px-1.5 py-2 md:p-3 w-[53%] md:w-[57%] text-[11px] leading-snug md:text-sm font-medium text-slate-600 whitespace-normal break-words group-hover/uc:text-slate-800 transition-colors">${uc.titulo}</td>
+                        <td class="px-1.5 py-2 md:p-3 w-[15%] text-[11px] md:text-sm font-bold text-blue-600 whitespace-nowrap text-right group-hover/uc:text-blue-700 transition-colors">${uc.carga_horaria}h</td>
                     </tr>
                 `).join('');
             }
 
             return `
             <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-pointer row-curso group border-b border-slate-100" data-curso-id="${curso.id}">
-                <td class="p-2 md:py-4 md:px-2 text-center align-middle w-[12%] md:w-[7%] relative z-10">
+                <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     ${window.usuarioAtual && window.usuarioAtual.cargo !== 'apoio' ? `
-                    <div class="flex items-center justify-center gap-2">
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2">
                         <span class="btn-editar-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Editar Curso">${svgLapis}</span>
                         <span class="btn-excluir-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Excluir Curso">${svgLixeira}</span>
                     </div>` : `<span class="text-slate-300">-</span>`}
                 </td>
-                <td class="p-2 md:py-4 md:px-3 text-xs md:text-sm font-black text-blue-600 align-middle whitespace-nowrap">${curso.sigla || '---'}</td>
-                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[35%] md:w-[35%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
-                <td class="p-2 md:py-4 md:px-4 text-xs md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[20%] md:w-[20%]">${curso.area}</td>
-                <td class="p-2 md:py-4 md:px-4 align-middle w-[10%] md:w-[13%]"><span class="px-2.5 py-1.5 rounded-md text-[10px] md:text-xs font-bold border shadow-sm ${badgeColor} whitespace-nowrap">${curso.tipo}</span></td>
-                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-black text-slate-700 align-middle whitespace-normal break-words w-[13%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-blue-600 align-middle whitespace-normal break-words md:whitespace-nowrap w-[14%] md:w-[10%]">${curso.sigla || '---'}</td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[30%] md:w-[35%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[18%] md:w-[20%]">${curso.area}</td>
+                <td class="px-1 py-2 md:py-4 md:px-4 align-middle w-[14%] md:w-[13%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${curso.tipo}</span></td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] md:text-base font-black text-slate-700 align-middle whitespace-nowrap w-[14%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
             </tr>
             <tr class="hidden row-ucs bg-slate-50 shadow-inner" id="accordion-${curso.id}">
                 <td colspan="6" class="p-0 border-b-2 border-blue-100">
-                    <div class="p-4 md:p-5 pl-4 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
-                        <div class="flex items-center gap-2 mb-3">
+                    <div class="p-3 md:p-5 pl-3 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
+                        <div class="flex items-center gap-2 mb-2 md:mb-3">
                             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                            <p class="text-xs md:text-sm font-bold text-blue-800 uppercase tracking-wider">Unidades Curriculares Vinculadas</p>
+                            <p class="text-[11px] md:text-sm font-bold text-blue-800 uppercase tracking-wider">Unidades Curriculares Vinculadas</p>
                         </div>
                         <div class="bg-white rounded-xl shadow-sm border border-blue-100/50 overflow-hidden">
                             <table class="w-full text-left table-fixed">

@@ -2,11 +2,11 @@
 window.ViewsCursos = {
     renderizar() {
         return `
-        <div class="px-4 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
+        <div class="px-2 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
             
-            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0">Cursos e UCs</h1>
+            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0 px-2 md:px-0">Cursos e UCs</h1>
             
-            <div class="flex border-b border-slate-200 mb-4 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0">
+            <div class="flex border-b border-slate-200 mb-4 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-listar-cursos">Listar Cursos/UCs</button>
                 <button class="tab-btn font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-add-cursos">Add Cursos/UCs</button>
             </div>
@@ -20,16 +20,16 @@ window.ViewsCursos = {
                                 <thead class="bg-slate-50 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                                     <tr>
                                         <!-- Coluna Ação -->
-                                        <th class="p-2 md:py-4 md:px-2 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[12%] md:w-[7%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
+                                        <th class="px-1 py-2 md:py-4 md:px-2 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[10%] md:w-[7%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
                                         
-                                        <!-- Coluna Sigla (Nova, à esquerda do Título) -->
-                                        <th class="p-2 md:py-4 md:px-3 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[10%] border-b border-slate-200 bg-slate-50/95 backdrop-blur">Sigla</th>
+                                        <!-- Coluna Sigla -->
+                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[14%] md:w-[10%] border-b border-slate-200 bg-slate-50/95 backdrop-blur">Sigla</th>
 
                                         <!-- Coluna Título -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[35%] md:w-[35%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[30%] md:w-[35%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
-                                                <span class="flex items-center gap-1">Título 
-                                                <button id="btn-filter-curso-titulo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-titulo">🔎</span></button></span>
+                                                <span class="flex items-center gap-0.5 md:gap-1">Título 
+                                                <button id="btn-filter-curso-titulo" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-titulo">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-curso-titulo" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-56 md:w-64 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Pesquisar por Título</p>
@@ -41,10 +41,10 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna Área -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[20%] md:w-[20%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[18%] md:w-[20%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
-                                                <span class="flex items-center gap-1">Área 
-                                                <button id="btn-filter-curso-area" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-area">🔎</span></button></span>
+                                                <span class="flex items-center gap-0.5 md:gap-1">Área 
+                                                <button id="btn-filter-curso-area" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-area">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-curso-area" class="hidden absolute top-full right-0 md:left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Área</p>
@@ -58,10 +58,10 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna Tipo -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[10%] md:w-[13%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[14%] md:w-[13%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
-                                                <span class="flex items-center gap-1">Tipo 
-                                                <button id="btn-filter-curso-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-tipo">🔎</span></button></span>
+                                                <span class="flex items-center gap-0.5 md:gap-1">Tipo 
+                                                <button id="btn-filter-curso-tipo" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-tipo">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-curso-tipo" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Tipo</p>
@@ -78,10 +78,10 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna CH Total -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[13%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
-                                            <div class="flex items-center justify-between">
-                                                <span class="flex items-center gap-1">CH Total 
-                                                <button id="btn-filter-curso-ch" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-ch">🔎</span></button></span>
+                                        <th class="px-1 py-2 md:py-4 md:px-4 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[14%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                            <div class="flex items-center justify-end md:justify-between">
+                                                <span class="flex items-center gap-0.5 md:gap-1">CH 
+                                                <button id="btn-filter-curso-ch" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-ch">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-curso-ch" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-48 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Filtrar CH Total</p>
@@ -108,7 +108,7 @@ window.ViewsCursos = {
             </div>
 
             <!-- CONTEÚDO: ABA ADD -->
-            <div id="tab-add-cursos" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6">
+            <div id="tab-add-cursos" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6 px-2 md:px-0">
                 <div class="w-full lg:w-[90%] mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
                         
