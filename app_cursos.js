@@ -230,7 +230,7 @@ window.AppCursos = {
                 <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-blue-600 align-middle whitespace-normal break-words md:whitespace-nowrap w-[14%] md:w-[10%]">${curso.sigla || '---'}</td>
                 <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[30%] md:w-[35%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
                 <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[18%] md:w-[20%]">${curso.area}</td>
-                <td class="px-1 py-2 md:py-4 md:px-4 align-middle w-[14%] md:w-[13%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${curso.tipo}</span></td>
+                <td class="px-1 py-2 text-center md:py-4 md:px-4 align-middle w-[14%] md:w-[13%]"><span class="p-0 text-center border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${curso.tipo}</span></td>
                 <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] md:text-base font-black text-slate-700 align-middle whitespace-nowrap w-[14%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
             </tr>
             <tr class="hidden row-ucs bg-slate-50 shadow-inner" id="accordion-${curso.id}">
