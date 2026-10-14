@@ -20,7 +20,7 @@ window.AppCursos = {
 
     async carregarDadosBase() {
         const tbody = document.getElementById('tabela-cursos');
-        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>`;
         
         [cacheCursos, cacheUCs, cacheAreas] = await Promise.all([
             window.ControllerCursos.listarCursos(),
@@ -49,7 +49,7 @@ window.AppCursos = {
         const selectCursoAddUC = document.getElementById('add-uc-curso');
         const selectCursoLote = document.getElementById('add-uc-lote-curso');
         const optionsCursos = `<option value="" disabled selected>Selecione o Curso...</option>` +
-                              cacheCursos.map(c => `<option value="${c.id}">${c.titulo}</option>`).join('');
+                              cacheCursos.map(c => `<option value="${c.id}">[${c.sigla || '---'}] ${c.titulo}</option>`).join('');
         
         if (selectCursoAddUC) selectCursoAddUC.innerHTML = optionsCursos;
         if (selectCursoLote) selectCursoLote.innerHTML = optionsCursos;
@@ -87,7 +87,7 @@ window.AppCursos = {
         const dadosFiltrados = cacheCursos.filter(curso => {
             const chTotal = this.calcularCHTotal(curso.id);
             
-            const matchTitulo = filtrosCursos.titulo === "" || curso.titulo.toLowerCase().includes(filtrosCursos.titulo.toLowerCase().trim());
+            const matchTitulo = filtrosCursos.titulo === "" || curso.titulo.toLowerCase().includes(filtrosCursos.titulo.toLowerCase().trim()) || (curso.sigla && curso.sigla.toLowerCase().includes(filtrosCursos.titulo.toLowerCase().trim()));
             const matchArea = filtrosCursos.area === "Todos" || curso.area === filtrosCursos.area;
             const matchTipo = filtrosCursos.tipo === "Todos" || curso.tipo === filtrosCursos.tipo;
             
@@ -103,7 +103,7 @@ window.AppCursos = {
         });
 
         if(dadosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhum curso encontrado para estes filtros.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhum curso encontrado para estes filtros.</td></tr>`;
             return;
         }
 
@@ -138,20 +138,21 @@ window.AppCursos = {
 
             return `
             <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-pointer row-curso group border-b border-slate-100" data-curso-id="${curso.id}">
-                <td class="p-2 md:py-4 md:px-2 text-center align-middle w-[15%] md:w-[8%] relative z-10">
+                <td class="p-2 md:py-4 md:px-2 text-center align-middle w-[12%] md:w-[7%] relative z-10">
                     ${window.usuarioAtual && window.usuarioAtual.cargo !== 'apoio' ? `
-                    <div class="flex items-center justify-center gap-3">
+                    <div class="flex items-center justify-center gap-2">
                         <span class="btn-editar-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Editar Curso">${svgLapis}</span>
                         <span class="btn-excluir-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Excluir Curso">${svgLixeira}</span>
                     </div>` : `<span class="text-slate-300">-</span>`}
                 </td>
-                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[35%] md:w-[42%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
+                <td class="p-2 md:py-4 md:px-3 text-xs md:text-sm font-black text-blue-600 align-middle whitespace-nowrap">${curso.sigla || '---'}</td>
+                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[35%] md:w-[35%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
                 <td class="p-2 md:py-4 md:px-4 text-xs md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[20%] md:w-[20%]">${curso.area}</td>
-                <td class="p-2 md:py-4 md:px-4 align-middle w-[15%] md:w-[15%]"><span class="px-2.5 py-1.5 rounded-md text-[10px] md:text-xs font-bold border shadow-sm ${badgeColor} whitespace-nowrap">${curso.tipo}</span></td>
-                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-black text-slate-700 align-middle whitespace-normal break-words w-[15%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
+                <td class="p-2 md:py-4 md:px-4 align-middle w-[10%] md:w-[13%]"><span class="px-2.5 py-1.5 rounded-md text-[10px] md:text-xs font-bold border shadow-sm ${badgeColor} whitespace-nowrap">${curso.tipo}</span></td>
+                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-black text-slate-700 align-middle whitespace-normal break-words w-[13%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
             </tr>
             <tr class="hidden row-ucs bg-slate-50 shadow-inner" id="accordion-${curso.id}">
-                <td colspan="5" class="p-0 border-b-2 border-blue-100">
+                <td colspan="6" class="p-0 border-b-2 border-blue-100">
                     <div class="p-4 md:p-5 pl-4 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
                         <div class="flex items-center gap-2 mb-3">
                             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
@@ -185,6 +186,7 @@ window.AppCursos = {
 
         document.getElementById('edit-curso-id').value = curso.id;
         document.getElementById('edit-curso-titulo').value = curso.titulo;
+        document.getElementById('edit-curso-sigla').value = curso.sigla || "";
         document.getElementById('edit-curso-area').value = curso.area;
         document.getElementById('edit-curso-tipo').value = curso.tipo;
 
@@ -228,7 +230,6 @@ window.AppCursos = {
 
     async tratarCliques(e) {
         
-        // --- Comportamento Acordeon e UX de UCs ---
         const rowCurso = e.target.closest('.row-curso');
         if (rowCurso && !e.target.closest('.btn-editar-curso') && !e.target.closest('.btn-excluir-curso')) {
             const cursoId = rowCurso.getAttribute('data-curso-id');
@@ -244,7 +245,6 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Modais Add/Edit Áreas ---
         if (e.target.closest('#btn-open-modal-area')) {
             document.getElementById('modal-add-area')?.classList.remove('hidden');
             setTimeout(() => document.getElementById('add-area-nome')?.focus(), 100);
@@ -290,7 +290,6 @@ window.AppCursos = {
             return true;
         }
         
-        // --- Modais de Cursos e UCs ---
         if (e.target.closest('.btn-editar-curso')) {
             const id = e.target.closest('.btn-editar-curso').getAttribute('data-id');
             this.abrirModalEditarCurso(id);
@@ -314,7 +313,6 @@ window.AppCursos = {
             return true;
         }
 
-        // CSV Template Download
         if (e.target.closest('#btn-baixar-modelo-ucs')) {
             const csvContent = "referencia;titulo;carga_horaria;indicadores;conhecimentos\n";
             const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
@@ -324,7 +322,6 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Ações: Excluir ---
         if (e.target.closest('.btn-excluir-curso')) {
             const id = e.target.closest('.btn-excluir-curso').getAttribute('data-id');
             if(confirm("ATENÇÃO: Excluir este curso também excluirá TODAS as UCs vinculadas a ele. Confirma?")) {
@@ -345,7 +342,6 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Carga em Lote (Upload CSV) ---
         if (e.target.closest('#btn-carregar-lote-ucs')) {
             const idCurso = document.getElementById('add-uc-lote-curso').value;
             const fileInput = document.getElementById('arquivo-lote-ucs');
@@ -422,7 +418,6 @@ window.AppCursos = {
             return true;
         }
 
-        // --- Filtros (Popovers) ---
         const toggleFilter = (btnId, prop, defValue, modalId, focusId) => {
             const btn = e.target.closest(`#${btnId}`);
             if (btn) {
@@ -472,7 +467,6 @@ window.AppCursos = {
             return true;
         }
 
-        // Clicar fora de Popovers fecha apenas os Popovers (Modais ficam intactos)
         if (!e.target.closest('th') && !e.target.closest('.popover-modal')) {
             this.fecharPopovers();
         }
@@ -487,10 +481,11 @@ window.AppCursos = {
             e.preventDefault();
             try {
                 const titulo = document.getElementById('add-curso-titulo').value;
+                const sigla = document.getElementById('add-curso-sigla').value;
                 const area = document.getElementById('add-curso-area').value;
                 const tipo = document.getElementById('add-curso-tipo').value;
                 
-                await window.ControllerCursos.salvarCurso(titulo, area, tipo);
+                await window.ControllerCursos.salvarCurso(titulo, sigla, area, tipo);
                 
                 if (!cacheAreas.find(a => a.nome.toLowerCase() === area.toLowerCase().trim())) {
                     await window.ControllerCursos.salvarArea(area);
@@ -511,11 +506,12 @@ window.AppCursos = {
             try {
                 const id = document.getElementById('edit-curso-id').value;
                 const titulo = document.getElementById('edit-curso-titulo').value;
+                const sigla = document.getElementById('edit-curso-sigla').value;
                 const area = document.getElementById('edit-curso-area').value;
                 const tipo = document.getElementById('edit-curso-tipo').value;
 
                 await window.ControllerCursos.editarCurso(id, {
-                    titulo: titulo.trim(), area: area.trim(), tipo: tipo
+                    titulo: titulo.trim(), sigla: sigla.trim().toUpperCase(), area: area.trim(), tipo: tipo
                 });
 
                 if (!cacheAreas.find(a => a.nome.toLowerCase() === area.toLowerCase().trim())) {

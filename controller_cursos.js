@@ -10,7 +10,6 @@ window.ControllerCursos = {
         await window.db.collection("areas").add({ nome: nome.trim() });
     },
 
-    // Nova Função: Edita a área e atualiza todos os cursos vinculados a ela (Cascata)
     async editarArea(id, novoNome) {
         const docRef = window.db.collection("areas").doc(id);
         const docSnap = await docRef.get();
@@ -22,7 +21,6 @@ window.ControllerCursos = {
         const batch = window.db.batch();
         batch.update(docRef, { nome: nomeNovoFormatado });
 
-        // Atualização em cascata: Atualiza a área nos cursos vinculados
         const cursosSnap = await window.db.collection("cursos").where("area", "==", nomeAntigo).get();
         cursosSnap.forEach(cursoDoc => {
             batch.update(cursoDoc.ref, { area: nomeNovoFormatado });
@@ -36,23 +34,25 @@ window.ControllerCursos = {
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
-    async salvarCurso(titulo, area, tipo) {
+    async salvarCurso(titulo, sigla, area, tipo) {
         await window.db.collection("cursos").add({ 
             titulo: titulo.trim(), 
+            sigla: sigla.trim().toUpperCase(),
             area: area.trim(), 
             tipo: tipo 
         });
     },
 
     async editarCurso(id, dados) {
+        if(dados.sigla) dados.sigla = dados.sigla.trim().toUpperCase();
+        if(dados.titulo) dados.titulo = dados.titulo.trim();
+        if(dados.area) dados.area = dados.area.trim();
         await window.db.collection("cursos").doc(id).update(dados);
     },
 
     async excluirCurso(id) {
-        // Exclui o curso
         await window.db.collection("cursos").doc(id).delete();
         
-        // Exclui as UCs vinculadas a ele de forma encadeada
         const ucsRef = await window.db.collection("ucs").where("id_curso", "==", id).get();
         const batch = window.db.batch();
         ucsRef.forEach(doc => {
@@ -88,7 +88,6 @@ window.ControllerCursos = {
         await window.db.collection("ucs").doc(id).delete();
     },
 
-    // Processamento em lote de UCs com trava de segurança anti-duplicidade
     async carregarUCsLote(idCurso, arrayUCs) {
         const snapExistentes = await window.db.collection("ucs").where("id_curso", "==", idCurso).get();
         const refsExistentes = new Set(snapExistentes.docs.map(doc => doc.data().referencia.toUpperCase().trim()));
@@ -97,12 +96,10 @@ window.ControllerCursos = {
         const refsNoLote = new Set();
 
         arrayUCs.forEach(item => {
-            // Garante o prefixo "UC-" na referência
             let refRaw = item.referencia.toString().trim().toUpperCase();
             if (!refRaw.startsWith('UC-')) refRaw = 'UC-' + refRaw.replace(/\D/g, ''); 
 
             if (refRaw && item.titulo && item.carga_horaria) {
-                // Bloqueia caso a UC já exista no banco ou se estiver duplicada na própria planilha
                 if (!refsExistentes.has(refRaw) && !refsNoLote.has(refRaw)) {
                     dadosProcessados.push({
                         id_curso: idCurso,

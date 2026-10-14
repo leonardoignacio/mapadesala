@@ -1,12 +1,6 @@
 // views_cursos.js - Interface Visual da View Cursos e UCs
 window.ViewsCursos = {
     renderizar() {
-        const anoAtual = new Date().getFullYear();
-        const optionsAno = [0, 1, 2, 3].map(offset => {
-            const ano = anoAtual + offset;
-            return `<option value="${ano}">${ano}</option>`;
-        }).join('');
-
         return `
         <div class="px-4 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
             
@@ -26,10 +20,13 @@ window.ViewsCursos = {
                                 <thead class="bg-slate-50 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                                     <tr>
                                         <!-- Coluna Ação -->
-                                        <th class="p-2 md:py-4 md:px-2 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[8%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
+                                        <th class="p-2 md:py-4 md:px-2 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[12%] md:w-[7%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
                                         
+                                        <!-- Coluna Sigla (Nova, à esquerda do Título) -->
+                                        <th class="p-2 md:py-4 md:px-3 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[10%] border-b border-slate-200 bg-slate-50/95 backdrop-blur">Sigla</th>
+
                                         <!-- Coluna Título -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[35%] md:w-[42%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[35%] md:w-[35%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">Título 
                                                 <button id="btn-filter-curso-titulo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-titulo">🔎</span></button></span>
@@ -61,7 +58,7 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna Tipo -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[10%] md:w-[13%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">Tipo 
                                                 <button id="btn-filter-curso-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-tipo">🔎</span></button></span>
@@ -81,7 +78,7 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna CH Total -->
-                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[13%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">CH Total 
                                                 <button id="btn-filter-curso-ch" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-ch">🔎</span></button></span>
@@ -102,7 +99,7 @@ window.ViewsCursos = {
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-cursos" class="bg-white">
-                                    <tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando Cursos e UCs...</td></tr>
+                                    <tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando Cursos e UCs...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -121,9 +118,16 @@ window.ViewsCursos = {
                             <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
                                 <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Adicionar Curso Base</h2>
                                 <form id="form-curso" class="space-y-4">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-500 mb-1">Título do Curso</label>
-                                        <input type="text" id="add-curso-titulo" placeholder="Ex: Técnico em Informática" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                    <!-- Linha com Título e Sigla lado a lado -->
+                                    <div class="flex gap-2">
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Título do Curso</label>
+                                            <input type="text" id="add-curso-titulo" placeholder="Ex: Técnico em Informática" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                        </div>
+                                        <div class="w-24 md:w-28">
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Sigla</label>
+                                            <input type="text" id="add-curso-sigla" placeholder="Ex: TINF" maxlength="4" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base uppercase font-bold text-center" oninput="this.value = this.value.toUpperCase().slice(0, 4)" required>
+                                        </div>
                                     </div>
                                     
                                     <div>
@@ -255,16 +259,22 @@ window.ViewsCursos = {
             </div>
         </div>
 
-        <!-- Modal Edição de Curso -->
+        <!-- Modal Edição de Curso (Com campo Sigla) -->
         <div id="modal-edit-curso" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative fade-in">
                 <button type="button" id="btn-close-modal-edit-curso" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold text-lg focus:outline-none">✕</button>
                 <h3 class="font-bold text-base text-slate-800 mb-4">Editar Curso</h3>
                 <form id="form-edit-curso" class="space-y-4">
                     <input type="hidden" id="edit-curso-id">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Título do Curso</label>
-                        <input type="text" id="edit-curso-titulo" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Título do Curso</label>
+                            <input type="text" id="edit-curso-titulo" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
+                        </div>
+                        <div class="w-24">
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Sigla</label>
+                            <input type="text" id="edit-curso-sigla" maxlength="4" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm uppercase font-bold text-center" oninput="this.value = this.value.toUpperCase().slice(0, 4)" required>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Área do Curso</label>
