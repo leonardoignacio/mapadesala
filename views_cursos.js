@@ -23,13 +23,13 @@ window.ViewsCursos = {
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[50vh]">
                         <div class="overflow-x-auto overflow-y-auto flex-1 w-full bg-white relative">
                             <table class="w-full text-left border-separate border-spacing-0 table-fixed">
-                                <thead class="bg-slate-100 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
+                                <thead class="bg-slate-50 sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                                     <tr>
                                         <!-- Coluna Ação -->
-                                        <th class="p-2 md:py-3 md:px-2 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] md:w-[8%] text-center bg-slate-100 border-b border-slate-200">Ação</th>
+                                        <th class="p-2 md:py-4 md:px-2 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[8%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
                                         
                                         <!-- Coluna Título -->
-                                        <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[35%] md:w-[42%] bg-slate-100 border-b border-slate-200 relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[35%] md:w-[42%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">Título 
                                                 <button id="btn-filter-curso-titulo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-titulo">🔎</span></button></span>
@@ -44,7 +44,7 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna Área -->
-                                        <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[20%] md:w-[20%] bg-slate-100 border-b border-slate-200 relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[20%] md:w-[20%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">Área 
                                                 <button id="btn-filter-curso-area" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-area">🔎</span></button></span>
@@ -61,7 +61,7 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna Tipo -->
-                                        <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">Tipo 
                                                 <button id="btn-filter-curso-tipo" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-tipo">🔎</span></button></span>
@@ -81,7 +81,7 @@ window.ViewsCursos = {
                                         </th>
 
                                         <!-- Coluna CH Total -->
-                                        <th class="p-2 md:py-3 md:px-4 text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wider w-[15%] md:w-[15%] bg-slate-100 border-b border-slate-200 relative">
+                                        <th class="p-2 md:py-4 md:px-4 text-[10px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-wider w-[15%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-1">CH Total 
                                                 <button id="btn-filter-curso-ch" class="text-slate-400 hover:text-blue-600 p-1 rounded transition focus:outline-none"><span id="icon-filter-curso-ch">🔎</span></button></span>
@@ -101,7 +101,7 @@ window.ViewsCursos = {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabela-cursos" class="divide-y divide-slate-100">
+                                <tbody id="tabela-cursos" class="bg-white">
                                     <tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando Cursos e UCs...</td></tr>
                                 </tbody>
                             </table>
@@ -287,7 +287,7 @@ window.ViewsCursos = {
             </div>
         </div>
 
-        <!-- Modal Detalhes/Edição da UC (Tamanho Maior 70%) -->
+        <!-- Modal Detalhes/Edição da UC -->
         <div id="modal-edit-uc" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 md:p-6">
             <div class="bg-white rounded-xl shadow-2xl w-[95%] lg:w-[70%] max-w-5xl h-[90vh] p-4 md:p-8 relative fade-in flex flex-col">
                 <button type="button" id="btn-close-modal-uc" class="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-700 font-bold text-xl md:text-2xl focus:outline-none">✕</button>
@@ -311,7 +311,6 @@ window.ViewsCursos = {
                         <input type="text" id="edit-uc-titulo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                     </div>
 
-                    <!-- Textareas flexíveis (flex-1) para dividirem o espaço restante do formulário -->
                     <div class="flex-1 flex flex-col min-h-[150px]">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores</label>
                         <textarea id="edit-uc-indicadores" class="w-full flex-1 border border-slate-300 p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base resize-y"></textarea>

@@ -81,9 +81,8 @@ window.AppCursos = {
 
         this.atualizarIconesFiltro();
 
-        const svgLixeira = `<svg class="w-4 h-4 md:w-4 md:h-4 text-slate-400 hover:text-red-600 transition cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
-        const svgLapis = `<svg class="w-4 h-4 md:w-4 md:h-4 text-slate-400 hover:text-blue-600 transition cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-        const svgFolha = `<svg class="w-4 h-4 md:w-4 md:h-4 text-slate-400 hover:text-purple-600 transition cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        const svgLixeira = `<svg class="w-4 h-4 md:w-[18px] md:h-[18px] text-slate-400 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+        const svgLapis = `<svg class="w-4 h-4 md:w-[18px] md:h-[18px] text-slate-400 hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
 
         const dadosFiltrados = cacheCursos.filter(curso => {
             const chTotal = this.calcularCHTotal(curso.id);
@@ -116,44 +115,53 @@ window.AppCursos = {
                 return numA - numB;
             });
 
+            let badgeColor = "bg-slate-50 text-slate-700 border-slate-200";
+            if (curso.tipo === "Técnico") badgeColor = "bg-blue-50 text-blue-700 border-blue-200";
+            else if (curso.tipo === "Livre") badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+            else if (curso.tipo === "Aprendizagem") badgeColor = "bg-purple-50 text-purple-700 border-purple-200";
+
             let htmlUCs = "";
             if(ucsDoCurso.length === 0) {
                 htmlUCs = `<tr><td colspan="4" class="py-4 text-center text-slate-400 text-xs md:text-sm">Nenhuma UC vinculada a este curso.</td></tr>`;
             } else {
                 htmlUCs = ucsDoCurso.map(uc => `
-                    <tr class="hover:bg-slate-200 transition border-b border-slate-100 last:border-0 cursor-pointer row-uc" data-id="${uc.id}">
-                        <td class="p-2 w-[15%] md:w-[8%] text-center flex items-center justify-center gap-2 relative z-10">
-                            <span class="btn-excluir-uc" data-id="${uc.id}" title="Excluir UC">${svgLixeira}</span>
-                            <span class="btn-detalhes-uc" data-id="${uc.id}" title="Detalhes / Editar UC">${svgFolha}</span>
+                    <tr class="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer row-uc group/uc border-b border-slate-100 last:border-0" data-id="${uc.id}">
+                        <td class="p-3 w-[15%] md:w-[8%] text-center flex items-center justify-center relative z-10">
+                            <span class="btn-excluir-uc transform hover:scale-110 transition-transform" data-id="${uc.id}" title="Excluir UC">${svgLixeira}</span>
                         </td>
-                        <td class="p-2 w-[20%] text-xs md:text-sm font-semibold text-slate-700 whitespace-normal break-words">${uc.referencia}</td>
-                        <td class="p-2 w-[50%] text-xs md:text-sm text-slate-600 whitespace-normal break-words">${uc.titulo}</td>
-                        <td class="p-2 w-[15%] text-xs md:text-sm font-bold text-slate-700 whitespace-normal break-words text-right">${uc.carga_horaria}h</td>
+                        <td class="p-3 w-[20%] text-xs md:text-sm font-bold text-slate-500 whitespace-normal break-words group-hover/uc:text-blue-600 transition-colors">${uc.referencia}</td>
+                        <td class="p-3 w-[50%] text-xs md:text-sm font-medium text-slate-600 whitespace-normal break-words group-hover/uc:text-slate-800 transition-colors">${uc.titulo}</td>
+                        <td class="p-3 w-[15%] text-xs md:text-sm font-bold text-blue-600 whitespace-normal break-words text-right group-hover/uc:text-blue-700 transition-colors">${uc.carga_horaria}h</td>
                     </tr>
                 `).join('');
             }
 
             return `
-            <tr class="hover:bg-blue-50 transition cursor-pointer row-curso group" data-curso-id="${curso.id}">
-                <td class="p-2 md:py-3 md:px-2 text-center align-middle w-[15%] md:w-[8%] relative z-10">
+            <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-pointer row-curso group border-b border-slate-100" data-curso-id="${curso.id}">
+                <td class="p-2 md:py-4 md:px-2 text-center align-middle w-[15%] md:w-[8%] relative z-10">
                     ${window.usuarioAtual && window.usuarioAtual.cargo !== 'apoio' ? `
-                    <div class="flex items-center justify-center gap-2">
-                        <span class="btn-editar-curso" data-id="${curso.id}" title="Editar Curso">${svgLapis}</span>
-                        <span class="btn-excluir-curso" data-id="${curso.id}" title="Excluir Curso">${svgLixeira}</span>
+                    <div class="flex items-center justify-center gap-3">
+                        <span class="btn-editar-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Editar Curso">${svgLapis}</span>
+                        <span class="btn-excluir-curso transform hover:scale-110 transition-transform" data-id="${curso.id}" title="Excluir Curso">${svgLixeira}</span>
                     </div>` : `<span class="text-slate-300">-</span>`}
                 </td>
-                <td class="p-2 md:py-3 md:px-4 text-xs md:text-base font-bold text-slate-800 border-b border-slate-200 align-middle whitespace-normal break-words w-[35%] md:w-[42%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
-                <td class="p-2 md:py-3 md:px-4 text-xs md:text-base text-slate-600 border-b border-slate-200 align-middle whitespace-normal break-words w-[20%] md:w-[20%]">${curso.area}</td>
-                <td class="p-2 md:py-3 md:px-4 border-b border-slate-200 align-middle w-[15%] md:w-[15%]"><span class="px-2 py-1 rounded text-[10px] md:text-xs font-bold shadow-sm bg-slate-200 text-slate-700 whitespace-nowrap">${curso.tipo}</span></td>
-                <td class="p-2 md:py-3 md:px-4 text-xs md:text-base font-bold text-slate-700 border-b border-slate-200 align-middle whitespace-normal break-words w-[15%] md:w-[15%] text-right">${chTotal}h</td>
+                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[35%] md:w-[42%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
+                <td class="p-2 md:py-4 md:px-4 text-xs md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[20%] md:w-[20%]">${curso.area}</td>
+                <td class="p-2 md:py-4 md:px-4 align-middle w-[15%] md:w-[15%]"><span class="px-2.5 py-1.5 rounded-md text-[10px] md:text-xs font-bold border shadow-sm ${badgeColor} whitespace-nowrap">${curso.tipo}</span></td>
+                <td class="p-2 md:py-4 md:px-4 text-xs md:text-base font-black text-slate-700 align-middle whitespace-normal break-words w-[15%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
             </tr>
-            <tr class="hidden row-ucs bg-slate-50 border-b-2 border-slate-200" id="accordion-${curso.id}">
-                <td colspan="5" class="p-0">
-                    <div class="p-4 pl-8 border-l-4 border-blue-500 bg-slate-50">
-                        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Unidades Curriculares Vinculadas</p>
-                        <table class="w-full text-left table-fixed bg-white rounded-lg shadow-sm border border-slate-200">
-                            <tbody>${htmlUCs}</tbody>
-                        </table>
+            <tr class="hidden row-ucs bg-slate-50 shadow-inner" id="accordion-${curso.id}">
+                <td colspan="5" class="p-0 border-b-2 border-blue-100">
+                    <div class="p-4 md:p-5 pl-4 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <p class="text-xs md:text-sm font-bold text-blue-800 uppercase tracking-wider">Unidades Curriculares Vinculadas</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-blue-100/50 overflow-hidden">
+                            <table class="w-full text-left table-fixed">
+                                <tbody class="divide-y divide-slate-50">${htmlUCs}</tbody>
+                            </table>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -201,7 +209,6 @@ window.AppCursos = {
         const container = document.getElementById('lista-edit-areas');
         if (!container) return;
 
-        // Utilizamos o ícone padrão de disquete (Salvar) do Tailwind
         const saveIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>`;
 
         if (cacheAreas.length === 0) {
@@ -231,7 +238,7 @@ window.AppCursos = {
         }
 
         const rowUc = e.target.closest('.row-uc');
-        if (rowUc && !e.target.closest('.btn-excluir-uc') && !e.target.closest('.btn-detalhes-uc')) {
+        if (rowUc && !e.target.closest('.btn-excluir-uc')) {
             const id = rowUc.getAttribute('data-id');
             this.abrirModalDetalhesUC(id);
             return true;
@@ -270,7 +277,6 @@ window.AppCursos = {
 
             try {
                 await window.ControllerCursos.editarArea(id, novoNome);
-                // Fecha silenciosamente após salvar
                 document.getElementById('modal-edit-area')?.classList.add('hidden');
                 
                 await this.carregarDadosBase();
@@ -297,11 +303,6 @@ window.AppCursos = {
 
         if (e.target.closest('#btn-close-modal-uc') || e.target.closest('#btn-cancel-edit-uc')) {
             document.getElementById('modal-edit-uc')?.classList.add('hidden');
-            return true;
-        }
-        if (e.target.closest('.btn-detalhes-uc')) {
-            const id = e.target.closest('.btn-detalhes-uc').getAttribute('data-id');
-            this.abrirModalDetalhesUC(id);
             return true;
         }
         if (e.target.closest('#btn-help-lote-ucs')) {
@@ -521,7 +522,6 @@ window.AppCursos = {
                     await window.ControllerCursos.salvarArea(area);
                 }
 
-                alert("Curso atualizado com sucesso!");
                 document.getElementById('modal-edit-curso').classList.add('hidden');
                 
                 await this.carregarDadosBase();
@@ -559,7 +559,6 @@ window.AppCursos = {
                 const nomeArea = document.getElementById('add-area-nome').value;
                 await window.ControllerCursos.salvarArea(nomeArea);
                 
-                alert("Nova área registrada!");
                 e.target.reset();
                 document.getElementById('modal-add-area').classList.add('hidden');
                 
@@ -584,7 +583,6 @@ window.AppCursos = {
                     referencia: ref, carga_horaria: ch, titulo: tit, indicadores: ind, conhecimentos: con
                 });
 
-                alert("UC atualizada com sucesso!");
                 document.getElementById('modal-edit-uc').classList.add('hidden');
                 
                 await this.carregarDadosBase();
