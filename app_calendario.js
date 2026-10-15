@@ -2,7 +2,8 @@
 let cacheCalendario = [];
 
 let filtrosCalendario = {
-    data: "",
+    meses: ["Todos"],
+    ano: new Date().getFullYear().toString(),
     dias: ["Todos"],
     tipos: ["Todos"],
     desc: ""
@@ -10,6 +11,8 @@ let filtrosCalendario = {
 
 window.AppCalendario = {
     async iniciarView() {
+        // Assegura que o ano do filtro inicie com o ano atual
+        filtrosCalendario.ano = new Date().getFullYear().toString();
         await this.carregarDadosBase();
         this.popularFiltros();
         this.renderizarTabelaCalendario();
@@ -31,10 +34,10 @@ window.AppCalendario = {
             const isTodosChecked = filtrosCalendario.tipos.includes("Todos");
             const chks = tiposUnicos.map(t => {
                 const isChecked = isTodosChecked || filtrosCalendario.tipos.includes(t);
-                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${t}" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${t}">${t}</span></label>`;
+                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-medium text-slate-700"><input type="checkbox" value="${t}" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${t}">${t}</span></label>`;
             }).join('');
             containerTipos.innerHTML = `
-                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isTodosChecked ? 'checked' : ''}> Todos</label>
+                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold text-slate-700"><input type="checkbox" value="Todos" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isTodosChecked ? 'checked' : ''}> Todos</label>
                 ${chks}
             `;
         }
@@ -42,7 +45,7 @@ window.AppCalendario = {
 
     atualizarIconesFiltro() {
         const iconData = document.getElementById('icon-filter-cal-data');
-        if (iconData) iconData.textContent = (filtrosCalendario.data !== "") ? "✖️" : "🔎";
+        if (iconData) iconData.textContent = (!filtrosCalendario.meses.includes("Todos")) ? "✖️" : "🔎";
 
         const iconDia = document.getElementById('icon-filter-cal-dia');
         if (iconDia) iconDia.textContent = (!filtrosCalendario.dias.includes("Todos")) ? "✖️" : "🔎";
@@ -63,19 +66,19 @@ window.AppCalendario = {
         const svgLixeira = `<svg class="w-4 h-4 md:w-[18px] md:h-[18px] text-slate-400 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
 
         const dadosFiltrados = cacheCalendario.filter(exc => {
-            const [ano, mes, dia] = exc.data.split('-');
-            const dataBR = `${dia}/${mes}/${ano}`;
+            const [ano, mes, dia] = exc.data.split('-'); // Formato original YYYY-MM-DD
             
-            const matchData = filtrosCalendario.data === "" || dataBR.includes(filtrosCalendario.data.trim());
-            const matchDesc = filtrosCalendario.desc === "" || exc.descricao.toLowerCase().includes(filtrosCalendario.desc.toLowerCase().trim());
+            const matchMes = filtrosCalendario.meses.includes("Todos") ? true : filtrosCalendario.meses.includes(mes);
+            const matchAno = ano === filtrosCalendario.ano;
             const matchDia = filtrosCalendario.dias.includes("Todos") ? true : filtrosCalendario.dias.includes(exc.dia_semana);
             const matchTipo = filtrosCalendario.tipos.includes("Todos") ? true : filtrosCalendario.tipos.includes(exc.excecao);
+            const matchDesc = filtrosCalendario.desc === "" || exc.descricao.toLowerCase().includes(filtrosCalendario.desc.toLowerCase().trim());
 
-            return matchData && matchDesc && matchDia && matchTipo;
+            return matchMes && matchAno && matchDia && matchTipo && matchDesc;
         });
 
         if(dadosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhum registro encontrado.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhum registro encontrado para este filtro.</td></tr>`;
             return;
         }
 
@@ -93,13 +96,13 @@ window.AppCalendario = {
 
             return `
             <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-default row-calendario group border-b border-slate-100" data-id="${exc.data}">
-                <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
+                <td class="px-0 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     <span class="btn-excluir-cal transform hover:scale-110 transition-transform cursor-pointer inline-block" data-id="${exc.data}" title="Excluir">${svgLixeira}</span>
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-slate-700 align-middle whitespace-nowrap w-[22%] md:w-[15%] group-hover:text-blue-700 transition-colors">${dataBR}</td>
-                <td class="px-1 py-2 text-center md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
-                <td class="px-0 text-center py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
-                <td class="px-2 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
+                <td class="px-0 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-slate-700 align-middle whitespace-nowrap w-[22%] md:w-[15%] group-hover:text-blue-700 transition-colors">${dataBR}</td>
+                <td class="text-center px-0 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
+                <td class="text-center px-0 py-2 md:py-4 md:px-2 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[9px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
+                <td class="text-center px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
             </tr>
             `;
         }).join('');
@@ -116,6 +119,25 @@ window.AppCalendario = {
     },
 
     async tratarCliques(e) {
+
+        // Checkboxes Interruptor (Mês - Data)
+        if (e.target.classList.contains('popover-mes-cal-chk')) {
+            const chkTodos = document.querySelector('.popover-mes-cal-chk[value="Todos"]');
+            const chkItens = Array.from(document.querySelectorAll('.popover-mes-cal-chk')).filter(chk => chk.value !== "Todos");
+
+            if (e.target.value === "Todos") {
+                const isChecked = e.target.checked;
+                chkItens.forEach(chk => chk.checked = isChecked);
+            } else {
+                if (!e.target.checked) {
+                    if (chkTodos) chkTodos.checked = false;
+                } else {
+                    const todosMarcados = chkItens.every(chk => chk.checked);
+                    if (chkTodos) chkTodos.checked = todosMarcados;
+                }
+            }
+            return true;
+        }
 
         // Checkboxes Interruptor (Dia da Semana)
         if (e.target.classList.contains('popover-dia-cal-chk')) {
@@ -237,15 +259,28 @@ window.AppCalendario = {
         // Filtros (Abrir/Resetar)
         const btnData = e.target.closest('#btn-filter-cal-data');
         if (btnData) {
-            if (filtrosCalendario.data !== "") {
-                filtrosCalendario.data = "";
-                document.getElementById('popover-input-cal-data').value = "";
+            if (!filtrosCalendario.meses.includes("Todos")) {
+                filtrosCalendario.meses = ["Todos"];
+                filtrosCalendario.ano = new Date().getFullYear().toString();
+                document.querySelectorAll('.popover-mes-cal-chk').forEach(chk => chk.checked = true);
+                const selectAno = document.getElementById('popover-select-cal-ano');
+                if (selectAno) selectAno.value = filtrosCalendario.ano;
                 this.renderizarTabelaCalendario();
             } else {
                 this.fecharPopovers('modal-filter-cal-data');
                 const modal = document.getElementById('modal-filter-cal-data');
                 modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) document.getElementById('popover-input-cal-data')?.focus();
+                if (!modal.classList.contains('hidden')) {
+                    document.querySelectorAll('.popover-mes-cal-chk').forEach(chk => {
+                        if (filtrosCalendario.meses.includes("Todos")) {
+                            chk.checked = true;
+                        } else {
+                            chk.checked = filtrosCalendario.meses.includes(chk.value);
+                        }
+                    });
+                    const selectAno = document.getElementById('popover-select-cal-ano');
+                    if (selectAno) selectAno.value = filtrosCalendario.ano;
+                }
             }
             return true;
         }
@@ -258,7 +293,17 @@ window.AppCalendario = {
                 this.renderizarTabelaCalendario();
             } else {
                 this.fecharPopovers('modal-filter-cal-dia');
-                document.getElementById('modal-filter-cal-dia').classList.toggle('hidden');
+                const modal = document.getElementById('modal-filter-cal-dia');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) {
+                    document.querySelectorAll('.popover-dia-cal-chk').forEach(chk => {
+                        if (filtrosCalendario.dias.includes("Todos")) {
+                            chk.checked = true;
+                        } else {
+                            chk.checked = filtrosCalendario.dias.includes(chk.value);
+                        }
+                    });
+                }
             }
             return true;
         }
@@ -271,7 +316,17 @@ window.AppCalendario = {
                 this.renderizarTabelaCalendario();
             } else {
                 this.fecharPopovers('modal-filter-cal-tipo');
-                document.getElementById('modal-filter-cal-tipo').classList.toggle('hidden');
+                const modal = document.getElementById('modal-filter-cal-tipo');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) {
+                    document.querySelectorAll('.popover-tipo-cal-chk').forEach(chk => {
+                        if (filtrosCalendario.tipos.includes("Todos")) {
+                            chk.checked = true;
+                        } else {
+                            chk.checked = filtrosCalendario.tipos.includes(chk.value);
+                        }
+                    });
+                }
             }
             return true;
         }
@@ -293,7 +348,9 @@ window.AppCalendario = {
 
         // Aplicar Filtros
         if (e.target.closest('#apply-filter-cal-data')) {
-            filtrosCalendario.data = document.getElementById('popover-input-cal-data').value;
+            const checkedChks = Array.from(document.querySelectorAll('.popover-mes-cal-chk:checked')).map(chk => chk.value);
+            filtrosCalendario.meses = checkedChks.includes("Todos") ? ["Todos"] : checkedChks;
+            filtrosCalendario.ano = document.getElementById('popover-select-cal-ano').value;
             document.getElementById('modal-filter-cal-data').classList.add('hidden');
             this.renderizarTabelaCalendario();
             return true;
