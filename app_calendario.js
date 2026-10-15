@@ -97,9 +97,9 @@ window.AppCalendario = {
                     <span class="btn-excluir-cal transform hover:scale-110 transition-transform cursor-pointer inline-block" data-id="${exc.data}" title="Excluir">${svgLixeira}</span>
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-slate-700 align-middle whitespace-nowrap w-[22%] md:w-[15%] group-hover:text-blue-700 transition-colors">${dataBR}</td>
-                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
-                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
+                <td class="px-1 py-2 text-center md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
+                <td class="px-0 text-center py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
+                <td class="px-2 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
             </tr>
             `;
         }).join('');
