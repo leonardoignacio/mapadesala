@@ -42,39 +42,54 @@ window.ControllerCalendario = {
         return dataObj.toISOString().split('T')[0];
     },
 
-    _gerarPontes(dataFeriado) {
+    // A função agora recebe a descrição do feriado para disparar gatilhos específicos
+    _gerarPontes(dataFeriado, descricaoFeriado = "") {
         const dataNorm = this._normalizarData(dataFeriado);
         const diaInt = this._obterDiaSemanaInt(dataNorm);
         const pontes = [];
+        const descLower = descricaoFeriado.toLowerCase();
 
-        const criarPonte = (offset) => {
+        const criarPonte = (offset, customDesc) => {
             const dataPonte = this._adicionarDias(dataNorm, offset);
             const diaPonteInt = this._obterDiaSemanaInt(dataPonte);
             pontes.push({
                 data: dataPonte,
                 excecao: "Ponte",
-                descricao: "Compensação - feriado",
+                descricao: customDesc || "Compensação - feriado",
                 dia_semana: this.nomesDiasSemana[diaPonteInt]
             });
         };
 
-        if (diaInt === 2) { criarPonte(-1); } 
-        else if (diaInt === 4) { criarPonte(1); criarPonte(2); } 
-        else if (diaInt === 5) { criarPonte(1); }
+        if (diaInt === 2) { 
+            criarPonte(-1); // Feriado Terça -> Ponte Segunda
+            // Se for Carnaval, gera também a Quarta-feira de cinzas
+            if (descLower.includes("carnaval")) {
+                criarPonte(1, "Quarta-feira de cinzas");
+            }
+        } 
+        else if (diaInt === 4) { 
+            criarPonte(1); 
+            criarPonte(2); 
+        } 
+        else if (diaInt === 5) { 
+            criarPonte(1); 
+        }
         return pontes;
     },
 
+    // Nova Função Unificada: Gera o CSV completo com Reuniões Pedagógicas Inteligentes
     gerarCalendarioBaseCSV(ano) {
         const anoInt = parseInt(ano);
         let csv = "data;excecao;descricao\n";
         
-        // 1. Feriados com datas variáveis no topo com data vazia
+        // 1. Feriados com datas variáveis no topo (Campo Data Vazio)
         csv += ";Feriado;Carnaval\n";
+        // A Quarta-feira de cinzas foi removida daqui para ser injetada automaticamente pela lógica
         csv += ";Feriado;Paixão de Cristo (Sexta-feira Santa)\n";
         csv += ";Feriado;Páscoa\n";
         csv += ";Feriado;Corpus Christi\n";
         
-        // 2. Feriados fixos (nacionais, estaduais de SP e municipais de Catanduva)
+        // 2. Feriados fixos (Nacionais, Estaduais SP e Municipais Catanduva)
         const feriadosFixos = [
             { data: `${anoInt}-01-01`, tipo: "Feriado Nacional", desc: "Confraternização Universal" },
             { data: `${anoInt}-04-14`, tipo: "Feriado Municipal", desc: "Aniversário de Catanduva" },
@@ -90,18 +105,58 @@ window.ControllerCalendario = {
             { data: `${anoInt}-12-25`, tipo: "Feriado Nacional", desc: "Natal" }
         ];
 
-        feriadosFixos.sort((a, b) => a.data.localeCompare(b.data));
+        // Mapeia todas as datas de feriados e de suas pontes para não encavalar com a reunião pedagógica
+        const occupiedDates = new Set();
         feriadosFixos.forEach(f => {
+            occupiedDates.add(f.data);
+            const pontes = this._gerarPontes(f.data, f.desc);
+            pontes.forEach(p => occupiedDates.add(p.data));
+        });
+
+        // 3. Reunião Pedagógica (Parada Pedagógica)
+        const reunioes = [];
+        const formatData = (d) => {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        };
+
+        for (let mes = 0; mes < 12; mes++) {
+            // Volta a partir do último dia do mês até encontrar a segunda-feira
+            let data = new Date(anoInt, mes + 1, 0); 
+            while (data.getDay() !== 1) { 
+                data.setDate(data.getDate() - 1);
+            }
+            
+            let dataStr = formatData(data);
+            
+            // Proteção contra feriados: Se a última segunda-feira for feriado ou ponte, recua 7 dias
+            if (occupiedDates.has(dataStr)) {
+                data.setDate(data.getDate() - 7);
+                dataStr = formatData(data);
+            }
+            
+            reunioes.push({
+                data: dataStr,
+                tipo: "Reunião Pedagógica",
+                desc: "Parada Pedagógica"
+            });
+        }
+
+        // Une os feriados fixos e as reuniões e ordena cronologicamente
+        const datasFixas = [...feriadosFixos, ...reunioes];
+        datasFixas.sort((a, b) => a.data.localeCompare(b.data));
+
+        datasFixas.forEach(f => {
             csv += `${f.data};${f.tipo};${f.desc}\n`;
         });
 
-        // 3. Domingos do ano
+        // 4. Domingos do ano (Ficam isolados e organizados no final do arquivo)
         let dataAtual = new Date(anoInt, 0, 1);
         while (dataAtual.getFullYear() === anoInt) {
             if (dataAtual.getDay() === 0) { 
-                const mesPad = String(dataAtual.getMonth() + 1).padStart(2, '0');
-                const diaPad = String(dataAtual.getDate()).padStart(2, '0');
-                const dataFormatada = `${anoInt}-${mesPad}-${diaPad}`;
+                const dataFormatada = formatData(dataAtual);
                 csv += `${dataFormatada};Domingo;Descanso Automático\n`;
             }
             dataAtual.setDate(dataAtual.getDate() + 1);
@@ -145,7 +200,7 @@ window.ControllerCalendario = {
         });
 
         if (tipoNorm === "Feriado") {
-            const pontes = this._gerarPontes(dataNorm);
+            const pontes = this._gerarPontes(dataNorm, descricao);
             for (const ponte of pontes) {
                 const refPonte = window.db.collection("datas_excecoes").doc(ponte.data);
                 batch.set(refPonte, ponte, { merge: true });
@@ -179,7 +234,7 @@ window.ControllerCalendario = {
                 }
 
                 if (tipoNorm === "Feriado") {
-                    const pontes = this._gerarPontes(dataNorm);
+                    const pontes = this._gerarPontes(dataNorm, item.descricao);
                     pontes.forEach(ponte => {
                         if(!chavesExistentes.has(ponte.data) && !datasAdicionadasNoLote.has(ponte.data)) {
                             dadosProcessados.push(ponte);

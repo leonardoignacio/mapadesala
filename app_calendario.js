@@ -1,119 +1,105 @@
 // app_calendario.js - Lógica específica da View Calendário e Exceções
-let cacheExcecoes = [];
-const dataAtualObj = new Date();
-const anoCorrente = dataAtualObj.getFullYear().toString();
+let cacheCalendario = [];
 
-// Estado centralizado: "Todos" inicia selecionado
-let filtrosEstado = {
-    data: { meses: ["Todos"], ano: anoCorrente },
-    dias: ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
-    tipo: [],
+let filtrosCalendario = {
+    data: "",
+    dias: ["Todos"],
+    tipos: ["Todos"],
     desc: ""
 };
 
 window.AppCalendario = {
     async iniciarView() {
-        await this.atualizarTabelaExcecoes();
+        await this.carregarDadosBase();
+        this.popularFiltros();
+        this.renderizarTabelaCalendario();
     },
 
-    async atualizarTabelaExcecoes() {
-        const tbody = document.getElementById('tabela-excecoes');
-        if(!tbody) return;
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500 font-medium text-sm md:text-base">Carregando dados...</td></tr>`;
+    async carregarDadosBase() {
+        const tbody = document.getElementById('tabela-calendario');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>`;
         
-        this.popularSelectAnosPopover();
-        cacheExcecoes = await window.ControllerCalendario.listarExcecoes();
-        this.renderizarTabelaExcecoes();
+        cacheCalendario = await window.ControllerCalendario.listarExcecoes();
     },
 
-    popularSelectAnosPopover() {
-        const selectAno = document.getElementById('popover-ano');
+    popularFiltros() {
+        const tiposSet = new Set(cacheCalendario.map(e => e.excecao));
+        const tiposUnicos = Array.from(tiposSet).sort();
+        const containerTipos = document.getElementById('popover-container-cal-tipos');
         
-        if (selectAno && selectAno.options.length <= 1) {
-            const anoAtualInt = new Date().getFullYear();
-            for (let i = -1; i < 4; i++) {
-                const anoStr = (anoAtualInt + i).toString();
-                const opt = document.createElement('option');
-                opt.value = anoStr;
-                opt.textContent = anoStr;
-                selectAno.appendChild(opt);
-            }
+        if (containerTipos) {
+            const isTodosChecked = filtrosCalendario.tipos.includes("Todos");
+            const chks = tiposUnicos.map(t => {
+                const isChecked = isTodosChecked || filtrosCalendario.tipos.includes(t);
+                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${t}" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${t}">${t}</span></label>`;
+            }).join('');
+            containerTipos.innerHTML = `
+                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isTodosChecked ? 'checked' : ''}> Todos</label>
+                ${chks}
+            `;
         }
-
-        if (selectAno) selectAno.value = filtrosEstado.data.ano;
     },
 
     atualizarIconesFiltro() {
-        const iconData = document.getElementById('icon-filter-data');
-        if (iconData) {
-            const ativo = (!filtrosEstado.data.meses.includes("Todos") || filtrosEstado.data.ano !== anoCorrente);
-            iconData.textContent = ativo ? "✖️" : "🔎";
-            iconData.parentElement.title = ativo ? "Remover Filtro de Data" : "Filtrar Data";
-        }
+        const iconData = document.getElementById('icon-filter-cal-data');
+        if (iconData) iconData.textContent = (filtrosCalendario.data !== "") ? "✖️" : "🔎";
 
-        const iconDia = document.getElementById('icon-filter-dia');
-        if (iconDia) {
-            const ativo = filtrosEstado.dias.length < 7;
-            iconDia.textContent = ativo ? "✖️" : "🔎";
-            iconDia.parentElement.title = ativo ? "Remover Filtro de Dias" : "Filtrar Dias da Semana";
-        }
+        const iconDia = document.getElementById('icon-filter-cal-dia');
+        if (iconDia) iconDia.textContent = (!filtrosCalendario.dias.includes("Todos")) ? "✖️" : "🔎";
 
-        const iconTipo = document.getElementById('icon-filter-tipo');
-        if (iconTipo) {
-            const ativo = filtrosEstado.tipo.length > 0;
-            iconTipo.textContent = ativo ? "✖️" : "🔎";
-            iconTipo.parentElement.title = ativo ? "Remover Filtro de Tipo" : "Filtrar Tipo";
-        }
+        const iconTipo = document.getElementById('icon-filter-cal-tipo');
+        if (iconTipo) iconTipo.textContent = (!filtrosCalendario.tipos.includes("Todos")) ? "✖️" : "🔎";
 
-        const iconDesc = document.getElementById('icon-filter-desc');
-        if (iconDesc) {
-            const ativo = filtrosEstado.desc !== "";
-            iconDesc.textContent = ativo ? "✖️" : "🔎";
-            iconDesc.parentElement.title = ativo ? "Remover Filtro de Descrição" : "Filtrar Descrição";
-        }
+        const iconDesc = document.getElementById('icon-filter-cal-desc');
+        if (iconDesc) iconDesc.textContent = (filtrosCalendario.desc !== "") ? "✖️" : "🔎";
     },
 
-    renderizarTabelaExcecoes() {
-        const tbody = document.getElementById('tabela-excecoes');
+    renderizarTabelaCalendario() {
+        const tbody = document.getElementById('tabela-calendario');
         if(!tbody) return;
 
         this.atualizarIconesFiltro();
 
-        const dadosFiltrados = cacheExcecoes.filter(item => {
-            const [anoItem, mesItem, diaItem] = item.data.split('-');
-            
-            const matchAno = filtrosEstado.data.ano ? (anoItem === filtrosEstado.data.ano) : true;
-            const matchMes = filtrosEstado.data.meses.includes("Todos") ? true : filtrosEstado.data.meses.includes(mesItem);
-            const matchDia = filtrosEstado.dias.length === 0 ? true : filtrosEstado.dias.includes(item.dia_semana);
-            const matchTipo = filtrosEstado.tipo.length === 0 ? true : filtrosEstado.tipo.some(t => t.toLowerCase() === (item.excecao || "").toLowerCase());
-            const matchDesc = filtrosEstado.desc ? (item.descricao && item.descricao.toLowerCase().includes(filtrosEstado.desc.toLowerCase().trim())) : true;
+        const svgLixeira = `<svg class="w-4 h-4 md:w-[18px] md:h-[18px] text-slate-400 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
 
-            return matchAno && matchMes && matchDia && matchTipo && matchDesc;
+        const dadosFiltrados = cacheCalendario.filter(exc => {
+            const [ano, mes, dia] = exc.data.split('-');
+            const dataBR = `${dia}/${mes}/${ano}`;
+            
+            const matchData = filtrosCalendario.data === "" || dataBR.includes(filtrosCalendario.data.trim());
+            const matchDesc = filtrosCalendario.desc === "" || exc.descricao.toLowerCase().includes(filtrosCalendario.desc.toLowerCase().trim());
+            const matchDia = filtrosCalendario.dias.includes("Todos") ? true : filtrosCalendario.dias.includes(exc.dia_semana);
+            const matchTipo = filtrosCalendario.tipos.includes("Todos") ? true : filtrosCalendario.tipos.includes(exc.excecao);
+
+            return matchData && matchDesc && matchDia && matchTipo;
         });
 
         if(dadosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhuma exceção encontrada para estes filtros.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhum registro encontrado.</td></tr>`;
             return;
         }
 
-        const html = dadosFiltrados.map(item => {
-            let badgeColor = "bg-slate-100 text-slate-700";
-            const excLower = (item.excecao || "").toLowerCase();
-            if(excLower.includes('feriado')) badgeColor = "bg-red-100 text-red-700";
-            else if(excLower.includes('domingo')) badgeColor = "bg-blue-100 text-blue-700";
-            else if(excLower.includes('ponte')) badgeColor = "bg-amber-100 text-amber-800";
+        const html = dadosFiltrados.map(exc => {
+            const [ano, mes, dia] = exc.data.split('-');
+            const dataBR = `${dia}/${mes}/${ano}`;
 
-            const dataBr = item.data.split('-').reverse().join('/');
+            let badgeColor = "text-slate-700 md:bg-slate-50 md:border-slate-200";
+            const tipoLower = exc.excecao.toLowerCase();
+            if (tipoLower.includes("feriado")) badgeColor = "text-rose-700 md:bg-rose-50 md:border-rose-200";
+            else if (tipoLower.includes("ponte")) badgeColor = "text-amber-700 md:bg-amber-50 md:border-amber-200";
+            else if (tipoLower.includes("domingo")) badgeColor = "text-slate-600 md:bg-slate-100 md:border-slate-200";
+            else if (tipoLower.includes("reunião") || tipoLower.includes("reuniao")) badgeColor = "text-indigo-700 md:bg-indigo-50 md:border-indigo-200";
+            else if (tipoLower.includes("cancelamento")) badgeColor = "text-orange-700 md:bg-orange-50 md:border-orange-200";
 
             return `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-1 md:px-2 md:py-2 text-sm md:text-base border-b border-slate-200 align-middle text-center w-[12%] md:w-[7%]">
-                    ${window.usuarioAtual && window.usuarioAtual.cargo !== 'apoio' ? `<button class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1 md:p-1.5 rounded-md transition btn-excluir-exc inline-flex items-center justify-center" data-id="${item.data}" title="Excluir"><svg class="w-4 h-4 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>` : `<span class="text-slate-300">-</span>`}
+            <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-default row-calendario group border-b border-slate-100" data-id="${exc.data}">
+                <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
+                    <span class="btn-excluir-cal transform hover:scale-110 transition-transform cursor-pointer inline-block" data-id="${exc.data}" title="Excluir">${svgLixeira}</span>
                 </td>
-                <td class="p-2 md:py-2.5 md:px-4 text-xs md:text-base font-bold text-slate-800 border-b border-slate-200 align-middle whitespace-normal break-words w-[22%] md:w-[15%]">${dataBr}</td>
-                <td class="p-2 md:py-2.5 md:px-4 text-xs md:text-base text-slate-600 border-b border-slate-200 align-middle whitespace-normal break-words w-[25%] md:w-[20%]">${item.dia_semana || "-"}</td>
-                <td class="p-2 md:py-2.5 md:px-4 border-b border-slate-200 align-middle w-[18%] md:w-[15%]"><span class="px-1.5 py-0.5 md:px-2.5 md:py-1 rounded text-[10px] md:text-sm font-bold shadow-sm ${badgeColor} whitespace-nowrap">${item.excecao}</span></td>
-                <td class="p-2 md:py-2.5 md:px-4 text-xs md:text-sm text-slate-700 border-b border-slate-200 align-middle whitespace-normal break-words w-[23%] md:w-[43%]">${item.descricao}</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-slate-700 align-middle whitespace-nowrap w-[22%] md:w-[15%] group-hover:text-blue-700 transition-colors">${dataBR}</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
             </tr>
             `;
         }).join('');
@@ -121,8 +107,8 @@ window.AppCalendario = {
         tbody.innerHTML = html;
     },
 
-    fecharTodosModais(excetoId = null) {
-        ['modal-filter-data', 'modal-filter-dia', 'modal-filter-tipo', 'modal-filter-desc', 'modal-help-lote'].forEach(id => {
+    fecharPopovers(excetoId = null) {
+        ['modal-filter-cal-data', 'modal-filter-cal-dia', 'modal-filter-cal-tipo', 'modal-filter-cal-desc'].forEach(id => {
             if (id !== excetoId) {
                 document.getElementById(id)?.classList.add('hidden');
             }
@@ -130,174 +116,73 @@ window.AppCalendario = {
     },
 
     async tratarCliques(e) {
-        
-        if (e.target.classList.contains('popover-mes-chk')) {
-            const chkTodos = document.querySelector('.popover-mes-chk[value="Todos"]');
-            const chkMeses = Array.from(document.querySelectorAll('.popover-mes-chk')).filter(chk => chk.value !== "Todos");
+
+        // Checkboxes Interruptor (Dia da Semana)
+        if (e.target.classList.contains('popover-dia-cal-chk')) {
+            const chkTodos = document.querySelector('.popover-dia-cal-chk[value="Todos"]');
+            const chkItens = Array.from(document.querySelectorAll('.popover-dia-cal-chk')).filter(chk => chk.value !== "Todos");
 
             if (e.target.value === "Todos") {
                 const isChecked = e.target.checked;
-                chkMeses.forEach(chk => chk.checked = isChecked);
+                chkItens.forEach(chk => chk.checked = isChecked);
             } else {
                 if (!e.target.checked) {
                     if (chkTodos) chkTodos.checked = false;
                 } else {
-                    const todosMarcados = chkMeses.every(chk => chk.checked);
+                    const todosMarcados = chkItens.every(chk => chk.checked);
                     if (chkTodos) chkTodos.checked = todosMarcados;
                 }
             }
             return true;
         }
 
-        if (e.target.closest('#btn-help-lote')) {
-            this.fecharTodosModais('modal-help-lote');
-            document.getElementById('modal-help-lote')?.classList.remove('hidden');
-            return true;
-        }
-        if (e.target.closest('#btn-close-help') || e.target.id === 'modal-help-lote') {
-            document.getElementById('modal-help-lote')?.classList.add('hidden');
-            return true;
-        }
+        // Checkboxes Interruptor (Tipo)
+        if (e.target.classList.contains('popover-tipo-cal-chk')) {
+            const chkTodos = document.querySelector('.popover-tipo-cal-chk[value="Todos"]');
+            const chkItens = Array.from(document.querySelectorAll('.popover-tipo-cal-chk')).filter(chk => chk.value !== "Todos");
 
-        const btnData = e.target.closest('#btn-filter-data');
-        if (btnData) {
-            const ativo = (!filtrosEstado.data.meses.includes("Todos") || filtrosEstado.data.ano !== anoCorrente);
-            if (ativo) {
-                filtrosEstado.data = { meses: ["Todos"], ano: anoCorrente };
-                this.renderizarTabelaExcecoes();
+            if (e.target.value === "Todos") {
+                const isChecked = e.target.checked;
+                chkItens.forEach(chk => chk.checked = isChecked);
             } else {
-                this.fecharTodosModais('modal-filter-data');
-                const modal = document.getElementById('modal-filter-data');
-                modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) {
-                    this.popularSelectAnosPopover();
-                    document.querySelectorAll('.popover-mes-chk').forEach(chk => {
-                        if (filtrosEstado.data.meses.includes("Todos")) {
-                            chk.checked = true;
-                        } else {
-                            chk.checked = filtrosEstado.data.meses.includes(chk.value);
-                        }
-                    });
+                if (!e.target.checked) {
+                    if (chkTodos) chkTodos.checked = false;
+                } else {
+                    const todosMarcados = chkItens.every(chk => chk.checked);
+                    if (chkTodos) chkTodos.checked = todosMarcados;
                 }
             }
             return true;
         }
 
-        const btnDia = e.target.closest('#btn-filter-dia');
-        if (btnDia) {
-            const ativo = filtrosEstado.dias.length < 7;
-            if (ativo) {
-                filtrosEstado.dias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-                document.querySelectorAll('.popover-dia-chk').forEach(chk => chk.checked = true);
-                this.renderizarTabelaExcecoes();
-            } else {
-                this.fecharTodosModais('modal-filter-dia');
-                const modal = document.getElementById('modal-filter-dia');
-                modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) {
-                    document.querySelector('.popover-dia-chk')?.focus();
-                }
+        // Excluir
+        if (e.target.closest('.btn-excluir-cal')) {
+            const id = e.target.closest('.btn-excluir-cal').getAttribute('data-id');
+            if(confirm("Confirma exclusão desta exceção no calendário?")) {
+                await window.ControllerCalendario.excluirExcecao(id);
+                await this.carregarDadosBase();
+                this.popularFiltros();
+                this.renderizarTabelaCalendario();
             }
             return true;
         }
 
-        const btnTipo = e.target.closest('#btn-filter-tipo');
-        if (btnTipo) {
-            const ativo = filtrosEstado.tipo.length > 0;
-            if (ativo) {
-                filtrosEstado.tipo = [];
-                document.querySelectorAll('.popover-tipo-chk').forEach(chk => chk.checked = false);
-                this.renderizarTabelaExcecoes();
-            } else {
-                this.fecharTodosModais('modal-filter-tipo');
-                const modal = document.getElementById('modal-filter-tipo');
-                modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) {
-                    document.querySelector('.popover-tipo-chk')?.focus();
-                }
-            }
-            return true;
-        }
-
-        const btnDesc = e.target.closest('#btn-filter-desc');
-        if (btnDesc) {
-            const ativo = filtrosEstado.desc !== "";
-            if (ativo) {
-                filtrosEstado.desc = "";
-                const inputDesc = document.getElementById('popover-input-desc');
-                if (inputDesc) inputDesc.value = "";
-                this.renderizarTabelaExcecoes();
-            } else {
-                this.fecharTodosModais('modal-filter-desc');
-                const modal = document.getElementById('modal-filter-desc');
-                modal.classList.toggle('hidden');
-                if (!modal.classList.contains('hidden')) {
-                    const inputDesc = document.getElementById('popover-input-desc');
-                    if (inputDesc) {
-                        inputDesc.value = filtrosEstado.desc;
-                        inputDesc.focus();
-                    }
-                }
-            }
-            return true;
-        }
-
-        if (e.target.closest('#apply-filter-data')) {
-            const checkedChks = Array.from(document.querySelectorAll('.popover-mes-chk:checked')).map(chk => chk.value);
-            
-            if (checkedChks.includes("Todos")) {
-                filtrosEstado.data.meses = ["Todos"];
-            } else {
-                filtrosEstado.data.meses = checkedChks;
-            }
-            
-            filtrosEstado.data.ano = document.getElementById('popover-ano').value;
-            document.getElementById('modal-filter-data').classList.add('hidden');
-            this.renderizarTabelaExcecoes();
-            return true;
-        }
-
-        if (e.target.closest('#apply-filter-dia')) {
-            const checked = document.querySelectorAll('.popover-dia-chk:checked');
-            filtrosEstado.dias = Array.from(checked).map(chk => chk.value);
-            document.getElementById('modal-filter-dia').classList.add('hidden');
-            this.renderizarTabelaExcecoes();
-            return true;
-        }
-
-        if (e.target.closest('#apply-filter-tipo')) {
-            const checked = document.querySelectorAll('.popover-tipo-chk:checked');
-            filtrosEstado.tipo = Array.from(checked).map(chk => chk.value);
-            document.getElementById('modal-filter-tipo').classList.add('hidden');
-            this.renderizarTabelaExcecoes();
-            return true;
-        }
-
-        if (e.target.closest('#apply-filter-desc')) {
-            filtrosEstado.desc = document.getElementById('popover-input-desc').value;
-            document.getElementById('modal-filter-desc').classList.add('hidden');
-            this.renderizarTabelaExcecoes();
-            return true;
-        }
-
-        if (e.target.closest('#btn-baixar-domingos-csv')) {
-            const ano = document.getElementById('ano-domingos').value;
-            if(!ano || ano.length !== 4) { alert("Por favor, informe um ano com 4 dígitos."); return true; }
-            
-            const csvContent = window.ControllerCalendario.gerarCalendarioBaseCSV(ano);
-
-            const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        // Gerar CSV Base
+        if (e.target.closest('#btn-gerar-csv-base')) {
+            const ano = document.getElementById('select-ano-gerador').value;
+            const csv = window.ControllerCalendario.gerarCalendarioBaseCSV(ano);
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `calendario_base_${ano}.csv`;
+            const a = document.createElement('a'); a.href = url; a.download = `feriados_pontes_reunioes_${ano}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
             return true;
         }
 
-        if (e.target.closest('#btn-carregar-lote')) {
-            const fileInput = document.getElementById('arquivo-lote');
-            if(!fileInput.files.length) { alert("Por favor, selecione um arquivo .csv para processar."); return true; }
-
-            const btnConfirma = e.target.closest('#btn-carregar-lote');
+        // Upload CSV em Lote
+        if (e.target.closest('#btn-carregar-lote-calendario')) {
+            const fileInput = document.getElementById('arquivo-lote-calendario');
+            if (!fileInput.files.length) { alert("Por favor, selecione um arquivo .csv para processar."); return true; }
+            const btnConfirma = e.target.closest('#btn-carregar-lote-calendario');
             btnConfirma.innerText = "Processando...";
             btnConfirma.disabled = true;
 
@@ -306,99 +191,159 @@ window.AppCalendario = {
 
             reader.onload = async (event) => {
                 try {
-                    const conteudoTexto = event.target.result;
-                    let dadosArray = [];
-
-                    if (file.name.endsWith('.csv')) {
-                        const linhas = conteudoTexto.split(/\r\n|\n/);
-                        if (linhas.length === 0) throw new Error("Arquivo CSV vazio.");
-
-                        const primeiraLinha = linhas[0];
-                        const delimitador = primeiraLinha.includes(';') ? ';' : ',';
-
-                        const cabecalho = primeiraLinha.split(delimitador).map(h => h.trim().toLowerCase());
-                        const idxData = cabecalho.findIndex(h => h.includes('data'));
-                        const idxExc = cabecalho.findIndex(h => h.includes('excecao') || h.includes('tipo'));
-                        const idxDesc = cabecalho.findIndex(h => h.includes('descricao'));
-
-                        if (idxData === -1 || idxExc === -1) {
-                            throw new Error("O CSV precisa conter as colunas 'data' e 'excecao'.");
-                        }
-
-                        for (let i = 1; i < linhas.length; i++) {
-                            const linha = linhas[i].trim();
-                            if (!linha) continue;
-                            const colunas = linha.split(delimitador).map(c => c.trim().replace(/^"(.*)"$/, '$1'));
-                            
-                            if (!colunas[idxData] || colunas[idxData].trim() === "") continue;
-
-                            if (colunas.length > idxData && colunas.length > idxExc) {
-                                dadosArray.push({
-                                    data: colunas[idxData],
-                                    excecao: colunas[idxExc],
-                                    descricao: idxDesc !== -1 && colunas[idxDesc] ? colunas[idxDesc] : ""
-                                });
-                            }
-                        }
-                    } else {
-                        throw new Error("Formato de arquivo não suportado. Por favor, utilize apenas arquivos .csv");
-                    }
-
-                    if(dadosArray.length === 0) {
-                        throw new Error("Nenhuma data válida encontrada no arquivo. Verifique se as datas foram preenchidas.");
-                    }
-
-                    const qtdInseridos = await window.ControllerCalendario.carregarExcecoesLote(dadosArray);
+                    const linhas = event.target.result.split(/\r\n|\n/);
+                    if (linhas.length === 0) throw new Error("Arquivo vazio.");
+                    const delimitador = linhas[0].includes(';') ? ';' : ',';
+                    const cabecalho = linhas[0].split(delimitador).map(h => h.trim().toLowerCase());
                     
-                    if(qtdInseridos === 0) {
-                        alert("Concluído: Nenhuma nova data foi inserida (todas já existiam no sistema).");
-                    } else {
-                        alert(`Sucesso! ${qtdInseridos} novas exceções/pontes foram inseridas.`);
-                        this.atualizarTabelaExcecoes(); 
+                    const idxData = cabecalho.indexOf('data');
+                    const idxExc = cabecalho.indexOf('excecao');
+                    const idxDesc = cabecalho.findIndex(h => h.includes('desc'));
+                    
+                    if (idxData === -1 || idxExc === -1) throw new Error("O CSV precisa obrigatoriamente conter as colunas 'data' e 'excecao'.");
+
+                    let arrayDados = [];
+                    for (let i = 1; i < linhas.length; i++) {
+                        const linha = linhas[i].trim();
+                        if (!linha) continue;
+                        const colunas = linha.split(delimitador).map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+                        if (!colunas[idxData] && !colunas[idxExc]) continue;
+                        arrayDados.push({
+                            data: colunas[idxData],
+                            excecao: colunas[idxExc],
+                            descricao: idxDesc !== -1 ? colunas[idxDesc] : ""
+                        });
                     }
-                } catch(error) {
-                    alert("Erro ao processar o arquivo: " + error.message);
+
+                    if(arrayDados.length === 0) throw new Error("Nenhum dado válido encontrado.");
+
+                    const addCount = await window.ControllerCalendario.carregarExcecoesLote(arrayDados);
+                    alert(`Processamento concluído! ${addCount} registros inseridos/atualizados.`);
+                    await this.carregarDadosBase();
+                    this.popularFiltros();
+                    this.renderizarTabelaCalendario();
+                } catch(err) { 
+                    alert("Erro: " + err.message); 
                 } finally {
                     btnConfirma.innerText = "Confirmar Processamento";
                     btnConfirma.disabled = false;
-                    fileInput.value = ""; 
+                    fileInput.value = "";
                 }
             };
-
             reader.readAsText(file, "UTF-8");
             return true;
         }
 
-        const btnExcluir = e.target.closest('.btn-excluir-exc');
-        if (btnExcluir) {
-            const dataId = btnExcluir.getAttribute('data-id');
-            if(confirm(`Excluir a data ${dataId.split('-').reverse().join('/')}?`)) {
-                await window.ControllerCalendario.excluirExcecao(dataId);
-                this.atualizarTabelaExcecoes(); 
+        // Filtros (Abrir/Resetar)
+        const btnData = e.target.closest('#btn-filter-cal-data');
+        if (btnData) {
+            if (filtrosCalendario.data !== "") {
+                filtrosCalendario.data = "";
+                document.getElementById('popover-input-cal-data').value = "";
+                this.renderizarTabelaCalendario();
+            } else {
+                this.fecharPopovers('modal-filter-cal-data');
+                const modal = document.getElementById('modal-filter-cal-data');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) document.getElementById('popover-input-cal-data')?.focus();
             }
             return true;
         }
 
-        if (!e.target.closest('th') && !e.target.closest('#modal-help-lote')) {
-            this.fecharTodosModais();
+        const btnDia = e.target.closest('#btn-filter-cal-dia');
+        if (btnDia) {
+            if (!filtrosCalendario.dias.includes("Todos")) {
+                filtrosCalendario.dias = ["Todos"];
+                document.querySelectorAll('.popover-dia-cal-chk').forEach(chk => chk.checked = true);
+                this.renderizarTabelaCalendario();
+            } else {
+                this.fecharPopovers('modal-filter-cal-dia');
+                document.getElementById('modal-filter-cal-dia').classList.toggle('hidden');
+            }
+            return true;
+        }
+
+        const btnTipo = e.target.closest('#btn-filter-cal-tipo');
+        if (btnTipo) {
+            if (!filtrosCalendario.tipos.includes("Todos")) {
+                filtrosCalendario.tipos = ["Todos"];
+                document.querySelectorAll('.popover-tipo-cal-chk').forEach(chk => chk.checked = true);
+                this.renderizarTabelaCalendario();
+            } else {
+                this.fecharPopovers('modal-filter-cal-tipo');
+                document.getElementById('modal-filter-cal-tipo').classList.toggle('hidden');
+            }
+            return true;
+        }
+
+        const btnDesc = e.target.closest('#btn-filter-cal-desc');
+        if (btnDesc) {
+            if (filtrosCalendario.desc !== "") {
+                filtrosCalendario.desc = "";
+                document.getElementById('popover-input-cal-desc').value = "";
+                this.renderizarTabelaCalendario();
+            } else {
+                this.fecharPopovers('modal-filter-cal-desc');
+                const modal = document.getElementById('modal-filter-cal-desc');
+                modal.classList.toggle('hidden');
+                if (!modal.classList.contains('hidden')) document.getElementById('popover-input-cal-desc')?.focus();
+            }
+            return true;
+        }
+
+        // Aplicar Filtros
+        if (e.target.closest('#apply-filter-cal-data')) {
+            filtrosCalendario.data = document.getElementById('popover-input-cal-data').value;
+            document.getElementById('modal-filter-cal-data').classList.add('hidden');
+            this.renderizarTabelaCalendario();
+            return true;
+        }
+        if (e.target.closest('#apply-filter-cal-dia')) {
+            const checkedChks = Array.from(document.querySelectorAll('.popover-dia-cal-chk:checked')).map(chk => chk.value);
+            filtrosCalendario.dias = checkedChks.includes("Todos") ? ["Todos"] : checkedChks;
+            document.getElementById('modal-filter-cal-dia').classList.add('hidden');
+            this.renderizarTabelaCalendario();
+            return true;
+        }
+        if (e.target.closest('#apply-filter-cal-tipo')) {
+            const checkedChks = Array.from(document.querySelectorAll('.popover-tipo-cal-chk:checked')).map(chk => chk.value);
+            filtrosCalendario.tipos = checkedChks.includes("Todos") ? ["Todos"] : checkedChks;
+            document.getElementById('modal-filter-cal-tipo').classList.add('hidden');
+            this.renderizarTabelaCalendario();
+            return true;
+        }
+        if (e.target.closest('#apply-filter-cal-desc')) {
+            filtrosCalendario.desc = document.getElementById('popover-input-cal-desc').value;
+            document.getElementById('modal-filter-cal-desc').classList.add('hidden');
+            this.renderizarTabelaCalendario();
+            return true;
+        }
+
+        if (!e.target.closest('th') && !e.target.closest('.popover-modal')) {
+            this.fecharPopovers();
         }
 
         return false;
     },
 
     async tratarSubmits(e) {
-        if (e.target.id === 'form-excecao') {
+        if (e.target.id === 'form-calendario') {
             e.preventDefault();
             try {
-                await window.ControllerCalendario.salvarExcecaoManual(
-                    document.getElementById('exc-data').value,
-                    document.getElementById('exc-tipo').value,
-                    document.getElementById('exc-desc').value
-                );
-                alert("Exceção cadastrada com sucesso!");
+                const data = document.getElementById('add-cal-data').value;
+                const tipo = document.getElementById('add-cal-tipo').value;
+                const desc = document.getElementById('add-cal-desc').value;
+                
+                await window.ControllerCalendario.salvarExcecaoManual(data, tipo, desc);
+                alert("Salvo com sucesso!");
                 e.target.reset();
-                this.atualizarTabelaExcecoes(); 
-            } catch (error) { alert(error.message); }
+                
+                await this.carregarDadosBase();
+                this.popularFiltros();
+                this.renderizarTabelaCalendario();
+            } catch(err) { 
+                alert(err.message); 
+            }
             return true;
         }
         return false;
