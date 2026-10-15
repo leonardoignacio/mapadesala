@@ -44,7 +44,7 @@
             </form>
 
             <div class="mt-3 text-center">
-                <button type="button" id="btn-primeiro-acesso" class="text-xs text-blue-600 hover:underline font-semibold">Primeiro acesso? Cadastre sua senha aqui</button>
+                <button type="button" id="btn-primeiro-acesso" class="text-xs text-blue-600 hover:underline font-semibold">Primeiro acesso? Solicite seu credenciamento aqui</button>
             </div>
 
             <div class="relative flex py-5 items-center">
@@ -65,6 +65,9 @@
         </div>
     </div>
 
+    <!-- Container para Modais Globais de Usuários (Pré-Cadastro) -->
+    <div id="usuarios-modal-root"></div>
+
     <!-- 3. CONTAINER PRINCIPAL DA SPA -->
     <div id="app-root" class="hidden h-screen w-screen overflow-hidden flex flex-col md:flex-row"></div>
 
@@ -81,6 +84,11 @@
     <script src="./firebase-config.js"></script>
     <script src="./controller.js"></script>
     <script src="./views.js"></script>
+
+    <!-- Módulo: Usuários e Pré-Cadastro (./usuarios) -->
+    <script src="./usuarios/controller_usuarios.js"></script>
+    <script src="./usuarios/views_usuarios.js"></script>
+    <script src="./usuarios/app_usuarios.js"></script>
 
     <!-- Módulo: Calendário e Exceções (./calendario) -->
     <script src="./calendario/controller_calendario.js"></script>

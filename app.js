@@ -1,8 +1,10 @@
 // app.js - Núcleo Global da SPA, Autenticação, Menu, Roteador e Responsividade
 const EMAIL_SUPERUSUARIO = "leoignacio@gmail.com"; 
 
-window.usuarioAtual = { email: null, cargo: null };
+window.usuarioAtual = { email: null, cargo: null, nome: null, perfis: [], areas: [] };
+window.emProcessoDePreCadastro = false;
 
+// Inicia colapsado se for mobile (menor que 768px), aberto se for desktop
 let isSidebarCollapsed = window.innerWidth < 768; 
 
 const UI = {
@@ -11,27 +13,57 @@ const UI = {
     root: document.getElementById('app-root')
 };
 
+// ==========================================
+// 1. AUTENTICAÇÃO E VERIFICAÇÃO DE CREDENCIAMENTO
+// ==========================================
 window.auth.onAuthStateChanged(async (user) => {
+    // Se estiver criando a conta durante o submit do pré-cadastro, aguarda finalizar a gravação no Firestore
+    if (window.emProcessoDePreCadastro) return;
+
     if (user) {
         UI.login.classList.add('hidden');
         UI.load.classList.remove('hidden');
-        document.getElementById('loading-text').innerText = "Verificando permissões...";
+        document.getElementById('loading-text').innerText = "Verificando credenciamento...";
         
-        window.usuarioAtual.email = user.email;
-        const isSuperUser = (user.email === EMAIL_SUPERUSUARIO);
-        window.usuarioAtual.cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
+        const isSuperUser = (user.email.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
+        const cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
 
-        if (window.usuarioAtual.cargo === 'sem_acesso') {
-            alert("Acesso Negado: Conta não autorizada na Whitelist.");
-            window.auth.signOut();
+        if (cargo === 'pendente') {
+            alert("Cadastro em análise: Sua solicitação de credenciamento já foi registrada e aguarda habilitação por um Administrador ou Técnico de Área.");
+            await window.auth.signOut();
             return;
         }
+
+        if (cargo === 'nao_cadastrado') {
+            UI.load.classList.add('hidden');
+            UI.login.classList.remove('hidden');
+            if (window.AppUsuarios) {
+                window.AppUsuarios.abrirModalPreCadastro(user);
+            }
+            return;
+        }
+
+        if (cargo === 'sem_acesso') {
+            alert("Acesso Negado: Seu perfil encontra-se inativo ou sem permissão de acesso.");
+            await window.auth.signOut();
+            return;
+        }
+
+        // Carrega os dados complementares do usuário logado
+        const dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
+        window.usuarioAtual = {
+            email: user.email.toLowerCase(),
+            cargo: cargo,
+            nome: dadosUsuario?.nome_completo || user.displayName || user.email,
+            perfis: dadosUsuario?.perfis || [cargo],
+            areas: dadosUsuario?.areas || []
+        };
 
         UI.load.classList.add('hidden');
         UI.root.classList.remove('hidden');
         roteador(); 
     } else {
-        window.usuarioAtual = { email: null, cargo: null };
+        window.usuarioAtual = { email: null, cargo: null, nome: null, perfis: [], areas: [] };
         UI.root.innerHTML = '';
         UI.root.classList.add('hidden');
         UI.load.classList.add('hidden');
@@ -44,15 +76,12 @@ document.getElementById('btn-google-login').onclick = () => window.auth.signInWi
 document.getElementById('login-form').onsubmit = (e) => {
     e.preventDefault();
     window.auth.signInWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value)
-        .catch(err => alert("Erro: " + err.message));
+        .catch(err => alert("Erro ao autenticar: " + err.message));
 };
 
-document.getElementById('btn-primeiro-acesso').onclick = () => {
-    window.auth.createUserWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value)
-        .then(() => alert("Senha criada! Aguarde o login..."))
-        .catch(err => alert(err.message));
-};
-
+// ==========================================
+// 2. CONTROLE VISUAL (SIDEBAR RESPONSIVA)
+// ==========================================
 function applySidebarState() {
     const sidebar = document.getElementById('main-sidebar');
     if(!sidebar) return;
@@ -113,9 +142,16 @@ window.addEventListener('resize', () => {
     }
 });
 
+// ==========================================
+// 3. ROTEAMENTO
+// ==========================================
 async function roteador() {
     let hash = window.location.hash || '#/dashboard';
-    if(hash === '#/admin' && window.usuarioAtual.cargo !== 'admin') { window.location.hash = '#/dashboard'; return; }
+    const cargosComAcessoAdmin = ['root', 'admin', 'tecnico'];
+    if(hash === '#/admin' && !cargosComAcessoAdmin.includes(window.usuarioAtual.cargo)) { 
+        window.location.hash = '#/dashboard'; 
+        return; 
+    }
 
     UI.root.innerHTML = `
         <div class="md:hidden w-full h-14 bg-blue-600 flex items-center justify-between px-4 shadow-md z-40 fixed top-0 left-0 right-0">
@@ -152,7 +188,13 @@ async function roteador() {
 }
 window.addEventListener('hashchange', roteador);
 
+// ==========================================
+// 4. DELEGAÇÃO DE EVENTOS GLOBAIS
+// ==========================================
 document.addEventListener('submit', async (e) => {
+    // Permite o submit de pré-cadastro mesmo sem usuário logado
+    if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
+
     if(window.usuarioAtual.cargo === 'apoio') { e.preventDefault(); return alert("Acesso de Leitura Apenas."); }
     
     if (window.AppCalendario && await window.AppCalendario.tratarSubmits(e)) return;
@@ -161,8 +203,18 @@ document.addEventListener('submit', async (e) => {
     if(e.target.id === 'form-admin') { e.preventDefault(); await window.Controller.salvarPermissao(document.getElementById('admin-email').value, document.getElementById('admin-cargo').value); alert("Permissão inserida!"); e.target.reset(); }
 });
 
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.id === 'popover-input-desc') {
+        e.preventDefault();
+        document.getElementById('apply-filter-desc')?.click();
+    }
+});
+
 document.addEventListener('click', async (e) => {
     
+    // Eventos do módulo de Usuários (Pré-Cadastro na tela de login)
+    if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
+
     if (e.target.closest('#btn-mobile-menu')) {
         isSidebarCollapsed = !isSidebarCollapsed;
         applySidebarState();
@@ -194,7 +246,6 @@ document.addEventListener('click', async (e) => {
         tabBtn.classList.remove('font-medium', 'text-slate-500', 'border-transparent');
         tabBtn.classList.add('font-bold', 'text-blue-600', 'border-blue-600');
         
-        // Pega o contêiner de abas mais próximo para não conflitar com modais
         const tabContainer = tabBtn.closest('.flex-col').querySelectorAll('.tab-content');
         tabContainer.forEach(content => content.classList.add('hidden'));
         document.getElementById(tabBtn.getAttribute('data-target')).classList.remove('hidden');
