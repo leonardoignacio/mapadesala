@@ -4,24 +4,27 @@ window.ViewsAdminCredenciamento = {
         return `
         <div class="px-2 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
             
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 w-full lg:w-[90%] mx-auto shrink-0 px-2 md:px-0 gap-2">
-                <div>
-                    <h1 class="text-xl font-bold text-slate-800">Painel Admin</h1>
-                    <p class="text-xs text-slate-500">Gerenciamento de credenciamentos, perfis de acesso e vínculo de áreas</p>
-                </div>
-                <div id="resumo-credenciamento-badges" class="flex items-center gap-2 flex-wrap">
-                    <!-- Contadores dinâmicos preenchidos via JS -->
-                </div>
-            </div>
+            <!-- Cabeçalho Global da View Painel Admin -->
+            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0 px-2 md:px-0">Painel Admin</h1>
             
             <!-- Navegação de Abas do Painel Admin -->
-            <div class="flex border-b border-slate-200 mb-4 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
+            <div class="flex border-b border-slate-200 mb-3 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-admin-credenciamento">Credenciamento</button>
             </div>
 
             <!-- CONTEÚDO: ABA CREDENCIAMENTO -->
             <div id="tab-admin-credenciamento" class="tab-content flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="w-full lg:w-[90%] mx-auto flex-1 flex flex-col overflow-hidden">
+                    
+                    <!-- Barra de Informações e Indicadores Exclusivos da Aba Credenciamento -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 shrink-0 px-2 md:px-0">
+                        <p class="text-xs text-slate-500">Gerenciamento de credenciamentos, perfis de acesso e vínculo de áreas</p>
+                        <div id="resumo-credenciamento-badges" class="flex items-center gap-2 flex-wrap">
+                            <!-- Contadores dinâmicos (Pendentes / Ativos) preenchidos via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Solicitações e Usuários Credenciados -->
                     <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-[50vh]">
                         <div class="overflow-x-auto overflow-y-auto flex-1 w-full bg-white relative">
                             <table class="w-full text-left border-separate border-spacing-0 table-fixed">

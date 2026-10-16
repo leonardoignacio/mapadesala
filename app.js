@@ -139,18 +139,26 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 3. ROTEAMENTO
+// 3. ROTEAMENTO COM PROTEÇÃO POR PERFIL
 // ==========================================
 async function roteador() {
     let hash = window.location.hash || '#/dashboard';
+    const cargoAtual = window.usuarioAtual?.cargo;
 
-    if (window.usuarioAtual.cargo === 'pendente' && hash !== '#/dashboard') {
+    // 1. Perfil Pendente: Acesso exclusivo ao Dashboard (Aba Home)
+    if (cargoAtual === 'pendente' && hash !== '#/dashboard') {
         window.location.hash = '#/dashboard';
         return;
     }
 
-    const cargosComAcessoAdmin = ['root', 'admin', 'tecnico'];
-    if(hash === '#/admin' && !cargosComAcessoAdmin.includes(window.usuarioAtual.cargo)) { 
+    // 2. Calendário / Exceções: Disponível exclusivamente para ADMINs (root e admin)
+    if (hash === '#/excecoes' && !['root', 'admin'].includes(cargoAtual)) {
+        window.location.hash = '#/dashboard';
+        return;
+    }
+
+    // 3. Painel Admin: Disponível para root, admin e tecnico
+    if (hash === '#/admin' && !['root', 'admin', 'tecnico'].includes(cargoAtual)) { 
         window.location.hash = '#/dashboard'; 
         return; 
     }
@@ -173,14 +181,18 @@ async function roteador() {
     const viewContainer = document.getElementById('view-content');
 
     switch(hash) {
-        case '#/excecoes': 
-            viewContainer.innerHTML = window.ViewsCalendario.renderizar(); 
-            if (window.AppCalendario) await window.AppCalendario.iniciarView();
+        case '#/excecoes': {
+            const podeEditarCalendario = ['root', 'admin'].includes(cargoAtual);
+            viewContainer.innerHTML = window.ViewsCalendarioListar.renderizar(podeEditarCalendario); 
+            if (window.AppCalendarioListar) await window.AppCalendarioListar.iniciarView();
             break;
-        case '#/cursos': 
-            viewContainer.innerHTML = window.ViewsCursos.renderizar(); 
-            if (window.AppCursos) await window.AppCursos.iniciarView();
+        }
+        case '#/cursos': {
+            const podeEditarCursos = ['root', 'admin', 'tecnico', 'docente'].includes(cargoAtual);
+            viewContainer.innerHTML = window.ViewsCursoListar.renderizar(podeEditarCursos); 
+            if (window.AppCursoListar) await window.AppCursoListar.iniciarView();
             break;
+        }
         case '#/turmas': viewContainer.innerHTML = window.Views.turmas(); break;
         case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
         case '#/espelho': viewContainer.innerHTML = window.Views.espelho(); break;
@@ -204,17 +216,24 @@ document.addEventListener('submit', async (e) => {
         return alert("Acesso restrito: Aguardando credenciamento.");
     }
 
-    if(window.usuarioAtual.cargo === 'apoio') { e.preventDefault(); return alert("Acesso de Leitura Apenas."); }
+    if(window.usuarioAtual.cargo === 'apoio') {
+        e.preventDefault();
+        return alert("Perfil Somente Leitura: Operação de gravação não permitida.");
+    }
     
-    if (window.AppCalendario && await window.AppCalendario.tratarSubmits(e)) return;
-    if (window.AppCursos && await window.AppCursos.tratarSubmits(e)) return;
+    if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarSubmits(e)) return;
+    if (window.AppCursoFrm && await window.AppCursoFrm.tratarSubmits(e)) return;
     if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarSubmits(e)) return;
 });
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.id === 'popover-input-desc') {
+    if (e.key === 'Enter' && e.target.id === 'popover-input-cal-desc') {
         e.preventDefault();
-        document.getElementById('apply-filter-desc')?.click();
+        document.getElementById('apply-filter-cal-desc')?.click();
+    }
+    if (e.key === 'Enter' && e.target.id === 'popover-input-curso-titulo') {
+        e.preventDefault();
+        document.getElementById('apply-filter-curso-titulo')?.click();
     }
 });
 
@@ -242,8 +261,10 @@ document.addEventListener('click', async (e) => {
     if(e.target.closest('#btn-logout') || e.target.closest('#btn-logout-icon')) { window.auth.signOut(); return; }
 
     if (window.usuarioAtual.cargo !== 'pendente') {
-        if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
-        if (window.AppCursos && await window.AppCursos.tratarCliques(e)) return;
+        if (window.AppCalendarioListar && await window.AppCalendarioListar.tratarCliques(e)) return;
+        if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarCliques(e)) return;
+        if (window.AppCursoListar && await window.AppCursoListar.tratarCliques(e)) return;
+        if (window.AppCursoFrm && await window.AppCursoFrm.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }
 
@@ -258,6 +279,6 @@ document.addEventListener('click', async (e) => {
         
         const tabContainer = tabBtn.closest('.flex-col').querySelectorAll('.tab-content');
         tabContainer.forEach(content => content.classList.add('hidden'));
-        document.getElementById(tabBtn.getAttribute('data-target')).classList.remove('hidden');
+        document.getElementById(tabBtn.getAttribute('data-target'))?.classList.remove('hidden');
     }
 });
