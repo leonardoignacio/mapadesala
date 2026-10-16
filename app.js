@@ -1,7 +1,7 @@
 // app.js - Núcleo Global da SPA, Autenticação, Menu, Roteador e Responsividade
 const EMAIL_SUPERUSUARIO = "leoignacio@gmail.com"; 
 
-window.usuarioAtual = { email: null, cargo: null, nome: null, perfis: [], areas: [] };
+window.usuarioAtual = { email: null, cargo: null, nome: null, sobrenome: null, perfis: [], areas: [] };
 window.emProcessoDePreCadastro = false;
 
 // Inicia colapsado se for mobile (menor que 768px), aberto se for desktop
@@ -17,7 +17,6 @@ const UI = {
 // 1. AUTENTICAÇÃO E VERIFICAÇÃO DE CREDENCIAMENTO
 // ==========================================
 window.auth.onAuthStateChanged(async (user) => {
-    // Se estiver criando a conta durante o submit do pré-cadastro, aguarda finalizar a gravação no Firestore
     if (window.emProcessoDePreCadastro) return;
 
     if (user) {
@@ -27,12 +26,6 @@ window.auth.onAuthStateChanged(async (user) => {
         
         const isSuperUser = (user.email.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
         const cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
-
-        if (cargo === 'pendente') {
-            alert("Cadastro em análise: Sua solicitação de credenciamento já foi registrada e aguarda habilitação por um Administrador ou Técnico de Área.");
-            await window.auth.signOut();
-            return;
-        }
 
         if (cargo === 'nao_cadastrado') {
             UI.load.classList.add('hidden');
@@ -49,13 +42,17 @@ window.auth.onAuthStateChanged(async (user) => {
             return;
         }
 
-        // Carrega os dados complementares do usuário logado
+        // Carrega os dados completos do usuário (inclusive se estiver com status "pendente")
         const dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
         window.usuarioAtual = {
             email: user.email.toLowerCase(),
             cargo: cargo,
-            nome: dadosUsuario?.nome_completo || user.displayName || user.email,
-            perfis: dadosUsuario?.perfis || [cargo],
+            nome: dadosUsuario?.nome || "",
+            sobrenome: dadosUsuario?.sobrenome || "",
+            nome_completo: dadosUsuario?.nome_completo || user.displayName || user.email,
+            cargo_solicitado: dadosUsuario?.cargo_solicitado || "docente",
+            solicitacao_credenciamento: dadosUsuario?.solicitacao_credenciamento || "",
+            perfis: dadosUsuario?.perfis || (cargo === 'pendente' ? [] : [cargo]),
             areas: dadosUsuario?.areas || []
         };
 
@@ -63,7 +60,7 @@ window.auth.onAuthStateChanged(async (user) => {
         UI.root.classList.remove('hidden');
         roteador(); 
     } else {
-        window.usuarioAtual = { email: null, cargo: null, nome: null, perfis: [], areas: [] };
+        window.usuarioAtual = { email: null, cargo: null, nome: null, sobrenome: null, perfis: [], areas: [] };
         UI.root.innerHTML = '';
         UI.root.classList.add('hidden');
         UI.load.classList.add('hidden');
@@ -143,10 +140,17 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 3. ROTEAMENTO
+// 3. ROTEAMENTO (COM BLOQUEIO PARA PERFIL PENDENTE)
 // ==========================================
 async function roteador() {
     let hash = window.location.hash || '#/dashboard';
+
+    // Se o usuário estiver aguardando credenciamento, bloqueia qualquer outra view e força o Dashboard
+    if (window.usuarioAtual.cargo === 'pendente' && hash !== '#/dashboard') {
+        window.location.hash = '#/dashboard';
+        return;
+    }
+
     const cargosComAcessoAdmin = ['root', 'admin', 'tecnico'];
     if(hash === '#/admin' && !cargosComAcessoAdmin.includes(window.usuarioAtual.cargo)) { 
         window.location.hash = '#/dashboard'; 
@@ -192,8 +196,13 @@ window.addEventListener('hashchange', roteador);
 // 4. DELEGAÇÃO DE EVENTOS GLOBAIS
 // ==========================================
 document.addEventListener('submit', async (e) => {
-    // Permite o submit de pré-cadastro mesmo sem usuário logado
+    // Permite submits do módulo de Usuários (Pré-Cadastro e Reenvio de Solicitação Pendente)
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
+
+    if (window.usuarioAtual.cargo === 'pendente') {
+        e.preventDefault();
+        return alert("Acesso restrito: Aguardando credenciamento.");
+    }
 
     if(window.usuarioAtual.cargo === 'apoio') { e.preventDefault(); return alert("Acesso de Leitura Apenas."); }
     
@@ -212,7 +221,7 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('click', async (e) => {
     
-    // Eventos do módulo de Usuários (Pré-Cadastro na tela de login)
+    // Eventos do módulo de Usuários (Pré-Cadastro, Reenvio e Exclusão do próprio cadastro)
     if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
 
     if (e.target.closest('#btn-mobile-menu')) {
@@ -234,8 +243,10 @@ document.addEventListener('click', async (e) => {
 
     if(e.target.closest('#btn-logout') || e.target.closest('#btn-logout-icon')) { window.auth.signOut(); return; }
 
-    if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
-    if (window.AppCursos && await window.AppCursos.tratarCliques(e)) return;
+    if (window.usuarioAtual.cargo !== 'pendente') {
+        if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
+        if (window.AppCursos && await window.AppCursos.tratarCliques(e)) return;
+    }
 
     const tabBtn = e.target.closest('.tab-btn');
     if (tabBtn) {

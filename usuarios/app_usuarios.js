@@ -8,7 +8,6 @@ window.AppUsuarios = {
         }
     },
 
-    // Abre o modal para pré-cadastro (pelo link da tela de login ou após autenticação Google sem perfil)
     abrirModalPreCadastro(userGoogle = null) {
         this.injetarModalSeNecessario();
 
@@ -65,7 +64,6 @@ window.AppUsuarios = {
         const inputOrigemGoogle = document.getElementById('pre-cad-origem-google');
         document.getElementById('modal-pre-cadastro')?.classList.add('hidden');
 
-        // Se o usuário havia autenticado com o Google e cancelou o pré-cadastro, encerra a sessão pendente
         if (inputOrigemGoogle && inputOrigemGoogle.value === "true" && window.auth.currentUser) {
             await window.auth.signOut();
         }
@@ -82,10 +80,32 @@ window.AppUsuarios = {
             return true;
         }
 
+        // Botão de excluir o próprio cadastro e solicitação (na aba Home do Dashboard pendente)
+        if (e.target.closest('#btn-excluir-proprio-cadastro')) {
+            const confirmacao = confirm("ATENÇÃO: Tem certeza que deseja excluir seu pré-cadastro e cancelar sua solicitação de credenciamento?");
+            if (!confirmacao) return true;
+
+            const btn = e.target.closest('#btn-excluir-proprio-cadastro');
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Excluindo...";
+            btn.disabled = true;
+
+            try {
+                await window.ControllerUsuarios.excluirCadastroProprio(window.usuarioAtual.email);
+                alert("Seu cadastro e sua solicitação de credenciamento foram excluídos com sucesso.");
+            } catch (err) {
+                alert("Erro ao excluir cadastro: " + err.message);
+                btn.innerText = textoOriginal;
+                btn.disabled = false;
+            }
+            return true;
+        }
+
         return false;
     },
 
     async tratarSubmits(e) {
+        // Submit do Modal Inicial de Pré-Cadastro
         if (e.target.id === 'form-pre-cadastro') {
             e.preventDefault();
 
@@ -108,14 +128,70 @@ window.AppUsuarios = {
                     solicitacao_credenciamento: document.getElementById('pre-cad-solicitacao').value
                 };
 
-                await window.ControllerUsuarios.registrarPreCadastro(dados, !isOrigemGoogle);
+                const novoUsuario = await window.ControllerUsuarios.registrarPreCadastro(dados, !isOrigemGoogle);
 
                 document.getElementById('modal-pre-cadastro')?.classList.add('hidden');
                 e.target.reset();
 
-                alert("Pré-cadastro enviado com sucesso! Sua solicitação de credenciamento será analisada por um Administrador ou Técnico de Área.");
+                // Atualiza o estado atual e direciona imediatamente para o Dashboard restrito (aba Home)
+                window.usuarioAtual = {
+                    email: novoUsuario.email,
+                    cargo: "pendente",
+                    nome: novoUsuario.nome,
+                    sobrenome: novoUsuario.sobrenome,
+                    nome_completo: novoUsuario.nome_completo,
+                    cargo_solicitado: novoUsuario.cargo_solicitado,
+                    solicitacao_credenciamento: novoUsuario.solicitacao_credenciamento,
+                    perfis: [],
+                    areas: []
+                };
+
+                document.getElementById('login-screen')?.classList.add('hidden');
+                document.getElementById('loading-screen')?.classList.add('hidden');
+                document.getElementById('app-root')?.classList.remove('hidden');
+                window.location.hash = '#/dashboard';
+                if (typeof roteador === 'function') await roteador();
             } catch (err) {
                 alert(err.message);
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.innerText = textoOriginal;
+                    btnSubmit.disabled = false;
+                }
+            }
+            return true;
+        }
+
+        // Submit do Formulário de Reenviar Solicitação (na aba Home do Dashboard pendente)
+        if (e.target.id === 'form-reenviar-solicitacao') {
+            e.preventDefault();
+
+            const btnSubmit = document.getElementById('btn-submit-reenviar-solicitacao');
+            const textoOriginal = btnSubmit ? btnSubmit.innerText : "Reenviar Solicitação";
+            if (btnSubmit) {
+                btnSubmit.innerText = "Reenviando...";
+                btnSubmit.disabled = true;
+            }
+
+            try {
+                const dados = {
+                    nome: document.getElementById('reenviar-nome').value,
+                    sobrenome: document.getElementById('reenviar-sobrenome').value,
+                    cargo_solicitado: document.getElementById('reenviar-cargo').value,
+                    solicitacao_credenciamento: document.getElementById('reenviar-solicitacao').value
+                };
+
+                const atualizados = await window.ControllerUsuarios.reenviarSolicitacao(window.usuarioAtual.email, dados);
+
+                window.usuarioAtual.nome = atualizados.nome;
+                window.usuarioAtual.sobrenome = atualizados.sobrenome;
+                window.usuarioAtual.nome_completo = atualizados.nome_completo;
+                window.usuarioAtual.cargo_solicitado = atualizados.cargo_solicitado;
+                window.usuarioAtual.solicitacao_credenciamento = atualizados.solicitacao_credenciamento;
+
+                alert("Solicitação de credenciamento atualizada e reenviada com sucesso!");
+            } catch (err) {
+                alert("Erro ao reenviar solicitação: " + err.message);
             } finally {
                 if (btnSubmit) {
                     btnSubmit.innerText = textoOriginal;

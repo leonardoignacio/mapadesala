@@ -2,7 +2,7 @@
 window.ViewsCalendario = {
     renderizar() {
         const anoAtual = new Date().getFullYear();
-        const optionsAno = [0, 1, 2, 3].map(offset => {
+        const optionsAno = [0, 1, 2, 3, 4, 5].map(offset => {
             const ano = anoAtual + offset;
             return `<option value="${ano}">${ano}</option>`;
         }).join('');
@@ -46,12 +46,16 @@ window.ViewsCalendario = {
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-bold text-slate-700"><input type="checkbox" value="Todos" class="popover-mes-cal-chk w-4 h-4 text-blue-600 rounded" checked> Todos</label>
                                                     ${chkMesesHtml}
                                                 </div>
+
                                                 <div class="mb-3 border-t border-slate-100 pt-3">
-                                                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Ano</label>
-                                                    <select id="popover-select-cal-ano" class="w-full border border-slate-300 p-2 rounded-lg bg-white outline-none focus:border-blue-500 cursor-pointer text-slate-700 font-semibold">
+                                                    <label for="popover-select-cal-ano" class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Ano</label>
+
+                                                    <input type="text" id="popover-select-cal-ano" list="lista-anos" class="w-full border border-slate-300 p-2 rounded-lg bg-white outline-none focus:border-blue-500 cursor-pointer text-slate-700 font-semibold" placeholder="Selecione ou digite o ano" onfocus="this.value = ''" onblur="if (this.value.trim() === '') this.value = '${anoAtual}'">
+                                                    <datalist id="lista-anos">
                                                         ${optionsAno}
-                                                    </select>
+                                                    </datalist>
                                                 </div>
+
                                                 <button id="apply-filter-cal-data" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
                                             </div>
                                         </th>
@@ -132,9 +136,10 @@ window.ViewsCalendario = {
                                 <p class="text-xs md:text-sm text-slate-500 mt-3">Gere um arquivo CSV com </p>
                                 <p class="text-xs md:text-sm text-slate-500 mb-3">feriados e reuniões pedagógicas para o ano selecionado.</p>
                                 <div class="flex gap-2">
-                                    <select id="select-ano-gerador" class="w-1/3 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
+                                    <input type="text" id="select-ano-gerador" list="lista-anos-gerador" value="${anoAtual}" class="w-1/3 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" onfocus="this.dataset.anoAnterior = this.value; this.value = ''" onblur="if (this.value.trim() === '') this.value = this.dataset.anoAnterior || '${anoAtual}'">
+                                    <datalist id="lista-anos-gerador">
                                         ${optionsAno}
-                                    </select>
+                                    </datalist>
                                     <button type="button" id="btn-gerar-csv-base" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Gerar e Baixar CSV</button>
                                 </div>
                             </div>
