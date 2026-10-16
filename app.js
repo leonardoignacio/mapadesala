@@ -145,19 +145,16 @@ async function roteador() {
     let hash = window.location.hash || '#/dashboard';
     const cargoAtual = window.usuarioAtual?.cargo;
 
-    // 1. Perfil Pendente: Acesso exclusivo ao Dashboard (Aba Home)
     if (cargoAtual === 'pendente' && hash !== '#/dashboard') {
         window.location.hash = '#/dashboard';
         return;
     }
 
-    // 2. Calendário / Exceções: Disponível exclusivamente para ADMINs (root e admin)
     if (hash === '#/excecoes' && !['root', 'admin'].includes(cargoAtual)) {
         window.location.hash = '#/dashboard';
         return;
     }
 
-    // 3. Painel Admin: Disponível para root, admin e tecnico
     if (hash === '#/admin' && !['root', 'admin', 'tecnico'].includes(cargoAtual)) { 
         window.location.hash = '#/dashboard'; 
         return; 
@@ -179,6 +176,7 @@ async function roteador() {
     
     applySidebarState(); 
     const viewContainer = document.getElementById('view-content');
+    const podeEditarOperacional = ['root', 'admin', 'tecnico', 'docente'].includes(cargoAtual);
 
     switch(hash) {
         case '#/excecoes': {
@@ -188,12 +186,15 @@ async function roteador() {
             break;
         }
         case '#/cursos': {
-            const podeEditarCursos = ['root', 'admin', 'tecnico', 'docente'].includes(cargoAtual);
-            viewContainer.innerHTML = window.ViewsCursoListar.renderizar(podeEditarCursos); 
+            viewContainer.innerHTML = window.ViewsCursoListar.renderizar(podeEditarOperacional); 
             if (window.AppCursoListar) await window.AppCursoListar.iniciarView();
             break;
         }
-        case '#/turmas': viewContainer.innerHTML = window.Views.turmas(); break;
+        case '#/turmas': {
+            viewContainer.innerHTML = window.ViewsTurmaListar.renderizar(podeEditarOperacional);
+            if (window.AppTurmaListar) await window.AppTurmaListar.iniciarView();
+            break;
+        }
         case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
         case '#/espelho': viewContainer.innerHTML = window.Views.espelho(); break;
         case '#/admin': 
@@ -223,6 +224,7 @@ document.addEventListener('submit', async (e) => {
     
     if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarSubmits(e)) return;
     if (window.AppCursoFrm && await window.AppCursoFrm.tratarSubmits(e)) return;
+    if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarSubmits(e)) return;
     if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarSubmits(e)) return;
 });
 
@@ -234,6 +236,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.id === 'popover-input-curso-titulo') {
         e.preventDefault();
         document.getElementById('apply-filter-curso-titulo')?.click();
+    }
+    if (e.key === 'Enter' && e.target.id === 'popover-input-turma-ref') {
+        e.preventDefault();
+        document.getElementById('apply-filter-turma-ref')?.click();
     }
 });
 
@@ -265,6 +271,8 @@ document.addEventListener('click', async (e) => {
         if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarCliques(e)) return;
         if (window.AppCursoListar && await window.AppCursoListar.tratarCliques(e)) return;
         if (window.AppCursoFrm && await window.AppCursoFrm.tratarCliques(e)) return;
+        if (window.AppTurmaListar && await window.AppTurmaListar.tratarCliques(e)) return;
+        if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }
 
