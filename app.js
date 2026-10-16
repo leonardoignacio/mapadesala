@@ -37,12 +37,11 @@ window.auth.onAuthStateChanged(async (user) => {
         }
 
         if (cargo === 'sem_acesso') {
-            alert("Acesso Negado: Seu perfil encontra-se inativo ou sem permissão de acesso.");
+            alert("Acesso Negado: Seu perfil encontra-se bloqueado ou sem permissão de acesso.");
             await window.auth.signOut();
             return;
         }
 
-        // Carrega os dados completos do usuário (inclusive se estiver com status "pendente")
         const dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
         window.usuarioAtual = {
             email: user.email.toLowerCase(),
@@ -140,12 +139,11 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 3. ROTEAMENTO (COM BLOQUEIO PARA PERFIL PENDENTE)
+// 3. ROTEAMENTO
 // ==========================================
 async function roteador() {
     let hash = window.location.hash || '#/dashboard';
 
-    // Se o usuário estiver aguardando credenciamento, bloqueia qualquer outra view e força o Dashboard
     if (window.usuarioAtual.cargo === 'pendente' && hash !== '#/dashboard') {
         window.location.hash = '#/dashboard';
         return;
@@ -186,7 +184,10 @@ async function roteador() {
         case '#/turmas': viewContainer.innerHTML = window.Views.turmas(); break;
         case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
         case '#/espelho': viewContainer.innerHTML = window.Views.espelho(); break;
-        case '#/admin': viewContainer.innerHTML = window.Views.admin(); break;
+        case '#/admin': 
+            viewContainer.innerHTML = window.ViewsAdminCredenciamento.renderizar(); 
+            if (window.AppAdminCredenciamento) await window.AppAdminCredenciamento.iniciarView();
+            break;
         default: viewContainer.innerHTML = window.Views.dashboard();
     }
 }
@@ -196,7 +197,6 @@ window.addEventListener('hashchange', roteador);
 // 4. DELEGAÇÃO DE EVENTOS GLOBAIS
 // ==========================================
 document.addEventListener('submit', async (e) => {
-    // Permite submits do módulo de Usuários (Pré-Cadastro e Reenvio de Solicitação Pendente)
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
 
     if (window.usuarioAtual.cargo === 'pendente') {
@@ -208,8 +208,7 @@ document.addEventListener('submit', async (e) => {
     
     if (window.AppCalendario && await window.AppCalendario.tratarSubmits(e)) return;
     if (window.AppCursos && await window.AppCursos.tratarSubmits(e)) return;
-
-    if(e.target.id === 'form-admin') { e.preventDefault(); await window.Controller.salvarPermissao(document.getElementById('admin-email').value, document.getElementById('admin-cargo').value); alert("Permissão inserida!"); e.target.reset(); }
+    if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarSubmits(e)) return;
 });
 
 document.addEventListener('keydown', (e) => {
@@ -221,7 +220,6 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('click', async (e) => {
     
-    // Eventos do módulo de Usuários (Pré-Cadastro, Reenvio e Exclusão do próprio cadastro)
     if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
 
     if (e.target.closest('#btn-mobile-menu')) {
@@ -246,6 +244,7 @@ document.addEventListener('click', async (e) => {
     if (window.usuarioAtual.cargo !== 'pendente') {
         if (window.AppCalendario && await window.AppCalendario.tratarCliques(e)) return;
         if (window.AppCursos && await window.AppCursos.tratarCliques(e)) return;
+        if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }
 
     const tabBtn = e.target.closest('.tab-btn');
