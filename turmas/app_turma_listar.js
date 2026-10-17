@@ -25,7 +25,7 @@ window.AppTurmaListar = {
     async carregarDadosBase() {
         const tbody = document.getElementById('tabela-turmas');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
         }
 
         [this.cacheTurmas, this.cacheCursos, this.cacheUCsBase] = await Promise.all([
@@ -49,13 +49,12 @@ window.AppTurmaListar = {
             const chks = areasUnicas.map(nomeArea => {
                 const isChecked = isTodosChecked || this.filtrosTurmas.areas.includes(nomeArea);
                 const attrItem = isChecked ? 'checked' : '';
-                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${nomeArea}" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ${attrItem}> <span class="truncate" title="${nomeArea}">${nomeArea}</span></label>`;
+                return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + nomeArea + '" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + nomeArea + '">' + nomeArea + '</span></label>';
             }).join('');
 
-            containerAreas.innerHTML = `
-                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ${attrTodos}> Todos</label>
-                ${chks}
-            `;
+            containerAreas.innerHTML = 
+                '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ' + attrTodos + '> Todos</label>' +
+                chks;
         }
 
         if (this.podeEditar() && window.AppTurmaFrm) {
@@ -88,7 +87,6 @@ window.AppTurmaListar = {
         return Number.isInteger(num) ? num.toString() : num.toFixed(1).replace('.', ',');
     },
 
-    // Gera a sigla da Área: 1ª letra de cada palavra significativa ou as 3 primeiras letras se for palavra única
     _abreviarArea(areaStr) {
         if (!areaStr) return "";
         const limpa = areaStr.trim();
@@ -128,7 +126,7 @@ window.AppTurmaListar = {
         });
 
         if (dadosFiltrados.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhuma turma encontrada para estes filtros.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Nenhuma turma encontrada para estes filtros.</td></tr>';
             return;
         }
 
@@ -154,13 +152,15 @@ window.AppTurmaListar = {
                   '</div>'
                 : '<span class="text-slate-300">-</span>';
 
-            // Badge de Status da Turma
+            const diasArr = Array.isArray(turma.dias_semana) ? turma.dias_semana : [];
+            const diasTexto = diasArr.length > 0 ? diasArr.join(" | ") : "Dias não informados";
+
+            // Badge de Status unificado na coluna Progresso
             let badgeStatus = "text-slate-600 md:bg-slate-100 md:border-slate-200";
             if (turma.status === "Em Andamento") badgeStatus = "text-blue-700 md:bg-blue-50 md:border-blue-200";
             else if (turma.status === "Concluída") badgeStatus = "text-emerald-700 md:bg-emerald-50 md:border-emerald-200";
             else if (turma.status === "Não Iniciada") badgeStatus = "text-amber-700 md:bg-amber-50 md:border-amber-200";
 
-            // Badge de Período concatenado com horário e CH_Encontro
             let badgePeriodo = "text-slate-700 md:bg-slate-50 md:border-slate-200";
             if (turma.periodo === "MANHÃ") badgePeriodo = "text-sky-700 md:bg-sky-50 md:border-sky-200";
             else if (turma.periodo === "TARDE") badgePeriodo = "text-orange-700 md:bg-orange-50 md:border-orange-200";
@@ -222,34 +222,34 @@ window.AppTurmaListar = {
                 <td class="px-1 py-2 md:py-3 md:px-2 text-center align-middle w-[8%] md:w-[5%] relative z-10">
                     ${htmlBotoesAcao}
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[18%] md:w-[15%] whitespace-normal break-words">
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[22%] md:w-[18%] whitespace-normal break-words">
                     <p class="text-[11px] md:text-sm font-black text-blue-600 leading-tight">${turma.referencia}</p>
                     <p class="text-[9px] md:text-xs font-semibold text-slate-400">Oferta: <span class="font-normal text-slate-500">${ofertaTexto}</span></p>
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[30%] md:w-[35%] whitespace-normal break-words">
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[34%] md:w-[38%] whitespace-normal break-words">
                     <p class="text-[11px] leading-snug md:text-sm font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
                         ${turma.curso_titulo}${htmlSiglaArea}
                     </p>
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[18%] md:w-[21%] whitespace-normal break-words">
-                    <span class="inline-block p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs md:border md:shadow-sm ${badgePeriodo} leading-snug">
-                        <strong class="font-extrabold">${turma.periodo}</strong> <span class="font-medium">${turma.h_inicio} - ${turma.h_termino} (${chEncontroFormatada}h)</span>
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[20%] md:w-[22%] whitespace-normal break-words">
+                    <span class="inline-block p-1 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs md:border md:shadow-sm ${badgePeriodo} leading-relaxed">
+                        <strong class="font-extrabold">${turma.periodo}</strong><br>
+                        <span class="font-medium">${turma.h_inicio} - ${turma.h_termino} (${chEncontroFormatada}h)</span><br>
+                        <span class="text-[10px] font-bold text-slate-600">${diasTexto}</span>
                     </span>
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[14%] md:w-[13%] text-center md:text-left">
-                    <span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs font-bold md:border md:shadow-sm ${badgeStatus} whitespace-normal break-words md:whitespace-nowrap">${turma.status}</span>
-                </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[12%] md:w-[11%] text-right">
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[17%] text-right">
                     <div class="flex flex-col items-end gap-1">
+                        <span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1 md:rounded-md text-[10px] md:text-xs font-bold md:border md:shadow-sm ${badgeStatus} whitespace-nowrap mb-0.5">${turma.status}</span>
                         <span class="text-[11px] md:text-sm font-black text-slate-700 group-hover:text-blue-600">${progTurma}%</span>
-                        <div class="w-full max-w-[75px] bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div class="w-full max-w-[85px] bg-slate-200 h-1.5 rounded-full overflow-hidden">
                             <div class="bg-blue-600 h-full rounded-full transition-all" style="width: ${progTurma}%"></div>
                         </div>
                     </div>
                 </td>
             </tr>
             <tr class="hidden row-turma-ucs bg-slate-50 shadow-inner" id="accordion-turma-${turma.id}">
-                <td colspan="6" class="p-0 border-b-2 border-blue-100">
+                <td colspan="5" class="p-0 border-b-2 border-blue-100">
                     <div class="p-3 md:p-5 pl-3 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
                         <div class="mb-2.5 text-xs md:text-sm text-slate-700 leading-relaxed">
                             <strong class="font-bold text-blue-800 uppercase tracking-wide">Unidades Curriculares da Turma (${turma.referencia})</strong>
@@ -302,7 +302,6 @@ window.AppTurmaListar = {
         if (configurarInterruptor('popover-periodo-turma-chk')) return true;
         if (configurarInterruptor('popover-status-turma-chk')) return true;
 
-        // Acordeon da Turma
         const rowTurma = e.target.closest('.row-turma');
         if (rowTurma && !e.target.closest('.btn-editar-turma') && !e.target.closest('.btn-excluir-turma')) {
             const turmaId = rowTurma.getAttribute('data-turma-id');
@@ -311,7 +310,6 @@ window.AppTurmaListar = {
             return true;
         }
 
-        // Clique em uma UC dentro do acordeon da Turma
         const rowTurmaUc = e.target.closest('.row-turma-uc');
         if (rowTurmaUc) {
             const turmaId = rowTurmaUc.getAttribute('data-turma-id');
@@ -320,7 +318,6 @@ window.AppTurmaListar = {
             return true;
         }
 
-        // Excluir Turma
         if (e.target.closest('.btn-excluir-turma')) {
             if (!this.podeEditar()) return true;
             const id = e.target.closest('.btn-excluir-turma').getAttribute('data-id');
@@ -333,7 +330,6 @@ window.AppTurmaListar = {
             return true;
         }
 
-        // Filtros (Abrir / Resetar)
         const btnRef = e.target.closest('#btn-filter-turma-ref');
         if (btnRef) {
             if (this.filtrosTurmas.ref !== "") {
@@ -389,7 +385,6 @@ window.AppTurmaListar = {
             return true;
         }
 
-        // Aplicar Filtros
         if (e.target.closest('#apply-filter-turma-ref')) {
             this.filtrosTurmas.ref = document.getElementById('popover-input-turma-ref')?.value || "";
             document.getElementById('modal-filter-turma-ref')?.classList.add('hidden');

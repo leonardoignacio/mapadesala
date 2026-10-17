@@ -25,7 +25,7 @@ window.ViewsTurmaListar = {
                                         <th class="px-1 py-2 md:py-4 md:px-2 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[8%] md:w-[5%] text-center border-b border-slate-200 bg-slate-50/95 backdrop-blur">Ação</th>
                                         
                                         <!-- Coluna Ref / Oferta -->
-                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[18%] md:w-[15%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[22%] md:w-[18%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Ref/Oferta
                                                 <button id="btn-filter-turma-ref" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-turma-ref">🔎</span></button></span>
@@ -40,7 +40,7 @@ window.ViewsTurmaListar = {
                                         </th>
 
                                         <!-- Coluna Curso / Área -->
-                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[30%] md:w-[35%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[34%] md:w-[38%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Curso / Área
                                                 <button id="btn-filter-turma-area" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-turma-area">🔎</span></button></span>
@@ -55,7 +55,7 @@ window.ViewsTurmaListar = {
                                         </th>
 
                                         <!-- Coluna Período / Horário -->
-                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[18%] md:w-[21%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[20%] md:w-[22%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-between">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Período
                                                 <button id="btn-filter-turma-periodo" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-turma-periodo">🔎</span></button></span>
@@ -72,15 +72,15 @@ window.ViewsTurmaListar = {
                                             </div>
                                         </th>
 
-                                        <!-- Coluna Status -->
-                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[14%] md:w-[13%] border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
-                                            <div class="flex items-center justify-between">
-                                                <span class="flex items-center gap-0.5 md:gap-1">Status
+                                        <!-- Coluna Progresso (Com Filtro de Status embutido) -->
+                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[16%] md:w-[17%] text-right border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
+                                            <div class="flex items-center justify-end">
+                                                <span class="flex items-center gap-0.5 md:gap-1">Progresso
                                                 <button id="btn-filter-turma-status" class="text-slate-400 hover:text-blue-600 p-0.5 md:p-1 rounded transition focus:outline-none"><span id="icon-filter-turma-status">🔎</span></button></span>
                                             </div>
                                             <div id="modal-filter-turma-status" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
-                                                <p class="text-xs font-bold text-slate-500 mb-2">Selecionar Status</p>
-                                                <div class="space-y-1.5 mb-3">
+                                                <p class="text-xs font-bold text-slate-500 mb-2">Filtrar por Status</p>
+                                                <div class="space-y-1.5 mb-3 text-left">
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Todos</label>
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Em Andamento" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Em Andamento</label>
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Não Iniciada" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Não Iniciada</label>
@@ -89,15 +89,10 @@ window.ViewsTurmaListar = {
                                                 <button id="apply-filter-turma-status" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
                                             </div>
                                         </th>
-
-                                        <!-- Coluna Progresso -->
-                                        <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[12%] md:w-[11%] text-right border-b border-slate-200 bg-slate-50/95 backdrop-blur">
-                                            Progresso
-                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-turmas" class="bg-white">
-                                    <tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando Turmas...</td></tr>
+                                    <tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando Turmas...</td></tr>
                                 </tbody>
                             </table>
                         </div>
