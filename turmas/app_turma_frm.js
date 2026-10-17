@@ -24,6 +24,27 @@ window.AppTurmaFrm = {
         return `${txt}h`;
     },
 
+    // Configura automaticamente H_Inicio e H_Termino ao trocar o Período (MANHÃ, TARDE ou NOITE)
+    aoMudarPeriodoNoForm(contexto = 'add') {
+        const selectPeriodo = document.getElementById(`${contexto}-turma-periodo`);
+        const inputHInicio = document.getElementById(`${contexto}-turma-hinicio`);
+        const inputHTermino = document.getElementById(`${contexto}-turma-htermino`);
+        if (!selectPeriodo || !inputHInicio || !inputHTermino) return;
+
+        if (selectPeriodo.value === 'MANHÃ') {
+            inputHInicio.value = '08:00';
+            inputHTermino.value = '12:00';
+        } else if (selectPeriodo.value === 'TARDE') {
+            inputHInicio.value = '13:30';
+            inputHTermino.value = '17:30';
+        } else if (selectPeriodo.value === 'NOITE') {
+            inputHInicio.value = '19:00';
+            inputHTermino.value = '22:30';
+        }
+
+        this.atualizarCHEncontroNoForm(contexto);
+    },
+
     // Atualiza o campo CH_Encontro quando H_Inicio ou H_Termino mudam
     atualizarCHEncontroNoForm(contexto = 'add') {
         const hInicio = document.getElementById(`${contexto}-turma-hinicio`)?.value;
@@ -35,7 +56,7 @@ window.AppTurmaFrm = {
         inputCH.value = ch > 0 ? this._formatarCH(ch) : "Horário Inválido";
     },
 
-    // Quando o usuário seleciona um curso no formulário: herda a Área, sugere o prefixo da Referência e lista as UCs do curso
+    // Quando o usuário seleciona um curso no formulário: herda a Área, atualiza o prefixo da Referência com a Sigla e lista as UCs do curso
     aoSelecionarCursoNoForm(contexto = 'add') {
         const selectCurso = document.getElementById(`${contexto}-turma-curso`);
         const inputArea = document.getElementById(`${contexto}-turma-area`);
@@ -49,28 +70,47 @@ window.AppTurmaFrm = {
 
         if (inputArea) inputArea.value = curso.area || "";
 
-        // Sugere o prefixo da referência (ex.: TI-) caso o campo esteja vazio no cadastro
-        if (contexto === 'add' && inputRef && !inputRef.value.trim() && curso.sigla) {
-            inputRef.value = `${curso.sigla.toUpperCase()}-`;
+        // Obtém a sigla do objeto do curso (ou extrai do texto [SIGLA] do select caso necessário)
+        let siglaCurso = (curso.sigla || "").trim().toUpperCase();
+        if (!siglaCurso) {
+            const textoOpcao = selectCurso.options[selectCurso.selectedIndex]?.text || "";
+            const matchSigla = textoOpcao.match(/^\[([^\]]+)\]/);
+            if (matchSigla && matchSigla[1] !== '---') {
+                siglaCurso = matchSigla[1].trim().toUpperCase();
+            }
+        }
+
+        // Atualiza sempre o prefixo da Referência ao selecionar ou trocar de curso (qualquer tipo, inclusive Curso Livre)
+        if (inputRef && siglaCurso) {
+            const valorAtual = inputRef.value.trim().toUpperCase();
+            if (!valorAtual || /^[A-Z0-9]+-$/.test(valorAtual)) {
+                inputRef.value = `${siglaCurso}-`;
+            } else if (valorAtual.includes('-')) {
+                const sufixo = valorAtual.split('-').slice(1).join('-');
+                inputRef.value = `${siglaCurso}-${sufixo}`;
+            } else {
+                inputRef.value = `${siglaCurso}-`;
+            }
         }
 
         if (contexto === 'add') {
-            this.renderizarUCsNoFormCadastro(curso.id, cacheUCsBase);
+            this.renderizarUCsNoFormCadastro(curso, cacheUCsBase);
         }
     },
 
-    renderizarUCsNoFormCadastro(idCurso, cacheUCsBase) {
+    renderizarUCsNoFormCadastro(curso, cacheUCsBase) {
         const container = document.getElementById('container-add-turma-ucs');
-        if (!container) return;
+        if (!container || !curso) return;
 
-        const ucsDoCurso = (cacheUCsBase || []).filter(u => u.id_curso === idCurso).sort((a, b) => {
+        const ucsDoCurso = (cacheUCsBase || []).filter(u => u.id_curso === curso.id).sort((a, b) => {
             const numA = parseInt((a.referencia || "").replace(/\D/g, '')) || 0;
             const numB = parseInt((b.referencia || "").replace(/\D/g, '')) || 0;
             return numA - numB;
         });
 
         if (ucsDoCurso.length === 0) {
-            container.innerHTML = `<p class="text-xs md:text-sm text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-slate-100">Este curso não possui UCs cadastradas (Ex: Curso Livre de curta duração).</p>`;
+            const chCursoLivre = curso.carga_horaria ? ` (${curso.carga_horaria}h)` : '';
+            container.innerHTML = `<p class="text-xs md:text-sm text-slate-500 text-center py-6 bg-slate-50 rounded-xl border border-slate-100">Este curso não possui UCs vinculadas${chCursoLivre}.</p>`;
             return;
         }
 
@@ -154,7 +194,6 @@ window.AppTurmaFrm = {
         document.getElementById('modal-edit-turma-uc')?.classList.remove('hidden');
     },
 
-    // Sincroniza Horas Ministradas e Progresso quando o usuário altera o Status da UC no modal
     aoMudarStatusUCNoModal() {
         const idTurma = document.getElementById('turma-uc-id-turma')?.value;
         const ucIdx = parseInt(document.getElementById('turma-uc-idx')?.value, 10);
@@ -179,7 +218,6 @@ window.AppTurmaFrm = {
         }
     },
 
-    // Sincroniza o Progresso (%) e o Status quando o usuário digita as Horas Ministradas no modal da UC
     aoDigitarHorasUCNoModal() {
         const idTurma = document.getElementById('turma-uc-id-turma')?.value;
         const ucIdx = parseInt(document.getElementById('turma-uc-idx')?.value, 10);
@@ -287,9 +325,8 @@ window.AppTurmaFrm = {
 
                 alert("Turma cadastrada com sucesso!");
                 e.target.reset();
-                document.getElementById('add-turma-hinicio').value = "19:00";
-                document.getElementById('add-turma-htermino').value = "22:30";
-                this.atualizarCHEncontroNoForm('add');
+                document.getElementById('add-turma-periodo').value = "NOITE";
+                this.aoMudarPeriodoNoForm('add');
                 document.getElementById('container-add-turma-ucs').innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Selecione um curso ao lado para carregar suas Unidades Curriculares.</p>`;
 
                 await window.AppTurmaListar.carregarDadosBase();
@@ -312,7 +349,6 @@ window.AppTurmaFrm = {
                 const cursoObj = cacheCursos.find(c => c.id === idCursoNovo);
                 if (!cursoObj) throw new Error("Curso inválido.");
 
-                // Se mudou de curso, recria a lista de UCs do novo curso; se manteve, preserva o progresso atual das UCs
                 let ucsDaTurma = turmaAtual.ucs || [];
                 if (idCursoNovo !== turmaAtual.id_curso) {
                     const ucsNovoCurso = cacheUCsBase.filter(u => u.id_curso === idCursoNovo);
@@ -353,7 +389,7 @@ window.AppTurmaFrm = {
             return true;
         }
 
-        // 3. Salvar Edição de UC específica dentro da Turma (N_Aula, Status, Horas Ministradas e Progresso)
+        // 3. Salvar Edição de UC específica dentro da Turma
         if (e.target.id === 'form-edit-turma-uc') {
             try {
                 const idTurma = document.getElementById('turma-uc-id-turma').value;
@@ -375,7 +411,6 @@ window.AppTurmaFrm = {
                 await window.AppTurmaListar.carregarDadosBase();
                 window.AppTurmaListar.renderizarTabelaTurmas();
 
-                // Mantém o acordeon da turma aberto após atualizar a UC para melhor experiência visual
                 document.getElementById(`accordion-turma-${idTurma}`)?.classList.remove('hidden');
             } catch (err) {
                 alert(err.message);

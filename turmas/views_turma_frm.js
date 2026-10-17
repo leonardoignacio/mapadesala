@@ -52,7 +52,7 @@ window.ViewsTurmaFrm = {
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Período *</label>
-                                <select id="add-turma-periodo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base bg-white cursor-pointer" required>
+                                <select id="add-turma-periodo" onchange="window.AppTurmaFrm.aoMudarPeriodoNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base bg-white cursor-pointer" required>
                                     <option value="MANHÃ">MANHÃ</option>
                                     <option value="TARDE">TARDE</option>
                                     <option value="NOITE" selected>NOITE</option>
@@ -162,7 +162,7 @@ window.ViewsTurmaFrm = {
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div class="col-span-2 sm:col-span-1">
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Período *</label>
-                            <select id="edit-turma-periodo" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm bg-white cursor-pointer" required>
+                            <select id="edit-turma-periodo" onchange="window.AppTurmaFrm.aoMudarPeriodoNoForm('edit')" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm bg-white cursor-pointer" required>
                                 <option value="MANHÃ">MANHÃ</option>
                                 <option value="TARDE">TARDE</option>
                                 <option value="NOITE">NOITE</option>
@@ -249,7 +249,7 @@ window.ViewsTurmaFrm = {
                         </div>
                     </div>
 
-                    <!-- Atributos Pedagógicos Herdadas da UC (Indicadores e Conhecimentos) -->
+                    <!-- Atributos Pedagógicos Herdados da UC (Indicadores e Conhecimentos) -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores da UC</label>
                         <textarea id="turma-uc-indicadores" rows="3" class="w-full border border-slate-200 bg-slate-50 text-slate-600 p-2.5 rounded-lg text-xs md:text-sm resize-y outline-none" readonly></textarea>
