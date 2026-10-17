@@ -4,8 +4,9 @@ const EMAIL_SUPERUSUARIO = "leoignacio@gmail.com";
 window.usuarioAtual = { email: null, cargo: null, nome: null, sobrenome: null, perfis: [], areas: [] };
 window.emProcessoDePreCadastro = false;
 
-// Inicia colapsado se for mobile (menor que 768px), aberto se for desktop
-let isSidebarCollapsed = window.innerWidth < 768; 
+// Estado responsivo da Sidebar e controle de transição de Breakpoint (768px)
+let lastIsMobile = window.innerWidth < 768;
+let isSidebarCollapsed = lastIsMobile; 
 
 const UI = {
     load: document.getElementById('loading-screen'),
@@ -82,6 +83,7 @@ function applySidebarState() {
     const sidebar = document.getElementById('main-sidebar');
     if(!sidebar) return;
     
+    const backdrop = document.getElementById('sidebar-backdrop');
     const texts = sidebar.querySelectorAll('.sidebar-text');
     const btnToggleClose = document.getElementById('btn-toggle-sidebar');
     const btnToggleOpen = document.getElementById('btn-toggle-sidebar-open');
@@ -93,10 +95,13 @@ function applySidebarState() {
     const isMobile = window.innerWidth < 768;
 
     if (isMobile) {
+        // No mobile, a sidebar é SEMPRE fixed (fora do fluxo flex-col para nunca empurrar a view para baixo)
         if (isSidebarCollapsed) {
             sidebar.className = "fixed inset-y-0 left-0 -translate-x-full w-64 bg-white border-r border-slate-200 flex flex-col justify-between z-50 transition-transform duration-300 shadow-2xl";
+            if (backdrop) backdrop.classList.add('hidden');
         } else {
             sidebar.className = "fixed inset-y-0 left-0 translate-x-0 w-64 bg-white border-r border-slate-200 flex flex-col justify-between z-50 transition-transform duration-300 shadow-2xl";
+            if (backdrop) backdrop.classList.remove('hidden');
         }
         texts.forEach(t => t.classList.remove('hidden'));
         if(btnToggleClose) btnToggleClose.classList.remove('hidden');
@@ -106,6 +111,9 @@ function applySidebarState() {
         if(footerDiv) footerDiv.classList.remove('items-center', 'px-0');
         links.forEach(l => { l.classList.add('px-4'); l.classList.remove('px-0', 'justify-center'); });
     } else {
+        // No desktop, oculta o backdrop mobile e posiciona na lateral (relative)
+        if (backdrop) backdrop.classList.add('hidden');
+
         if (isSidebarCollapsed) {
             sidebar.className = "relative w-20 bg-white border-r border-slate-200 flex flex-col justify-between z-30 transition-all duration-300 flex-shrink-0 shadow-sm translate-x-0";
             texts.forEach(t => t.classList.add('hidden'));
@@ -128,14 +136,17 @@ function applySidebarState() {
     }
 }
 
+// Monitora redimensionamento garantindo a atualização imediata mesmo se a sidebar já estava recolhida no desktop
 window.addEventListener('resize', () => {
     const isMobile = window.innerWidth < 768;
-    if (isMobile && !isSidebarCollapsed) {
-        isSidebarCollapsed = true;
-        applySidebarState();
-    } else if (!isMobile && isSidebarCollapsed) {
-        applySidebarState(); 
+    if (isMobile !== lastIsMobile) {
+        lastIsMobile = isMobile;
+        // Ao entrar no modo mobile, garante que o menu inicie recolhido fora da tela
+        if (isMobile) {
+            isSidebarCollapsed = true;
+        }
     }
+    applySidebarState();
 });
 
 // ==========================================
@@ -160,6 +171,11 @@ async function roteador() {
         return; 
     }
 
+    // Garante que no mobile toda troca de rota inicie com o menu lateral recolhido
+    if (window.innerWidth < 768) {
+        isSidebarCollapsed = true;
+    }
+
     UI.root.innerHTML = `
         <div class="md:hidden w-full h-14 bg-blue-600 flex items-center justify-between px-4 shadow-md z-40 fixed top-0 left-0 right-0">
             <div class="flex items-center gap-2">
@@ -171,7 +187,7 @@ async function roteador() {
             </button>
         </div>
         ${window.Views.sidebar(window.usuarioAtual)}
-        <div id="view-content" class="flex-1 bg-slate-50 flex overflow-hidden pt-14 md:pt-0 relative w-full"></div>
+        <div id="view-content" class="flex-1 bg-slate-50 flex overflow-hidden pt-14 md:pt-0 relative w-full min-h-0"></div>
     `;
     
     applySidebarState(); 
@@ -247,7 +263,7 @@ document.addEventListener('click', async (e) => {
     
     if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
 
-    if (e.target.closest('#btn-mobile-menu')) {
+    if (e.target.closest('#btn-mobile-menu') || e.target.closest('#sidebar-backdrop')) {
         isSidebarCollapsed = !isSidebarCollapsed;
         applySidebarState();
         return;

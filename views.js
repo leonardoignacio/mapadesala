@@ -16,7 +16,10 @@ window.Views = {
         };
 
         return `
-        <aside id="main-sidebar" class="relative w-64 bg-white border-r border-slate-200 flex flex-col justify-between z-30 transition-all duration-300 flex-shrink-0 shadow-sm">
+        <!-- Backdrop escuro para fechar o menu ao tocar fora no Mobile -->
+        <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/40 z-40 md:hidden transition-opacity"></div>
+
+        <aside id="main-sidebar" class="fixed md:relative inset-y-0 left-0 -translate-x-full md:translate-x-0 w-64 bg-white border-r border-slate-200 flex flex-col justify-between z-50 md:z-30 transition-all duration-300 flex-shrink-0 shadow-sm">
             <!-- Topo da Sidebar -->
             <div>
                 <div class="h-16 flex items-center justify-between px-4 border-b border-slate-100">
