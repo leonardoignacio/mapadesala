@@ -1,4 +1,4 @@
-// ./turmas/controller_turma_frm.js - Regras de Negócio de Cadastro, Cálculos de CH/Progresso e Edição de Turmas
+// ./turmas/controller_turma_frm.js - Regras de Negócio de Cadastro, Cálculos e Edição de Turmas
 window.ControllerTurmaFrm = {
 
     _validarPermissaoEdicao() {
@@ -8,7 +8,6 @@ window.ControllerTurmaFrm = {
         }
     },
 
-    // Calcula CH_Encontro em horas decimais a partir de H_Inicio e H_Termino (ex.: "19:00" e "22:30" -> 3.5)
     calcularCHEncontro(hInicio, hTermino) {
         if (!hInicio || !hTermino || !hInicio.includes(':') || !hTermino.includes(':')) return 0;
 
@@ -23,7 +22,6 @@ window.ControllerTurmaFrm = {
         return Math.round((diffMinutos / 60) * 100) / 100;
     },
 
-    // Normaliza uma UC da turma garantindo consistência entre Status, Horas Ministradas e Progresso (%)
     normalizarUCTurma(uc, modo = 'status') {
         const chTotal = parseFloat(uc.carga_horaria) || 0;
         let status = uc.status || "Não Iniciada";
@@ -64,7 +62,6 @@ window.ControllerTurmaFrm = {
         };
     },
 
-    // Calcula a CH Total do Curso e o Progresso_Turma (%) com base nas UCs vinculadas
     calcularMetricasTurma(cursoObj, ucsNormalizadas, statusTurma) {
         const somaCHUCs = (ucsNormalizadas || []).reduce((acc, u) => acc + (parseFloat(u.carga_horaria) || 0), 0);
         const chTotalCurso = somaCHUCs > 0
@@ -77,7 +74,6 @@ window.ControllerTurmaFrm = {
         if (somaCHUCs > 0) {
             progressoTurma = Math.min(100, Math.max(0, Math.round((somaHorasMinistradas / somaCHUCs) * 100)));
         } else {
-            // Exceção de Curso Livre < 40h sem UCs
             if (statusTurma === "Concluída") progressoTurma = 100;
             else if (statusTurma === "Não Iniciada") progressoTurma = 0;
         }
@@ -87,6 +83,10 @@ window.ControllerTurmaFrm = {
 
     async salvarNovaTurma(dados, cursoObj, ucsDaTurma) {
         this._validarPermissaoEdicao();
+
+        if (!Array.isArray(dados.dias_semana) || dados.dias_semana.length === 0) {
+            throw new Error("Selecione pelo menos um dia da semana para a turma.");
+        }
 
         const chEncontro = this.calcularCHEncontro(dados.h_inicio, dados.h_termino);
         if (chEncontro <= 0) {
@@ -108,6 +108,7 @@ window.ControllerTurmaFrm = {
             periodo: dados.periodo,
             h_inicio: dados.h_inicio,
             h_termino: dados.h_termino,
+            dias_semana: dados.dias_semana,
             ch_encontro: chEncontro,
             ucs: ucsNormalizadas,
             ch_total_curso: chTotalCurso,
@@ -122,6 +123,10 @@ window.ControllerTurmaFrm = {
 
     async editarTurma(idTurma, dados, cursoObj, ucsDaTurma) {
         this._validarPermissaoEdicao();
+
+        if (!Array.isArray(dados.dias_semana) || dados.dias_semana.length === 0) {
+            throw new Error("Selecione pelo menos um dia da semana para a turma.");
+        }
 
         const chEncontro = this.calcularCHEncontro(dados.h_inicio, dados.h_termino);
         if (chEncontro <= 0) {
@@ -143,6 +148,7 @@ window.ControllerTurmaFrm = {
             periodo: dados.periodo,
             h_inicio: dados.h_inicio,
             h_termino: dados.h_termino,
+            dias_semana: dados.dias_semana,
             ch_encontro: chEncontro,
             ucs: ucsNormalizadas,
             ch_total_curso: chTotalCurso,
@@ -169,7 +175,6 @@ window.ControllerTurmaFrm = {
 
         ucsCopia[ucIdx] = ucAtualizada;
 
-        // Atualiza automaticamente o Status da Turma e o Progresso_Turma com base nas UCs
         let novoStatusTurma = turmaObj.status;
         if (ucsCopia.length > 0) {
             const todasConcluidas = ucsCopia.every(u => u.status === "Concluída");

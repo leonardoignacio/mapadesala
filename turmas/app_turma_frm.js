@@ -8,8 +8,8 @@ window.AppTurmaFrm = {
 
     popularSelectCursos() {
         const cacheCursos = window.AppTurmaListar?.cacheCursos || [];
-        const options = `<option value="" disabled selected>Selecione o Curso...</option>` +
-            cacheCursos.map(c => `<option value="${c.id}">[${c.sigla || '---'}] ${c.titulo}</option>`).join('');
+        const options = '<option value="" disabled selected>Selecione o Curso...</option>' +
+            cacheCursos.map(c => '<option value="' + c.id + '">[' + (c.sigla || '---') + '] ' + c.titulo + '</option>').join('');
 
         const selectAdd = document.getElementById('add-turma-curso');
         if (selectAdd) selectAdd.innerHTML = options;
@@ -24,7 +24,6 @@ window.AppTurmaFrm = {
         return `${txt}h`;
     },
 
-    // Configura automaticamente H_Inicio e H_Termino ao trocar o Período (MANHÃ, TARDE ou NOITE)
     aoMudarPeriodoNoForm(contexto = 'add') {
         const selectPeriodo = document.getElementById(`${contexto}-turma-periodo`);
         const inputHInicio = document.getElementById(`${contexto}-turma-hinicio`);
@@ -45,7 +44,6 @@ window.AppTurmaFrm = {
         this.atualizarCHEncontroNoForm(contexto);
     },
 
-    // Atualiza o campo CH_Encontro quando H_Inicio ou H_Termino mudam
     atualizarCHEncontroNoForm(contexto = 'add') {
         const hInicio = document.getElementById(`${contexto}-turma-hinicio`)?.value;
         const hTermino = document.getElementById(`${contexto}-turma-htermino`)?.value;
@@ -56,7 +54,6 @@ window.AppTurmaFrm = {
         inputCH.value = ch > 0 ? this._formatarCH(ch) : "Horário Inválido";
     },
 
-    // Quando o usuário seleciona um curso no formulário: herda a Área, atualiza o prefixo da Referência com a Sigla e lista as UCs do curso
     aoSelecionarCursoNoForm(contexto = 'add') {
         const selectCurso = document.getElementById(`${contexto}-turma-curso`);
         const inputArea = document.getElementById(`${contexto}-turma-area`);
@@ -70,7 +67,6 @@ window.AppTurmaFrm = {
 
         if (inputArea) inputArea.value = curso.area || "";
 
-        // Obtém a sigla do objeto do curso (ou extrai do texto [SIGLA] do select caso necessário)
         let siglaCurso = (curso.sigla || "").trim().toUpperCase();
         if (!siglaCurso) {
             const textoOpcao = selectCurso.options[selectCurso.selectedIndex]?.text || "";
@@ -80,7 +76,6 @@ window.AppTurmaFrm = {
             }
         }
 
-        // Atualiza sempre o prefixo da Referência ao selecionar ou trocar de curso (qualquer tipo, inclusive Curso Livre)
         if (inputRef && siglaCurso) {
             const valorAtual = inputRef.value.trim().toUpperCase();
             if (!valorAtual || /^[A-Z0-9]+-$/.test(valorAtual)) {
@@ -157,6 +152,12 @@ window.AppTurmaFrm = {
         document.getElementById('edit-turma-hinicio').value = turma.h_inicio || "19:00";
         document.getElementById('edit-turma-htermino').value = turma.h_termino || "22:30";
         document.getElementById('edit-turma-status').value = turma.status || "Não Iniciada";
+
+        // Marca os checkboxes dos dias da semana salvos na turma
+        const diasSalvos = new Set(Array.isArray(turma.dias_semana) ? turma.dias_semana : []);
+        document.querySelectorAll('.chk-dias-semana-edit').forEach(chk => {
+            chk.checked = diasSalvos.has(chk.value);
+        });
 
         this.atualizarCHEncontroNoForm('edit');
         document.getElementById('modal-edit-turma')?.classList.remove('hidden');
@@ -287,6 +288,11 @@ window.AppTurmaFrm = {
                 const cursoObj = cacheCursos.find(c => c.id === idCurso);
                 if (!cursoObj) throw new Error("Selecione um curso válido.");
 
+                const diasSelecionados = Array.from(document.querySelectorAll('.chk-dias-semana-add:checked')).map(c => c.value);
+                if (diasSelecionados.length === 0) {
+                    throw new Error("Selecione pelo menos um dia da semana para a turma.");
+                }
+
                 const ucsDoCurso = cacheUCsBase.filter(u => u.id_curso === idCurso).sort((a, b) => {
                     const numA = parseInt((a.referencia || "").replace(/\D/g, '')) || 0;
                     const numB = parseInt((b.referencia || "").replace(/\D/g, '')) || 0;
@@ -318,6 +324,7 @@ window.AppTurmaFrm = {
                     periodo: document.getElementById('add-turma-periodo').value,
                     h_inicio: document.getElementById('add-turma-hinicio').value,
                     h_termino: document.getElementById('add-turma-htermino').value,
+                    dias_semana: diasSelecionados,
                     status: document.getElementById('add-turma-status').value
                 };
 
@@ -327,6 +334,7 @@ window.AppTurmaFrm = {
                 e.target.reset();
                 document.getElementById('add-turma-periodo').value = "NOITE";
                 this.aoMudarPeriodoNoForm('add');
+                document.querySelectorAll('.chk-dias-semana-add').forEach(c => c.checked = true);
                 document.getElementById('container-add-turma-ucs').innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Selecione um curso ao lado para carregar suas Unidades Curriculares.</p>`;
 
                 await window.AppTurmaListar.carregarDadosBase();
@@ -348,6 +356,11 @@ window.AppTurmaFrm = {
                 const idCursoNovo = document.getElementById('edit-turma-curso').value;
                 const cursoObj = cacheCursos.find(c => c.id === idCursoNovo);
                 if (!cursoObj) throw new Error("Curso inválido.");
+
+                const diasSelecionados = Array.from(document.querySelectorAll('.chk-dias-semana-edit:checked')).map(c => c.value);
+                if (diasSelecionados.length === 0) {
+                    throw new Error("Selecione pelo menos um dia da semana para a turma.");
+                }
 
                 let ucsDaTurma = turmaAtual.ucs || [];
                 if (idCursoNovo !== turmaAtual.id_curso) {
@@ -374,6 +387,7 @@ window.AppTurmaFrm = {
                     periodo: document.getElementById('edit-turma-periodo').value,
                     h_inicio: document.getElementById('edit-turma-hinicio').value,
                     h_termino: document.getElementById('edit-turma-htermino').value,
+                    dias_semana: diasSelecionados,
                     status: document.getElementById('edit-turma-status').value
                 };
 

@@ -1,7 +1,28 @@
-// ./turmas/views_turma_frm.js - Formulários e Modais de Cadastro e Edição de Turmas e UCs da Turma
+// ./turmas/views_turma_frm.js - Formulários e Modais de Cadastro e Edição de Turmas e UCs
 window.ViewsTurmaFrm = {
 
     renderizarAbaFrm() {
+        const diasSemanaOpts = [
+            { sigla: "Seg", label: "Segunda" },
+            { sigla: "Ter", label: "Terça" },
+            { sigla: "Qua", label: "Quarta" },
+            { sigla: "Qui", label: "Quinta" },
+            { sigla: "Sex", label: "Sexta" },
+            { sigla: "Sáb", label: "Sábado" }
+        ];
+
+        const checkboxesDiasAdd = diasSemanaOpts.map(d => `
+            <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 cursor-pointer transition text-xs font-semibold text-slate-700 bg-white">
+                <input type="checkbox" value="${d.sigla}" class="chk-dias-semana-add w-4 h-4 text-blue-600 rounded" checked> ${d.sigla}
+            </label>
+        `).join('');
+
+        const checkboxesDiasEdit = diasSemanaOpts.map(d => `
+            <label class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 cursor-pointer transition text-xs font-semibold text-slate-700 bg-white">
+                <input type="checkbox" value="${d.sigla}" class="chk-dias-semana-edit w-4 h-4 text-blue-600 rounded"> ${d.sigla}
+            </label>
+        `).join('');
+
         return `
         <!-- CONTEÚDO: ABA ADD TURMAS -->
         <div id="tab-add-turmas" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6 px-2 md:px-0">
@@ -72,6 +93,14 @@ window.ViewsTurmaFrm = {
                             </div>
                         </div>
 
+                        <!-- Dias da Semana (6 Checkboxes Obrigatórios) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Dias da Semana * (Selecione ao menos um)</label>
+                            <div class="flex flex-wrap gap-2 pt-1" id="grupo-dias-semana-add">
+                                ${checkboxesDiasAdd}
+                            </div>
+                        </div>
+
                         <!-- Status da Turma e Progresso_Turma -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
@@ -114,6 +143,21 @@ window.ViewsTurmaFrm = {
     },
 
     renderizarModais(podeEditar = false) {
+        const diasSemanaOpts = [
+            { sigla: "Seg", label: "Segunda" },
+            { sigla: "Ter", label: "Terça" },
+            { sigla: "Qua", label: "Quarta" },
+            { sigla: "Qui", label: "Quinta" },
+            { sigla: "Sex", label: "Sexta" },
+            { sigla: "Sáb", label: "Sábado" }
+        ];
+
+        const checkboxesDiasEdit = diasSemanaOpts.map(d => `
+            <label class="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 hover:bg-blue-50 cursor-pointer transition text-xs font-semibold text-slate-700 bg-white">
+                <input type="checkbox" value="${d.sigla}" class="chk-dias-semana-edit w-4 h-4 text-blue-600 rounded"> ${d.sigla}
+            </label>
+        `).join('');
+
         return `
         <!-- MODAIS DO MÓDULO DE TURMAS (Fecham exclusivamente no 'X' ou em 'Cancelar') -->
 
@@ -182,6 +226,14 @@ window.ViewsTurmaFrm = {
                         </div>
                     </div>
 
+                    <!-- Dias da Semana no Modal de Edição -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Dias da Semana * (Selecione ao menos um)</label>
+                        <div class="flex flex-wrap gap-2 pt-1" id="grupo-dias-semana-edit">
+                            ${checkboxesDiasEdit}
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Status da Turma *</label>
                         <select id="edit-turma-status" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm bg-white cursor-pointer" required>
@@ -192,7 +244,7 @@ window.ViewsTurmaFrm = {
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 shrink-0">
-                        <button type="button" id="btn-cancel-modal-edit-turma" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-5 rounded-lg transition text-sm">Cancelar</button>
+                        <button type="button" id="btn-close-modal-edit-turma" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-5 rounded-lg transition text-sm">Cancelar</button>
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition shadow-sm text-sm">Salvar Alterações</button>
                     </div>
                 </form>
@@ -200,7 +252,7 @@ window.ViewsTurmaFrm = {
         </div>
         ` : ''}
 
-        <!-- Modal de Detalhes e Gestão da UC dentro da Turma (N_Aula, Status, Horas Ministradas e Progresso) -->
+        <!-- Modal de Detalhes e Gestão da UC dentro da Turma -->
         <div id="modal-edit-turma-uc" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-5 md:p-8 relative fade-in max-h-[92vh] flex flex-col border border-slate-200">
                 <button type="button" id="btn-close-modal-turma-uc" class="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-700 font-bold text-xl focus:outline-none">✕</button>
@@ -213,7 +265,6 @@ window.ViewsTurmaFrm = {
                     <input type="hidden" id="turma-uc-id-turma">
                     <input type="hidden" id="turma-uc-idx">
 
-                    <!-- Cabeçalho de Identificação da UC -->
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between gap-2">
                         <div>
                             <span id="turma-uc-ref-badge" class="text-xs font-extrabold text-blue-600 uppercase"></span>
@@ -222,7 +273,6 @@ window.ViewsTurmaFrm = {
                         <span id="turma-uc-ch-badge" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-extrabold text-slate-700 shrink-0"></span>
                     </div>
 
-                    <!-- Campos Específicos da UC na Turma: N_Aula, Status, Horas Ministradas e Progresso -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">N_Aula (Código de Aula)</label>
@@ -249,7 +299,6 @@ window.ViewsTurmaFrm = {
                         </div>
                     </div>
 
-                    <!-- Atributos Pedagógicos Herdados da UC (Indicadores e Conhecimentos) -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Indicadores da UC</label>
                         <textarea id="turma-uc-indicadores" rows="3" class="w-full border border-slate-200 bg-slate-50 text-slate-600 p-2.5 rounded-lg text-xs md:text-sm resize-y outline-none" readonly></textarea>
@@ -261,7 +310,7 @@ window.ViewsTurmaFrm = {
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 shrink-0">
-                        <button type="button" id="btn-cancel-modal-turma-uc" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-5 rounded-lg transition text-sm">
+                        <button type="button" id="btn-close-modal-turma-uc" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-5 rounded-lg transition text-sm">
                             ${podeEditar ? 'Cancelar' : 'Fechar'}
                         </button>
                         ${podeEditar ? `
