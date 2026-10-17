@@ -48,11 +48,11 @@ window.ViewsTurmaFrm = {
                                 <input type="text" id="add-turma-ref" placeholder="Ex: TI-35" oninput="this.value = this.value.toUpperCase()" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base font-bold uppercase" required>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 mb-1">Oferta (Código SS) *</label>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Código de Oferta*</label>
                                 <input type="text" id="add-turma-oferta" placeholder="Ex: 2026105" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 mb-1">Área (Herdada)</label>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Área</label>
                                 <input type="text" id="add-turma-area" placeholder="Selecione o curso..." class="w-full border border-slate-200 bg-slate-50 text-slate-500 p-2 md:p-3 rounded-lg text-sm md:text-base cursor-not-allowed outline-none" readonly>
                             </div>
                         </div>
@@ -60,11 +60,11 @@ window.ViewsTurmaFrm = {
                         <!-- Datas: D_Inicio e D_Termino (Estimativa) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 mb-1">Data de Início (D_Inicio) *</label>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Data de Início*</label>
                                 <input type="date" id="add-turma-dinicio" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-500 mb-1">Previsão de Término (D_Termino) *</label>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Previsão de Término*</label>
                                 <input type="date" id="add-turma-dtermino" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                             </div>
                         </div>
@@ -74,22 +74,22 @@ window.ViewsTurmaFrm = {
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Período *</label>
                                 <select id="add-turma-periodo" onchange="window.AppTurmaFrm.aoMudarPeriodoNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base bg-white cursor-pointer" required>
-                                    <option value="MANHÃ">MANHÃ</option>
+                                    <option value="MANHÃ" selected>MANHÃ</option>
                                     <option value="TARDE">TARDE</option>
-                                    <option value="NOITE" selected>NOITE</option>
+                                    <option value="NOITE">NOITE</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">H_Inicio *</label>
-                                <input type="time" id="add-turma-hinicio" value="19:00" onchange="window.AppTurmaFrm.atualizarCHEncontroNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                <input type="time" id="add-turma-hinicio" value="08:00" onchange="window.AppTurmaFrm.atualizarCHEncontroNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">H_Termino *</label>
-                                <input type="time" id="add-turma-htermino" value="22:30" onchange="window.AppTurmaFrm.atualizarCHEncontroNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
+                                <input type="time" id="add-turma-htermino" value="12:00" onchange="window.AppTurmaFrm.atualizarCHEncontroNoForm('add')" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">CH_Encontro</label>
-                                <input type="text" id="add-turma-chencontro" value="3,5h" class="w-full border border-slate-200 bg-blue-50/60 text-blue-700 font-extrabold p-2 md:p-3 rounded-lg text-sm md:text-base text-center cursor-not-allowed outline-none" readonly>
+                                <input type="text" id="add-turma-chencontro" value="4h" class="w-full border border-slate-200 bg-blue-50/60 text-blue-700 font-extrabold p-2 md:p-3 rounded-lg text-sm md:text-base text-center cursor-not-allowed outline-none" readonly>
                             </div>
                         </div>
 
@@ -183,7 +183,7 @@ window.ViewsTurmaFrm = {
                             <input type="text" id="edit-turma-ref" oninput="this.value = this.value.toUpperCase()" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm font-bold uppercase" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Oferta (Código SS) *</label>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Código de Oferta*</label>
                             <input type="text" id="edit-turma-oferta" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
                         </div>
                         <div>
@@ -194,11 +194,11 @@ window.ViewsTurmaFrm = {
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Data de Início (D_Inicio) *</label>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Data de Início*</label>
                             <input type="date" id="edit-turma-dinicio" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Previsão de Término (D_Termino) *</label>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Previsão de Término*</label>
                             <input type="date" id="edit-turma-dtermino" class="w-full border border-slate-300 p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
                         </div>
                     </div>
