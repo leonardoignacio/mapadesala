@@ -10,15 +10,37 @@ window.AppCursoFrm = {
         const cacheAreas = window.AppCursoListar?.cacheAreas || [];
         const cacheCursos = window.AppCursoListar?.cacheCursos || [];
 
+        // Garante que todas as áreas habilitadas no perfil do usuário também estejam disponíveis na lista
+        const nomesAreasSet = new Set(cacheAreas.map(a => a.nome));
+        const areasPerfil = Array.isArray(window.usuarioAtual?.areas) ? window.usuarioAtual.areas : [];
+        areasPerfil.forEach(nomeArea => {
+            if (nomeArea && nomeArea !== "Todas") nomesAreasSet.add(nomeArea);
+        });
+        const listaNomesAreas = Array.from(nomesAreasSet).sort((a, b) => a.localeCompare(b));
+
+        // 1. Popula Datalists (usados por Root, Admin e Técnico)
         const datalistArea = document.getElementById('add-curso-datalist-area');
-        if (datalistArea) datalistArea.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
+        if (datalistArea) datalistArea.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">`).join('');
 
         const datalistAreaEdit = document.getElementById('edit-curso-datalist-area');
-        if (datalistAreaEdit) datalistAreaEdit.innerHTML = cacheAreas.map(a => `<option value="${a.nome}">`).join('');
+        if (datalistAreaEdit) datalistAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">`).join('');
 
+        // 2. Popula Selects de Área (usados quando logado como Docente)
+        const campoAreaAdd = document.getElementById('add-curso-area');
+        if (campoAreaAdd && campoAreaAdd.tagName === 'SELECT') {
+            campoAreaAdd.innerHTML = '<option value="" disabled selected>Selecione a Área...</option>' +
+                listaNomesAreas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+        }
+
+        const campoAreaEdit = document.getElementById('edit-curso-area');
+        if (campoAreaEdit && campoAreaEdit.tagName === 'SELECT') {
+            campoAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+        }
+
+        // 3. Popula Selects de Cursos (para vincular UCs manual e em lote)
         const selectCursoAddUC = document.getElementById('add-uc-curso');
         const selectCursoLote = document.getElementById('add-uc-lote-curso');
-        const optionsCursos = `<option value="" disabled selected>Selecione o Curso...</option>` +
+        const optionsCursos = '<option value="" disabled selected>Selecione o Curso...</option>' +
                               cacheCursos.map(c => `<option value="${c.id}">[${c.sigla || '---'}] ${c.titulo}</option>`).join('');
         
         if (selectCursoAddUC) selectCursoAddUC.innerHTML = optionsCursos;
@@ -79,10 +101,20 @@ window.AppCursoFrm = {
         const curso = cacheCursos.find(c => c.id === idCurso);
         if(!curso) return;
 
+        this.popularSelectsFormularios();
+
         document.getElementById('edit-curso-id').value = curso.id;
         document.getElementById('edit-curso-titulo').value = curso.titulo;
         document.getElementById('edit-curso-sigla').value = curso.sigla || "";
-        document.getElementById('edit-curso-area').value = curso.area;
+        
+        const campoAreaEdit = document.getElementById('edit-curso-area');
+        if (campoAreaEdit) {
+            if (campoAreaEdit.tagName === 'SELECT' && !Array.from(campoAreaEdit.options).some(o => o.value === curso.area)) {
+                campoAreaEdit.insertAdjacentHTML('beforeend', `<option value="${curso.area}">${curso.area}</option>`);
+            }
+            campoAreaEdit.value = curso.area;
+        }
+
         document.getElementById('edit-curso-tipo').value = curso.tipo;
 
         const chInicial = (curso.tipo === "Livre" && curso.carga_horaria && parseInt(curso.carga_horaria) <= 39)
@@ -132,7 +164,6 @@ window.AppCursoFrm = {
     },
 
     async tratarCliques(e) {
-        // Fechar modal de UC (Permitido para todos os perfis, inclusive APOIO)
         if (e.target.closest('#btn-close-modal-uc') || e.target.closest('#btn-cancel-edit-uc')) {
             document.getElementById('modal-edit-uc')?.classList.add('hidden');
             return true;

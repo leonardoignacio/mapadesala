@@ -72,7 +72,7 @@ window.ViewsTurmaListar = {
                                             </div>
                                         </th>
 
-                                        <!-- Coluna Progresso (Com Filtro de Status embutido) -->
+                                        <!-- Coluna Progresso (Com Filtro de Status embutido - Concluída desmarcada por padrão) -->
                                         <th class="px-1 py-2 md:py-4 md:px-3 text-[9px] md:text-[11px] font-extrabold text-slate-500 uppercase tracking-tighter md:tracking-wider w-[16%] md:w-[17%] text-right border-b border-slate-200 bg-slate-50/95 backdrop-blur relative">
                                             <div class="flex items-center justify-end">
                                                 <span class="flex items-center gap-0.5 md:gap-1">Progresso
@@ -81,10 +81,10 @@ window.ViewsTurmaListar = {
                                             <div id="modal-filter-turma-status" class="hidden absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-30 p-4 w-52 text-sm font-normal text-slate-700 popover-modal">
                                                 <p class="text-xs font-bold text-slate-500 mb-2">Filtrar por Status</p>
                                                 <div class="space-y-1.5 mb-3 text-left">
-                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Todos</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold"><input type="checkbox" value="Todos" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded"> Todos</label>
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Em Andamento" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Em Andamento</label>
                                                     <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Não Iniciada" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Não Iniciada</label>
-                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Concluída" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded" checked> Concluída</label>
+                                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="Concluída" class="popover-status-turma-chk w-4 h-4 text-blue-600 rounded"> Concluída</label>
                                                 </div>
                                                 <button id="apply-filter-turma-status" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition">Aplicar Filtro</button>
                                             </div>

@@ -8,7 +8,11 @@ window.AppTurmaListar = {
         ref: "",
         areas: ["Todos"],
         periodos: ["Todos"],
-        status: ["Todos"]
+        status: ["Em Andamento", "Não Iniciada"]
+    },
+
+    _norm(str) {
+        return (str || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     },
 
     podeEditar() {
@@ -16,7 +20,60 @@ window.AppTurmaListar = {
         return cargosEdicao.includes(window.usuarioAtual?.cargo);
     },
 
+    obterAreasUsuario() {
+        const areas = window.usuarioAtual?.areas || [];
+        return Array.isArray(areas) ? areas.filter(a => a && a !== "Todas") : [];
+    },
+
+    // Verifica se um curso pertence às áreas informadas (considerando 'area' e 'tipo', ex.: Aprendizagem)
+    _cursoCorrespondeAsAreas(curso, listaAreas) {
+        if (!curso || !Array.isArray(listaAreas)) return false;
+        if (listaAreas.includes("Todas") || listaAreas.includes("Todos")) return true;
+
+        const areaCursoNorm = this._norm(curso.area);
+        const tipoCursoNorm = this._norm(curso.tipo);
+
+        return listaAreas.some(a => {
+            const areaAlvoNorm = this._norm(a);
+            return areaAlvoNorm !== "" && (areaAlvoNorm === areaCursoNorm || areaAlvoNorm === tipoCursoNorm);
+        });
+    },
+
+    // Verifica se uma turma pertence às áreas informadas (considerando a área da turma e o curso vinculado)
+    _turmaCorrespondeAsAreas(turma, listaAreas, mapaCursosPorId = new Map()) {
+        if (!turma || !Array.isArray(listaAreas)) return false;
+        if (listaAreas.includes("Todas") || listaAreas.includes("Todos")) return true;
+
+        const areaTurmaNorm = this._norm(turma.area);
+        const cursoVinculado = mapaCursosPorId.get(turma.id_curso);
+        const areaCursoNorm = this._norm(cursoVinculado?.area);
+        const tipoCursoNorm = this._norm(cursoVinculado?.tipo);
+
+        return listaAreas.some(a => {
+            const areaAlvoNorm = this._norm(a);
+            return areaAlvoNorm !== "" && (
+                areaAlvoNorm === areaTurmaNorm ||
+                areaAlvoNorm === areaCursoNorm ||
+                areaAlvoNorm === tipoCursoNorm
+            );
+        });
+    },
+
+    configurarFiltrosPadrao() {
+        const cargo = window.usuarioAtual?.cargo;
+        const areasUser = this.obterAreasUsuario();
+
+        if (cargo === 'apoio' && areasUser.length > 0) {
+            this.filtrosTurmas.areas = [...areasUser];
+        } else {
+            this.filtrosTurmas.areas = ["Todos"];
+        }
+
+        this.filtrosTurmas.status = ["Em Andamento", "Não Iniciada"];
+    },
+
     async iniciarView() {
+        this.configurarFiltrosPadrao();
         await this.carregarDadosBase();
         this.popularFiltrosESelects();
         this.renderizarTabelaTurmas();
@@ -28,26 +85,70 @@ window.AppTurmaListar = {
             tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
         }
 
-        [this.cacheTurmas, this.cacheCursos, this.cacheUCsBase] = await Promise.all([
+        const [todasTurmas, todosCursos, todasUCs] = await Promise.all([
             window.ControllerTurmaListar.listarTurmas(),
             window.ControllerTurmaListar.listarCursosBase(),
             window.ControllerTurmaListar.listarUCsBase()
         ]);
+
+        const mapaCursosGeral = new Map(todosCursos.map(c => [c.id, c]));
+        const cargo = window.usuarioAtual?.cargo;
+        const areasUser = this.obterAreasUsuario();
+        const possuiAcessoGlobal = (window.usuarioAtual?.areas || []).includes("Todas");
+
+        if (cargo === 'docente' && !possuiAcessoGlobal) {
+            this.cacheCursos = todosCursos.filter(c => this._cursoCorrespondeAsAreas(c, areasUser));
+            this.cacheTurmas = todasTurmas.filter(t => this._turmaCorrespondeAsAreas(t, areasUser, mapaCursosGeral));
+            const idsCursosPermitidos = new Set(this.cacheCursos.map(c => c.id));
+            this.cacheUCsBase = todasUCs.filter(u => idsCursosPermitidos.has(u.id_curso));
+        } else {
+            this.cacheCursos = todosCursos;
+            this.cacheTurmas = todasTurmas;
+            this.cacheUCsBase = todasUCs;
+
+            // Se for APOIO, garante que a área real das turmas/cursos de Aprendizagem também fique marcada no filtro inicial
+            if (cargo === 'apoio' && !this.filtrosTurmas.areas.includes("Todos")) {
+                const areasExpandidas = new Set(this.filtrosTurmas.areas);
+                todasTurmas.forEach(t => {
+                    if (this._turmaCorrespondeAsAreas(t, areasUser, mapaCursosGeral) && t.area) {
+                        areasExpandidas.add(t.area);
+                    }
+                });
+                todosCursos.forEach(c => {
+                    if (this._cursoCorrespondeAsAreas(c, areasUser) && c.area) {
+                        areasExpandidas.add(c.area);
+                    }
+                });
+                this.filtrosTurmas.areas = Array.from(areasExpandidas);
+            }
+        }
     },
 
     popularFiltrosESelects() {
-        const areasSet = new Set();
-        this.cacheCursos.forEach(c => { if (c.area) areasSet.add(c.area); });
-        this.cacheTurmas.forEach(t => { if (t.area) areasSet.add(t.area); });
-        const areasUnicas = Array.from(areasSet).sort((a, b) => a.localeCompare(b));
+        const mapaAreasUnicas = new Map();
+        const registrarArea = (nome) => {
+            const chave = this._norm(nome);
+            if (chave && !mapaAreasUnicas.has(chave)) {
+                mapaAreasUnicas.set(chave, nome.trim());
+            }
+        };
+
+        this.cacheCursos.forEach(c => { if (c.area) registrarArea(c.area); });
+        this.cacheTurmas.forEach(t => { if (t.area) registrarArea(t.area); });
+        if (window.usuarioAtual?.cargo === 'docente') {
+            this.obterAreasUsuario().forEach(a => registrarArea(a));
+        }
+
+        const areasUnicas = Array.from(mapaAreasUnicas.values()).sort((a, b) => a.localeCompare(b));
 
         const containerAreas = document.getElementById('popover-container-turma-areas');
         if (containerAreas) {
             const isTodosChecked = this.filtrosTurmas.areas.includes("Todos");
             const attrTodos = isTodosChecked ? 'checked' : '';
+            const normSelecionadas = new Set(this.filtrosTurmas.areas.map(a => this._norm(a)));
 
             const chks = areasUnicas.map(nomeArea => {
-                const isChecked = isTodosChecked || this.filtrosTurmas.areas.includes(nomeArea);
+                const isChecked = isTodosChecked || normSelecionadas.has(this._norm(nomeArea));
                 const attrItem = isChecked ? 'checked' : '';
                 return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + nomeArea + '" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + nomeArea + '">' + nomeArea + '</span></label>';
             }).join('');
@@ -67,13 +168,23 @@ window.AppTurmaListar = {
         if (iconRef) iconRef.textContent = (this.filtrosTurmas.ref !== "") ? "✖️" : "🔎";
 
         const iconArea = document.getElementById('icon-filter-turma-area');
-        if (iconArea) iconArea.textContent = (!this.filtrosTurmas.areas.includes("Todos")) ? "✖️" : "🔎";
+        if (iconArea) {
+            const ativo = !this.filtrosTurmas.areas.includes("Todos");
+            iconArea.textContent = ativo ? "✖️" : "🔎";
+            iconArea.parentElement.title = ativo ? "Filtrar / Mostrar Áreas" : "Filtrar por Área";
+        }
 
         const iconPeriodo = document.getElementById('icon-filter-turma-periodo');
         if (iconPeriodo) iconPeriodo.textContent = (!this.filtrosTurmas.periodos.includes("Todos")) ? "✖️" : "🔎";
 
         const iconStatus = document.getElementById('icon-filter-turma-status');
-        if (iconStatus) iconStatus.textContent = (!this.filtrosTurmas.status.includes("Todos")) ? "✖️" : "🔎";
+        if (iconStatus) {
+            const isPadraoSemConcluidas = !this.filtrosTurmas.status.includes("Todos") &&
+                this.filtrosTurmas.status.length === 2 &&
+                this.filtrosTurmas.status.includes("Em Andamento") &&
+                this.filtrosTurmas.status.includes("Não Iniciada");
+            iconStatus.textContent = isPadraoSemConcluidas ? "🔎" : "✖️";
+        }
     },
 
     _formatarDataBR(dataISO) {
@@ -111,6 +222,7 @@ window.AppTurmaListar = {
         const svgLapis = '<svg class="w-4 h-4 md:w-[18px] md:h-[18px] text-slate-400 hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
 
         const termoRef = this.filtrosTurmas.ref.toLowerCase().trim();
+        const mapaCursos = new Map(this.cacheCursos.map(c => [c.id, c]));
 
         const dadosFiltrados = this.cacheTurmas.filter(t => {
             const matchRef = termoRef === "" ||
@@ -118,7 +230,7 @@ window.AppTurmaListar = {
                 (t.oferta && t.oferta.toLowerCase().includes(termoRef)) ||
                 (t.curso_titulo && t.curso_titulo.toLowerCase().includes(termoRef));
 
-            const matchArea = this.filtrosTurmas.areas.includes("Todos") || this.filtrosTurmas.areas.includes(t.area);
+            const matchArea = this._turmaCorrespondeAsAreas(t, this.filtrosTurmas.areas, mapaCursos);
             const matchPeriodo = this.filtrosTurmas.periodos.includes("Todos") || this.filtrosTurmas.periodos.includes(t.periodo);
             const matchStatus = this.filtrosTurmas.status.includes("Todos") || this.filtrosTurmas.status.includes(t.status);
 
@@ -155,7 +267,6 @@ window.AppTurmaListar = {
             const diasArr = Array.isArray(turma.dias_semana) ? turma.dias_semana : [];
             const diasTexto = diasArr.length > 0 ? diasArr.join(" | ") : "Dias não informados";
 
-            // Badge de Status unificado na coluna Progresso
             let badgeStatus = "text-slate-600 md:bg-slate-100 md:border-slate-200";
             if (turma.status === "Em Andamento") badgeStatus = "text-blue-700 md:bg-blue-50 md:border-blue-200";
             else if (turma.status === "Concluída") badgeStatus = "text-emerald-700 md:bg-emerald-50 md:border-emerald-200";
@@ -348,13 +459,16 @@ window.AppTurmaListar = {
 
         const btnArea = e.target.closest('#btn-filter-turma-area');
         if (btnArea) {
-            if (!this.filtrosTurmas.areas.includes("Todos")) {
-                this.filtrosTurmas.areas = ["Todos"];
-                document.querySelectorAll('.popover-area-turma-chk').forEach(c => c.checked = true);
-                this.renderizarTabelaTurmas();
-            } else {
-                this.fecharPopovers('modal-filter-turma-area');
-                document.getElementById('modal-filter-turma-area')?.classList.toggle('hidden');
+            this.fecharPopovers('modal-filter-turma-area');
+            const modal = document.getElementById('modal-filter-turma-area');
+            modal?.classList.toggle('hidden');
+            if (modal && !modal.classList.contains('hidden')) {
+                const isTodos = this.filtrosTurmas.areas.includes("Todos");
+                const normSelecionadas = new Set(this.filtrosTurmas.areas.map(a => this._norm(a)));
+                document.querySelectorAll('.popover-area-turma-chk').forEach(c => {
+                    if (c.value === "Todos") c.checked = isTodos;
+                    else c.checked = isTodos ? true : normSelecionadas.has(this._norm(c.value));
+                });
             }
             return true;
         }
@@ -374,13 +488,15 @@ window.AppTurmaListar = {
 
         const btnStatus = e.target.closest('#btn-filter-turma-status');
         if (btnStatus) {
-            if (!this.filtrosTurmas.status.includes("Todos")) {
-                this.filtrosTurmas.status = ["Todos"];
-                document.querySelectorAll('.popover-status-turma-chk').forEach(c => c.checked = true);
-                this.renderizarTabelaTurmas();
-            } else {
-                this.fecharPopovers('modal-filter-turma-status');
-                document.getElementById('modal-filter-turma-status')?.classList.toggle('hidden');
+            this.fecharPopovers('modal-filter-turma-status');
+            const modal = document.getElementById('modal-filter-turma-status');
+            modal?.classList.toggle('hidden');
+            if (modal && !modal.classList.contains('hidden')) {
+                const isTodos = this.filtrosTurmas.status.includes("Todos");
+                document.querySelectorAll('.popover-status-turma-chk').forEach(c => {
+                    if (c.value === "Todos") c.checked = isTodos;
+                    else c.checked = isTodos ? true : this.filtrosTurmas.status.includes(c.value);
+                });
             }
             return true;
         }

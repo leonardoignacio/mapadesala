@@ -2,6 +2,8 @@
 window.ViewsCursoFrm = {
 
     renderizarAbaFrm() {
+        const isDocente = window.usuarioAtual?.cargo === 'docente';
+
         return `
         <!-- CONTEÚDO: ABA ADD -->
         <div id="tab-add-cursos" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6 px-2 md:px-0">
@@ -28,6 +30,13 @@ window.ViewsCursoFrm = {
                                 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">Área do Curso</label>
+                                    ${isDocente ? `
+                                    <!-- Para Docente: Select estritamente restrito às áreas em que é habilitado -->
+                                    <select id="add-curso-area" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base bg-white cursor-pointer" required>
+                                        <option value="" disabled selected>Selecione a Área...</option>
+                                    </select>
+                                    <datalist id="add-curso-datalist-area" class="hidden"></datalist>
+                                    ` : `
                                     <div class="flex gap-2">
                                         <input list="add-curso-datalist-area" id="add-curso-area" placeholder="Selecione ou digite a Área..." class="flex-1 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base" required>
                                         <datalist id="add-curso-datalist-area"></datalist>
@@ -36,6 +45,7 @@ window.ViewsCursoFrm = {
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
                                         </button>
                                     </div>
+                                    `}
                                 </div>
 
                                 <div>
@@ -141,6 +151,8 @@ window.ViewsCursoFrm = {
     },
 
     renderizarModais(podeEditar = false) {
+        const isDocente = window.usuarioAtual?.cargo === 'docente';
+
         return `
         <!-- MODAIS GLOBAIS DE CURSOS -->
 
@@ -188,8 +200,13 @@ window.ViewsCursoFrm = {
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Área do Curso</label>
+                        ${isDocente ? `
+                        <select id="edit-curso-area" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm bg-white cursor-pointer" required></select>
+                        <datalist id="edit-curso-datalist-area" class="hidden"></datalist>
+                        ` : `
                         <input list="edit-curso-datalist-area" id="edit-curso-area" class="w-full border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm" required>
                         <datalist id="edit-curso-datalist-area"></datalist>
+                        `}
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Curso</label>
@@ -253,7 +270,7 @@ UC-2;Banco de Dados;60;;
         </div>
         ` : ''}
 
-        <!-- Modal Detalhes/Edição da UC (Suporta Modo Edição e Modo Somente Leitura para APOIO) -->
+        <!-- Modal Detalhes/Edição da UC -->
         <div id="modal-edit-uc" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 md:p-6">
             <div class="bg-white rounded-xl shadow-2xl w-[95%] lg:w-[70%] max-w-5xl h-[90vh] p-4 md:p-8 relative fade-in flex flex-col">
                 <button type="button" id="btn-close-modal-uc" class="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-700 font-bold text-xl md:text-2xl focus:outline-none">✕</button>
