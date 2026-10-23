@@ -212,7 +212,11 @@ async function roteador() {
             break;
         }
         case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
-        case '#/espelho': viewContainer.innerHTML = window.Views.espelho(); break;
+        case '#/espelho': {
+            viewContainer.innerHTML = window.ViewsEspelho.renderizar(podeEditarOperacional);
+            if (window.AppEspelho) await window.AppEspelho.iniciarView();
+            break;
+        }
         case '#/admin': 
             viewContainer.innerHTML = window.ViewsAdminCredenciamento.renderizar(); 
             if (window.AppAdminCredenciamento) await window.AppAdminCredenciamento.iniciarView();
@@ -226,6 +230,9 @@ window.addEventListener('hashchange', roteador);
 // 4. DELEGAÇÃO DE EVENTOS GLOBAIS
 // ==========================================
 document.addEventListener('submit', async (e) => {
+    // Prevent default synchronously: awaiting any async module before this can reload the page
+    // before the Espelho or another view reaches its own submit handler.
+    if (e.target.id !== 'login-form') e.preventDefault();
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
 
     if (window.usuarioAtual.cargo === 'pendente') {
@@ -241,6 +248,7 @@ document.addEventListener('submit', async (e) => {
     if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarSubmits(e)) return;
     if (window.AppCursoFrm && await window.AppCursoFrm.tratarSubmits(e)) return;
     if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarSubmits(e)) return;
+    if (window.AppEspelho && await window.AppEspelho.tratarSubmits(e)) return;
     if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarSubmits(e)) return;
 });
 
@@ -257,6 +265,10 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         document.getElementById('apply-filter-turma-ref')?.click();
     }
+});
+
+document.addEventListener('change', async (e) => {
+    if (window.AppEspelho && await window.AppEspelho.tratarMudancas(e)) return;
 });
 
 document.addEventListener('click', async (e) => {
@@ -289,6 +301,7 @@ document.addEventListener('click', async (e) => {
         if (window.AppCursoFrm && await window.AppCursoFrm.tratarCliques(e)) return;
         if (window.AppTurmaListar && await window.AppTurmaListar.tratarCliques(e)) return;
         if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarCliques(e)) return;
+        if (window.AppEspelho && await window.AppEspelho.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }
 
