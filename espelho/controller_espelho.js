@@ -205,5 +205,28 @@ window.ControllerEspelho = {
         const existente=await salaRef.where('referencia','==',referencia).get();
         if(!existente.empty) throw new Error('Já existe uma sala com esta referência.');
         await salaRef.add({referencia,tipo,numero_cadeiras:cadeiras,observacoes:(dados.observacoes||'').trim(),criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()});
+    },
+
+    async atualizarSala(salaId,dados) {
+        if (!['root','admin','tecnico'].includes(window.usuarioAtual?.cargo)) throw new Error('Seu perfil não pode editar recursos.');
+        if(!salaId) throw new Error('Sala inválida para edição.');
+        const referencia=(dados.referencia||'').trim(),tipo=dados.tipo==='Laboratório'?'Laboratório':'Comum',cadeiras=Number(dados.numero_cadeiras);
+        if(!referencia) throw new Error('Informe a referência da sala.');
+        if(!Number.isInteger(cadeiras)||cadeiras<0) throw new Error('O número de cadeiras deve ser um inteiro não negativo.');
+        const salaRef=window.db.collection('salas_aula'),atual=await salaRef.doc(salaId).get();
+        if(!atual.exists) throw new Error('Esta sala não existe mais. Atualize a lista e tente novamente.');
+        const duplicada=await salaRef.where('referencia','==',referencia).get();
+        if(duplicada.docs.some(d=>d.id!==salaId)) throw new Error('Já existe outra sala com esta referência.');
+        await salaRef.doc(salaId).update({referencia,tipo,numero_cadeiras:cadeiras,observacoes:(dados.observacoes||'').trim(),atualizado_em:new Date().toISOString()});
+    },
+
+    async excluirSala(salaId) {
+        if (!['root','admin','tecnico'].includes(window.usuarioAtual?.cargo)) throw new Error('Seu perfil não pode excluir recursos.');
+        if(!salaId) throw new Error('Sala inválida para exclusão.');
+        const ref=window.db.collection('salas_aula'),sala=await ref.doc(salaId).get();
+        if(!sala.exists) throw new Error('Esta sala não existe mais. Atualize a lista e tente novamente.');
+        const usados=await window.db.collection(this.colecaoEncontros).where('sala_id','==',salaId).get();
+        if(!usados.empty) throw new Error('Esta sala está vinculada a um ou mais encontros e não pode ser excluída. Remova o vínculo dos encontros antes de tentar novamente.');
+        await ref.doc(salaId).delete();
     }
 };
