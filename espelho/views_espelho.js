@@ -9,17 +9,17 @@ window.ViewsEspelho = {
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 text-sm md:text-base whitespace-nowrap" data-target="tab-mapa-aulas">Mapa de Aulas</button>
                 <button class="tab-btn font-medium text-slate-500 border-b-2 border-transparent pb-2 text-sm md:text-base whitespace-nowrap" data-target="tab-recursos">Recursos</button>
             </div>
-            <div id="tab-mapa-aulas" class="tab-content flex-1 flex flex-col overflow-hidden min-h-0 w-full lg:w-[96%] mx-auto">
+            <div id="tab-mapa-aulas" class="tab-content flex-1 flex flex-col overflow-hidden min-h-0 min-w-0 w-full lg:w-[96%] mx-auto">
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-3 md:p-4 mb-3 shrink-0">
                     <details id="espelho-filtro-acordeon" class="group">
-                        <summary class="list-none cursor-pointer flex flex-wrap items-center gap-3"><span class="text-xs font-bold text-slate-600 uppercase flex-1">Turmas exibidas por área e curso</span><span id="espelho-contagem-turmas" class="text-[11px] text-slate-500"></span><span class="text-xs font-bold text-blue-700">Gerenciar turmas</span><label class="flex items-center gap-2 text-sm font-semibold text-slate-700 whitespace-nowrap" onclick="event.stopPropagation()"><input id="espelho-mostrar-todas" type="checkbox" class="w-4 h-4 rounded text-blue-600"> Exibir todas</label><span class="text-slate-400 transition-transform group-open:rotate-180">⌄</span></summary>
+                        <summary class="list-none cursor-pointer flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><span class="w-full min-w-0 truncate whitespace-nowrap text-[10px] font-bold text-slate-600 uppercase sm:flex-1 sm:text-xs">Turmas exibidas por área e curso</span><div class="flex w-full min-w-0 items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3"><span id="espelho-contagem-turmas" class="hidden shrink-0 text-[10px] text-slate-500 sm:inline sm:text-[11px]"></span><span class="shrink-0 text-[10px] font-bold text-blue-700 sm:text-xs">Gerenciar turmas</span><label class="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-slate-700 sm:ml-0 sm:gap-2 sm:text-sm" onclick="event.stopPropagation()"><input id="espelho-mostrar-todas" type="checkbox" class="h-4 w-4 rounded text-blue-600"> Exibir todas</label><span class="shrink-0 text-slate-400 transition-transform group-open:rotate-180">⌄</span></div></summary>
                         <div class="flex items-center justify-end mt-2 mb-2"><button id="btn-area-marcar-todas" type="button" class="text-xs font-bold text-blue-700 hover:underline">Marcar todas</button></div>
                         <div id="espelho-filtro-areas" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"><span class="text-sm text-slate-400">Carregando áreas e cursos…</span></div>
                     </details>
                     ${!podeEditar ? '<div class="mt-3 text-xs text-slate-400">Acesso somente para leitura</div>' : ''}
                 </div>
                 <div id="espelho-status" class="hidden mb-2 px-3 py-2 rounded-lg text-sm shrink-0" role="status" aria-live="polite"></div>
-                <div id="espelho-painel" class="flex-1 overflow-auto min-h-0 space-y-3 pb-4"><div class="p-10 text-center text-slate-400">Carregando mapa de aulas…</div></div>
+                <div id="espelho-painel" class="flex-1 min-w-0 overflow-auto overscroll-x-contain touch-pan-x touch-pan-y min-h-0 space-y-3 pb-4"><div class="p-10 text-center text-slate-400">Carregando mapa de aulas…</div></div>
             </div>
             <div id="tab-recursos" class="tab-content hidden flex flex-1 flex-col overflow-y-auto min-h-0 w-full lg:w-[96%] mx-auto">
                 <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 md:p-6">
