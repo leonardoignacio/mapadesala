@@ -156,6 +156,12 @@ async function roteador() {
     let hash = window.location.hash || '#/dashboard';
     const cargoAtual = window.usuarioAtual?.cargo;
 
+    // Compatibilidade com links antigos para o menu renomeado.
+    if (hash === '#/docentes') {
+        window.location.hash = '#/area-docentes';
+        return;
+    }
+
     if (cargoAtual === 'pendente' && hash !== '#/dashboard') {
         window.location.hash = '#/dashboard';
         return;
@@ -211,7 +217,9 @@ async function roteador() {
             if (window.AppTurmaListar) await window.AppTurmaListar.iniciarView();
             break;
         }
-        case '#/docentes': viewContainer.innerHTML = window.Views.docentes(); break;
+        case '#/area-docentes': viewContainer.innerHTML = window.Views.docentes(); break;
+        case '#/coordenacao': viewContainer.innerHTML = window.Views.coordenacao(); break;
+        case '#/apoio-tecnico': viewContainer.innerHTML = window.Views.apoioTecnico(); break;
         case '#/espelho': {
             viewContainer.innerHTML = window.ViewsEspelho.renderizar(podeEditarOperacional);
             if (window.AppEspelho) await window.AppEspelho.iniciarView();
