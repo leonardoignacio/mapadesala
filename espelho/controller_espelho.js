@@ -47,7 +47,6 @@ window.ControllerEspelho = {
         const usuarios = usuariosSnap.docs.map(d => ({id: d.id, ...d.data()}));
         const todasSalas = salas ? salas.docs.map(d => ({id: d.id, ...d.data()})) : [];
         const ativo = u => u.status === 'ativo';
-        // perfis é acumulativo (tecnico/admin também podem conter 'docente'); cargo identifica o perfil principal real.
         const docentes = usuarios.filter(u => ativo(u) && this._norm(u.cargo) === 'docente' && Array.isArray(u.perfis) && u.perfis.some(p => this._norm(p) === 'docente'));
         return {turmas: turmasPermitidas, cursos, encontros, excecoes: todasExcecoes, docentes, salas: todasSalas};
     },
@@ -87,6 +86,17 @@ window.ControllerEspelho = {
             descricao: (dados.descricao || '').trim(),
             atualizado_em: new Date().toISOString()
         };
+    },
+
+    async ignorarExcecaoTurma(idTurma, dataExcecao, cacheTurmas) {
+        const turma = this._buscarTurma(cacheTurmas, idTurma);
+        this._validarEdicao(turma);
+        const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? [...turma.excecoes_ignoradas] : [];
+        if (!ignoradas.includes(dataExcecao)) {
+            ignoradas.push(dataExcecao);
+            await window.db.collection('turmas').doc(idTurma).update({ excecoes_ignoradas: ignoradas, atualizado_em: new Date().toISOString() });
+            turma.excecoes_ignoradas = ignoradas;
+        }
     },
 
     async salvarEncontro(dados, cacheTurmas, encontroId = null) {
@@ -145,12 +155,13 @@ window.ControllerEspelho = {
             if (!docOriginal || docOriginal.data().id_turma !== turma.id || docOriginal.data().tipo === 'cancelamento') throw new Error('Um dos encontros a salvar não é válido para esta turma. Atualize o mapa e tente novamente.');
             if (!/^\d{4}-\d{2}-\d{2}$/.test(m.data)) throw new Error(`Data inválida para o encontro ${m.id}.`);
             if ((turma.d_inicio && m.data < turma.d_inicio) || (turma.d_termino && m.data > turma.d_termino)) throw new Error(`A data ${m.data} está fora do período da turma.`);
-            if (datasExcecao.has(m.data)) throw new Error(`A data ${m.data} é uma exceção do calendário e não pode receber encontro.`);
+            const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? turma.excecoes_ignoradas : [];
+            const excAtiva = datasExcecao.has(m.data) && !ignoradas.includes(m.data);
+            if (excAtiva) throw new Error(`A data ${m.data} é uma exceção do calendário e não pode receber encontro.`);
             const chave = `${turma.id}|${m.data}`;
             if (ocupadas.has(chave)) throw new Error(`Conflito: ${m.data} da turma ${turma.referencia} já está ocupada por outro encontro.`);
             ocupadas.add(chave);
         }
-        // O Firestore limita cada batch a 500 writes. Chunking evita falha/travamento em turmas com muitas mudanças.
         for (let i = 0; i < movimentos.length; i += 450) {
             const batch = window.db.batch();
             movimentos.slice(i, i + 450).forEach(m => batch.update(window.db.collection(this.colecaoEncontros).doc(m.id), {data: m.data, SS: false, SGO: false, atualizado_em: new Date().toISOString()}));

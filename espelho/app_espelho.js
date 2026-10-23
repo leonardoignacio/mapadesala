@@ -203,7 +203,7 @@ window.AppEspelho = {
         const dataColWidth=viewportWidth<480?88:100;
         const turmaColWidth=Math.max(168,Math.floor((viewportWidth-dataColWidth-24)/Math.max(1,turmas.length)));
         const tableMinWidth=Math.max(400,dataColWidth+turmaColWidth*turmas.length);
-        const tabs=`<div class="flex w-full flex-nowrap items-center gap-1.5 border-b border-slate-200 bg-white/95 px-1 py-1.5 sm:gap-2 sm:py-2 backdrop-blur" style="width:${tableMinWidth}px;min-width:${tableMinWidth}px"><button type="button" id="btn-configuracoes-turmas" aria-label="Configurações das turmas exibidas" title="Configurações das turmas exibidas" aria-haspopup="dialog" aria-controls="modal-configuracoes-turmas" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9"><svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></button>${periodos.map(([key,label])=>{const count=todasTurmas.filter(t=>this._grupoPeriodo(t)===key).length;return `<button type="button" class="btn-periodo-mapa whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-sm font-bold transition ${this.periodoMapa===key?'border-blue-600 bg-blue-600 text-white shadow-sm':'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}" data-periodo="${key}">${label}<span class="ml-2 rounded-full px-1.5 py-0.5 text-[10px] ${this.periodoMapa===key?'bg-white/20':'bg-slate-100'}">${count}</span></button>`;}).join('')}</div>`;
+        const tabs=`<div class="flex w-full flex-nowrap items-center gap-1.5 border-b border-slate-200 bg-white/95 px-1 py-1.5 sm:gap-2 sm:py-2 backdrop-blur" style="width:${tableMinWidth}px;min-width:${tableMinWidth}px"><button type="button" id="btn-configuracoes-turmas" aria-label="Configurações das turmas exibidas" title="Configurações das turmas exibidas" aria-haspopup="dialog" aria-controls="modal-configuracoes-turmas" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9"><svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg></button>${periodos.map(([key,label])=>{const count=todasTurmas.filter(t=>this._grupoPeriodo(t)===key).length;return `<button type="button" class="btn-periodo-mapa whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-sm font-bold transition ${this.periodoMapa===key?'border-blue-600 bg-blue-600 text-white shadow-sm':'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}" data-periodo="${key}">${label}<span class="ml-2 rounded-full px-1.5 py-0.5 text-[10px] ${this.periodoMapa===key?'bg-white/20':'bg-slate-100'}">${count}</span></button>`;}).join('')}</div>`;
         if(!turmas.length){pane.innerHTML=tabs+'<div class="m-4 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">Nenhuma turma selecionada para este período.</div>';pane.scrollTop=scrollTop;pane.scrollLeft=scrollLeft;return;}
         const paletteById=new Map(turmas.map(t=>[t.id,this._paletaTurma(t.id)]));
         const mapaE=this._mapaEncontros(),mapaX=this._mapaExcecoes(),datas=[],diasVisiveis=this._diasVisiveisPeriodo();
@@ -227,12 +227,17 @@ window.AppEspelho = {
                 const mesAtivo=turmas.some(t=>t.d_inicio&&t.d_termino&&t.d_inicio.slice(0,7)<=mesKey&&t.d_termino.slice(0,7)>=mesKey)||this.encontros.some(e=>turmas.some(t=>t.id===e.id_turma)&&(e.data||'').startsWith(`${mesKey}-`));
                 const rows=[],diasMes=new Date(y,mi+1,0).getDate();
                 if(mesAtivo)for(let dia=1;dia<=diasMes;dia++){
-                    const dt=new Date(y,mi,dia,12),dow=dt.getDay(),iso=`${y}-${String(mi+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`,exc=mapaX.get(iso),domingo=dow===0;if(!diasVisiveis.has(dow))continue;
+                    const dt=new Date(y,mi,dia,12),dow=dt.getDay(),iso=`${y}-${String(mi+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+                    let exc=mapaX.get(iso);
+                    const domingo=dow===0;if(!diasVisiveis.has(dow))continue;
                     const cells=turmas.map(t=>{
-                        const ativo=!!t.d_inicio&&!!t.d_termino&&iso>=t.d_inicio&&iso<=t.d_termino,e=mapaE.get(`${t.id}|${iso}`),pal=paletteById.get(t.id),palUC=e&&e.tipo!=='cancelamento'?this._paletaUC(e.id_uc,t,pal):pal,exStyle=this._estiloExcecao(exc),cellStyle=`border-left:2px solid ${pal.border};background:${exc?exStyle.bg:(domingo?'#fff1f2':(e?palUC.soft:pal.empty))}`;
+                        const ignoradas = Array.isArray(t.excecoes_ignoradas) ? t.excecoes_ignoradas : [];
+                        const hasIgnoredExc = exc && ignoradas.includes(iso);
+                        const excForThisClass = hasIgnoredExc ? null : exc;
+                        const ativo=!!t.d_inicio&&!!t.d_termino&&iso>=t.d_inicio&&iso<=t.d_termino,e=mapaE.get(`${t.id}|${iso}`),pal=paletteById.get(t.id),palUC=e&&e.tipo!=='cancelamento'?this._paletaUC(e.id_uc,t,pal):pal,exStyle=this._estiloExcecao(excForThisClass),cellStyle=`border-left:2px solid ${pal.border};background:${excForThisClass?exStyle.bg:(domingo?'#fff1f2':(e?palUC.soft:pal.empty))}`;
                         if(e)return `<td class="align-top p-1 sm:p-1.5 border border-slate-300/60 transition-colors hover:brightness-95" style="${cellStyle}">${this._renderizarCartao(e,t,pal)}</td>`;
                         if(!ativo)return `<td class="border border-slate-200/70" style="${cellStyle}"></td>`;
-                        if(exc)return `<td class="align-top p-1 sm:p-1.5 border border-slate-300/60 transition-colors hover:brightness-95" style="border-left:2px solid ${pal.border};background:${exStyle.bg}"><div class="min-h-[88px] rounded-lg border p-1.5 sm:p-2 text-[11px] sm:text-xs flex flex-col justify-center" style="border-color:${exStyle.border};background:${exStyle.bg};color:${exStyle.text}"><strong>${this._html(exc.excecao||'Exceção')}</strong><div>${this._html(exc.descricao||'Data sem aula')}</div></div></td>`;
+                        if(excForThisClass)return `<td class="align-top p-1 sm:p-1.5 border border-slate-300/60 transition-colors hover:brightness-95" style="border-left:2px solid ${pal.border};background:${exStyle.bg}"><div class="relative min-h-[88px] rounded-lg border p-1.5 sm:p-2 text-[11px] sm:text-xs flex flex-col justify-center" style="border-color:${exStyle.border};background:${exStyle.bg};color:${exStyle.text}">${this.editavel?`<button type="button" class="btn-ignorar-excecao absolute right-1 top-1 z-10 text-[14px] font-bold text-slate-400 hover:text-rose-600 leading-none" data-id-turma="${this._html(t.id)}" data-data="${iso}" title="Ignorar e remover exceção para esta turma">×</button>`:''}<strong>${this._html(excForThisClass.excecao||'Exceção')}</strong><div>${this._html(excForThisClass.descricao||'Data sem aula')}</div></div></td>`;
                         return `<td class="align-top p-1 sm:p-1.5 border border-slate-300/60 transition-colors hover:brightness-95 ${this.editavel?'espelho-dropzone':''}" style="${cellStyle}" data-id-turma="${this._html(t.id)}" data-data="${iso}"><div class="min-h-[88px] rounded-lg border border-dashed ${domingo?'border-rose-200 bg-rose-50/70':'border-slate-300 bg-white'} flex flex-col items-center justify-center gap-0.5 p-1 sm:gap-1 sm:p-1.5"><span class="text-[10px] ${domingo?'text-rose-300':'text-slate-400'}">Vazio</span>${this.editavel?`<div class="flex gap-1"><button type="button" class="btn-add-encontro text-[10px] px-1.5 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100" data-id-turma="${this._html(t.id)}" data-data="${iso}">+ Encontro</button><button type="button" class="btn-add-cancelamento text-[10px] px-1.5 py-1 rounded bg-rose-50 text-rose-700 hover:bg-rose-100" data-id-turma="${this._html(t.id)}" data-data="${iso}">Cancelar</button></div>`:''}</div></td>`;
                     }).join('');
                     const lineBg=domingo?'bg-rose-50':(turmas.some(t=>mapaE.has(`${t.id}|${iso}`))?'bg-white':'bg-slate-50/50');
@@ -276,8 +281,8 @@ window.AppEspelho = {
         return `<article title="Duplo clique para editar" class="espelho-card relative min-h-[88px] rounded-lg border ${className} p-2 shadow-sm transition-all ${this.editavel?'cursor-grab active:cursor-grabbing':''}" style="${aula?`border-color:${palAula.border};background:${palAula.soft};box-shadow:inset 3px 0 0 ${palAula.border}`:''}" data-encontro-id="${this._html(e.id)}" data-id-turma="${this._html(turma.id)}" data-data="${this._html(e.data)}" data-tipo="${this._html(e.tipo||'aula')}" ${this.editavel && aula ? 'draggable="true"' : ''}>${aula?`<div class="relative"><strong class="flex min-h-8 w-full items-center justify-center rounded-md border border-white/90 px-2 py-1 pr-6 text-center text-base font-black leading-tight tracking-tight text-slate-950 shadow-sm sm:text-lg" style="background:color-mix(in srgb, ${palAula.header} 72%, white)">${nomeUC}</strong>${this.editavel?`<button type="button" class="btn-remover-encontro absolute right-1 top-1/2 z-10 -translate-y-1/2 text-slate-400 hover:text-rose-600 text-sm leading-none" data-id="${this._html(e.id)}" title="Remover">×</button>`:''}</div><div class="mt-1.5 flex flex-wrap items-center gap-1.5"><div class="min-w-0 flex-1 rounded-md border border-white/90 px-2 py-1 text-sm font-extrabold leading-tight text-indigo-950 shadow-sm" style="background:color-mix(in srgb, ${palAula.header} 72%, white)">${docenteTxt}</div><div class="ml-auto flex shrink-0 items-center justify-end gap-1"><span class="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white px-1.5 text-[9px] font-extrabold leading-tight text-slate-800 shadow-sm">Encontro ${indice}/${total || '—'}</span>${flags}</div></div>${(sala||e.descricao)?`<div class="mt-1.5 flex flex-wrap items-center gap-1">${sala}${e.descricao?`<span class="min-w-0 break-words text-[10px] font-medium text-slate-600">${this._html(e.descricao)}</span>`:''}</div>`:''}`:`<div class="flex min-h-8 items-center justify-center text-center text-base font-black text-rose-900">Cancelamento${this.editavel?`<button type="button" class="btn-remover-encontro absolute right-1 top-1 z-10 text-slate-400 hover:text-rose-600 text-sm leading-none" data-id="${this._html(e.id)}" title="Remover">×</button>`:''}</div><div class="mt-1 text-xs font-semibold text-rose-800">${this._html(e.descricao || 'Data cancelada para esta turma')}</div>`}</article>`;
     },
 
-    _mostrarStatus(texto, erro=false) { const el=document.getElementById('espelho-status'); if (!el) return; el.textContent=texto; el.className=`mb-2 px-3 py-2 rounded-lg text-sm shrink-0 ${erro?'bg-rose-50 text-rose-700 border border-rose-200':'bg-emerald-50 text-emerald-700 border border-emerald-200'}`; setTimeout(()=>el.classList.add('hidden'),6000); },
-    _mostrarStatusRecursos(texto,erro=false) { const el=document.getElementById('espelho-status-recursos');if(!el)return;el.textContent=texto;el.className=`mb-3 rounded-lg border px-3 py-2 text-sm ${erro?'border-rose-200 bg-rose-50 text-rose-700':'border-emerald-200 bg-emerald-50 text-emerald-700'}`;clearTimeout(this._statusSalaTimer);this._statusSalaTimer=setTimeout(()=>el.classList.add('hidden'),7000); },
+    _mostrarStatus(texto, erro=false) { const el=document.getElementById('espelho-status'); if (!el) return; el.textContent=texto; el.className=`mb-2 px-3 py-2 rounded-lg text-sm shrink-0 ${erro?'bg-rose-50 text-rose-700 border border-rose-200':'bg-emerald-50 text-emerald-700 border border-emerald-200'}`; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),6000); },
+    _mostrarStatusRecursos(texto,erro=false) { const el=document.getElementById('espelho-status-recursos');if(!el)return;el.textContent=texto;el.className=`mb-3 rounded-lg border px-3 py-2 text-sm ${erro?'border-rose-200 bg-rose-50 text-rose-700':'border-emerald-200 bg-emerald-50 text-emerald-700'}`;el.classList.remove('hidden');clearTimeout(this._statusSalaTimer);this._statusSalaTimer=setTimeout(()=>el.classList.add('hidden'),7000); },
 
     abrirModal(idTurma,data,tipo='aula',encontro=null) {
         const t=this.turmas.find(x=>x.id===idTurma);if(!t)return;this.turmaEdicao=t;
@@ -363,7 +368,8 @@ window.AppEspelho = {
         const diasSelecionados=new Set([...document.querySelectorAll('.dist-dia-chk:checked')].map(x=>Number(x.value)));
         const ucValue=document.getElementById('dist-uc')?.value||'';if(!ucValue)throw new Error('Não há UCs pendentes para distribuir.');
         const start=new Date(`${turma.d_inicio}T12:00:00`),end=new Date(`${turma.d_termino}T12:00:00`);if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime()))throw new Error('A turma precisa ter período de início e término válidos.');
-        const dataPool=[];for(const d=new Date(start);d<=end;d.setDate(d.getDate()+1)){const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;if(!mapaE.has(`${turma.id}|${iso}`)&&!mapaX.has(iso)&&diasSelecionados.has(d.getDay()))dataPool.push({iso,dow:d.getDay()});}
+        const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? turma.excecoes_ignoradas : [];
+        const dataPool=[];for(const d=new Date(start);d<=end;d.setDate(d.getDate()+1)){const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const excAtiva=mapaX.has(iso)&&!ignoradas.includes(iso);if(!mapaE.has(`${turma.id}|${iso}`)&&!excAtiva&&diasSelecionados.has(d.getDay()))dataPool.push({iso,dow:d.getDay()});}
         const todasUcs=this._ucsOrdenadas(turma),ucs=ucValue==='TODAS'?todasUcs:todasUcs.filter(u=>(u.id_uc_base||u.id)===ucValue),registros=[],totalEncontros=uc=>Number(uc.carga_horaria)>0?Math.ceil(Number(uc.carga_horaria)/ch):this._totalEncontros(uc,turma);
         const docentesPara=(dia,row=null)=>{
             const ids=row?.docentes?.length?row.docentes.map(email=>this._docentesDaTurma(turma).find(d=>this._norm(d.email)===this._norm(email))?.id).filter(Boolean):[...(this.docentesPorDia.get(Number(dia))||[])];
@@ -375,7 +381,8 @@ window.AppEspelho = {
                 if((turma.d_inicio&&row.data<turma.d_inicio)||(turma.d_termino&&row.data>turma.d_termino))throw new Error(`A data ${row.data} está fora do período da turma.`);
                 if(!diasSelecionados.has(new Date(`${row.data}T12:00:00`).getDay()))throw new Error(`A data ${row.data} não corresponde a um dia da semana selecionado.`);
                 if(registros.some(r=>r.data===row.data))throw new Error(`O CSV contém mais de um encontro para ${row.data}; distribua no máximo um encontro por turma/dia.`);
-                if(mapaE.has(`${turma.id}|${row.data}`)||mapaX.has(row.data))continue;
+                const excAtivaRow = mapaX.has(row.data) && !ignoradas.includes(row.data);
+                if(mapaE.has(`${turma.id}|${row.data}`)||excAtivaRow)continue;
                 const uc=ucs.find(u=>this._norm(u.referencia)===this._norm(row.uc_referencia));if(!uc){if(ucValue!=='TODAS')throw new Error(`A UC ${row.uc_referencia} não corresponde à UC selecionada.`);continue;}
                 const usados=this.encontros.filter(e=>e.id_turma===turma.id&&e.id_uc===(uc.id_uc_base||uc.id)&&e.tipo!=='cancelamento').length+registros.filter(e=>e.id_uc===(uc.id_uc_base||uc.id)).length;if(usados>=totalEncontros(uc))continue;
                 const day=new Date(`${row.data}T12:00:00`).getDay(),docs=docentesPara(day,row),rowSala=this.salas.find(s=>this._norm(s.referencia||s.nome)===this._norm(row.sala));
@@ -401,10 +408,12 @@ window.AppEspelho = {
         const mapa=this._mapaEncontros(), excecoes=this._mapaExcecoes(), dias=new Set(this._diasTurma(turma));
         const d=new Date(`${depoisDe}T12:00:00`);d.setDate(d.getDate()+1);
         const fim=new Date(`${turma.d_termino}T12:00:00`);
+        const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? turma.excecoes_ignoradas : [];
         for(;d<=fim;d.setDate(d.getDate()+1)){
             if(!dias.has(d.getDay()))continue;
             const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            if(excecoes.has(iso))continue;
+            const excAtiva = excecoes.has(iso) && !ignoradas.includes(iso);
+            if(excAtiva)continue;
             const ocupado=mapa.get(`${turma.id}|${iso}`);
             if(!ocupado||ignorarIds.has(ocupado.id))return iso;
         }
@@ -422,8 +431,10 @@ window.AppEspelho = {
             const source=this.encontros.find(x=>x.id===id);if(!source)return;
             const idTurma=target.dataset.idTurma||target.closest('[data-id-turma]')?.dataset.idTurma,newDate=target.dataset.data||target.closest('.espelho-card')?.dataset.data;
             const key=`${idTurma}|${newDate}`;if(this.lastDragTarget===key)return;this.lastDragTarget=key;
-            if(idTurma!==source.id_turma||!newDate||this._mapaExcecoes().has(newDate))return;
+            if(idTurma!==source.id_turma||!newDate)return;
             const turma=this.turmas.find(t=>t.id===source.id_turma);if(!turma)return;
+            const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? turma.excecoes_ignoradas : [];
+            if(this._mapaExcecoes().has(newDate) && !ignoradas.includes(newDate))return;
             const map=this._mapaEncontros(),occupant=map.get(`${turma.id}|${newDate}`),current=this.pendenciasArraste.get(id)?.data||source.data;
             if(current===newDate||occupant?.id===id||occupant?.tipo==='cancelamento')return;
             if(occupant){const next=this._proximaDataLivre(turma,newDate,new Set([id,occupant.id]));if(!next)return;this.pendenciasArraste.set(occupant.id,{id_turma:turma.id,data:next,SS:false,SGO:false});}
@@ -444,12 +455,11 @@ window.AppEspelho = {
         const flag=input.dataset.flag;if(!['SS','SGO'].includes(flag))return false;
         if(this.pendenciasArraste.has(encontro.id)){input.checked=false;this._mostrarStatus('Salve ou descarte primeiro a movimentação pendente deste encontro.',true);return false;}
         const novoValor=!!input.checked;
-        if(typeof confirm==='function'&&!confirm(`Salvar a opção ${flag} como ${novoValor?'ativada':'desativada'} neste encontro?`)){input.checked=!!encontro[flag];return false;}
         input.disabled=true;
         try{
             await window.ControllerEspelho.atualizarFlagsEncontro(encontro.id,{[flag]:novoValor},this.turmas);
             this.encontros=this.encontros.map(x=>x.id===encontro.id?{...x,[flag]:novoValor}:x);
-            this._mostrarStatus(`Alteração ${flag} salva.`);this.renderizarMapa();this._registrarDragDrop();return true;
+            this.renderizarMapa();this._registrarDragDrop();return true;
         }catch(err){input.checked=!!encontro[flag];this._mostrarStatus(err?.message||'Não foi possível salvar a alteração.',true);return false;}
         finally{input.disabled=false;}
     },
@@ -503,6 +513,18 @@ window.AppEspelho = {
             }catch(err){
                 this._mostrarStatus(`Não foi possível salvar: ${err?.message||'erro desconhecido'}`,true);
                 btn.dataset.saving='0';btn.disabled=false;btn.textContent=`Salvar Alterações (${moves.length})`;btn.classList.remove('opacity-60','cursor-wait');
+            }
+            return true;
+        }
+        if(t.closest('.btn-ignorar-excecao')){
+            if(!this.editavel) return true;
+            const btn = t.closest('.btn-ignorar-excecao');
+            try {
+                await window.ControllerEspelho.ignorarExcecaoTurma(btn.dataset.idTurma, btn.dataset.data, this.turmas);
+                this.renderizarMapa();
+                this._registrarDragDrop();
+            } catch (err) {
+                this._mostrarStatus(err.message, true);
             }
             return true;
         }
@@ -560,7 +582,7 @@ window.AppEspelho = {
         if(['encontro-h-inicio','encontro-h-termino'].includes(e.target.id)){const a=document.getElementById('encontro-h-inicio').value,b=document.getElementById('encontro-h-termino').value;if(a&&b&&b>a)document.getElementById('encontro-ch').value=window.ControllerTurmaFrm?.calcularCHEncontro(a,b)||'';return true;}
         if(e.target.id==='input-csv-mapa'&&e.target.files?.[0]){try{await this._lerCSV(e.target.files[0]);}catch(err){this._mostrarStatus(err.message,true);}return true;}
         if(e.target.matches('.espelho-turma-chk')){e.target.checked?this.selecionadas.add(e.target.value):this.selecionadas.delete(e.target.value);this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
-        if(e.target.matches('.espelho-course-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)],c=g?.cursos[Number(e.target.dataset.courseIndex)];(c?.turmas||[]).forEach(t=>e.target.checked?this.selecionadas.add(t.id):this.selecionadas.delete(t.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
+        if(e.target.matches('.espelho-course-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)],c=g?.cursos[Number(e.target.dataset.courseIndex)];(c?.turmas||[]).flatMap(c=>c.turmas).forEach(x=>this.selecionadas.add(x.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.matches('.espelho-area-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)];(g?.cursos||[]).flatMap(c=>c.turmas).forEach(t=>e.target.checked?this.selecionadas.add(t.id):this.selecionadas.delete(t.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.id==='espelho-mostrar-todas'){this.selecionadas=e.target.checked?new Set(this.turmas.map(t=>t.id)):new Set();this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         return false;
