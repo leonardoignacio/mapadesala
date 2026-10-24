@@ -1,254 +1,82 @@
-// ./calendario/controller_calendario_frms.js - Regras de Negócio de Formulários, CSV e Pontes do Calendário
+// ./calendario/controller_calendario_frms.js - Cadastro, Edição e Carga em Lote de Exceções (Otimizado com Store)
 window.ControllerCalendarioFrms = {
-    nomesDiasSemana: ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"],
 
-    _validarPermissaoAdmin() {
+    _validarPermissaoCalendario() {
         const cargosPermitidos = ['root', 'admin'];
         if (!window.usuarioAtual || !cargosPermitidos.includes(window.usuarioAtual.cargo)) {
-            throw new Error("Acesso negado: Apenas Administradores podem cadastrar ou importar exceções no calendário.");
+            throw new Error("Acesso restrito: Apenas Administradores podem cadastrar ou editar o calendário de exceções.");
         }
     },
 
-    _normalizarData(dataStr) {
-        if (!dataStr) return "";
-        dataStr = dataStr.trim();
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
-            const [dia, mes, ano] = dataStr.split('/');
-            return `${ano}-${mes}-${dia}`;
+    async salvarExcecao(data, tipo, excecao, descricao) {
+        this._validarPermissaoCalendario();
+        await window.Store.garantirPronto();
+
+        const jaExiste = (window.Store.dados.excecoes || []).some(e => e.id === data || e.data === data);
+        if (jaExiste) {
+            throw new Error("Esta data já possui uma exceção cadastrada!");
         }
-        if (/^\d{2}-\d{2}-\d{4}$/.test(dataStr)) {
-            const [dia, mes, ano] = dataStr.split('-');
-            return `${ano}-${mes}-${dia}`;
-        }
-        return dataStr;
+
+        const payload = { data, tipo, excecao, descricao };
+        await window.db.collection("datas_excecoes").doc(data).set(payload);
+        window.Store.upsertLocal("excecoes", { id: data, ...payload });
     },
 
-    _normalizarTipo(tipoStr) {
-        if (!tipoStr) return "Feriado";
-        const t = tipoStr.trim().toLowerCase();
-        if (t.includes('feriado')) return "Feriado";
-        if (t.includes('ponte') || t.includes('compensação') || t.includes('compensacao')) return "Ponte";
-        if (t.includes('domingo')) return "Domingo";
-        if (t.includes('reunião') || t.includes('reuniao')) return "Reunião Pedagógica";
-        if (t.includes('cancelamento')) return "Cancelamento";
-        return t.charAt(0).toUpperCase() + t.slice(1);
-    },
+    async editarExcecao(idOriginal, novaData, tipo, excecao, descricao) {
+        this._validarPermissaoCalendario();
+        await window.Store.garantirPronto();
 
-    _obterDiaSemanaInt(dataString) {
-        const dataNorm = this._normalizarData(dataString);
-        const [ano, mes, dia] = dataNorm.split('-');
-        const dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-        return dataObj.getDay();
-    },
+        const payload = { data: novaData, tipo, excecao, descricao };
 
-    _adicionarDias(dataString, diasOffset) {
-        const dataNorm = this._normalizarData(dataString);
-        const [ano, mes, dia] = dataNorm.split('-');
-        const dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-        dataObj.setDate(dataObj.getDate() + diasOffset);
-        return dataObj.toISOString().split('T')[0];
-    },
-
-    _gerarPontes(dataFeriado, descricaoFeriado = "") {
-        const dataNorm = this._normalizarData(dataFeriado);
-        const diaInt = this._obterDiaSemanaInt(dataNorm);
-        const pontes = [];
-        const descLower = (descricaoFeriado || "").toLowerCase();
-
-        const criarPonte = (offset, customDesc) => {
-            const dataPonte = this._adicionarDias(dataNorm, offset);
-            const diaPonteInt = this._obterDiaSemanaInt(dataPonte);
-            pontes.push({
-                data: dataPonte,
-                excecao: "Ponte",
-                descricao: customDesc || "Compensação - feriado",
-                dia_semana: this.nomesDiasSemana[diaPonteInt]
-            });
-        };
-
-        if (diaInt === 2) { 
-            criarPonte(-1);
-            if (descLower.includes("carnaval")) {
-                criarPonte(1, "Quarta-feira de cinzas");
+        if (idOriginal === novaData) {
+            await window.db.collection("datas_excecoes").doc(idOriginal).update({ tipo, excecao, descricao });
+            window.Store.upsertLocal("excecoes", { id: idOriginal, ...payload });
+        } else {
+            const jaExiste = (window.Store.dados.excecoes || []).some(e => e.id === novaData || e.data === novaData);
+            if (jaExiste) {
+                throw new Error("A nova data escolhida já está ocupada por outro evento/feriado.");
             }
-        } 
-        else if (diaInt === 4) { 
-            criarPonte(1); 
-            criarPonte(2); 
-        } 
-        else if (diaInt === 5) { 
-            criarPonte(1); 
-        }
-        return pontes;
-    },
-
-    gerarCalendarioBaseCSV(ano) {
-        this._validarPermissaoAdmin();
-        const anoInt = parseInt(ano);
-        let csv = "data;excecao;descricao\n";
-        
-        csv += ";Feriado;Carnaval\n";
-        csv += ";Feriado;Paixão de Cristo (Sexta-feira Santa)\n";
-        csv += ";Feriado;Páscoa\n";
-        csv += ";Feriado;Corpus Christi\n";
-        
-        const feriadosFixos = [
-            { data: `${anoInt}-01-01`, tipo: "Feriado Nacional", desc: "Confraternização Universal" },
-            { data: `${anoInt}-04-14`, tipo: "Feriado Municipal", desc: "Aniversário de Catanduva" },
-            { data: `${anoInt}-04-21`, tipo: "Feriado Nacional", desc: "Tiradentes" },
-            { data: `${anoInt}-05-01`, tipo: "Feriado Nacional", desc: "Dia Mundial do Trabalho" },
-            { data: `${anoInt}-07-09`, tipo: "Feriado Estadual", desc: "Revolução Constitucionalista de 1932" },
-            { data: `${anoInt}-08-08`, tipo: "Feriado Municipal", desc: "São Domingos de Gusmão (Padroeiro de Catanduva)" },
-            { data: `${anoInt}-09-07`, tipo: "Feriado Nacional", desc: "Independência do Brasil" },
-            { data: `${anoInt}-10-12`, tipo: "Feriado Nacional", desc: "Nossa Senhora Aparecida" },
-            { data: `${anoInt}-11-02`, tipo: "Feriado Nacional", desc: "Finados" },
-            { data: `${anoInt}-11-15`, tipo: "Feriado Nacional", desc: "Proclamação da República" },
-            { data: `${anoInt}-11-20`, tipo: "Feriado Nacional", desc: "Dia Nacional de Zumbi e da Consciência Negra" },
-            { data: `${anoInt}-12-25`, tipo: "Feriado Nacional", desc: "Natal" }
-        ];
-
-        const occupiedDates = new Set();
-        feriadosFixos.forEach(f => {
-            occupiedDates.add(f.data);
-            const pontes = this._gerarPontes(f.data, f.desc);
-            pontes.forEach(p => occupiedDates.add(p.data));
-        });
-
-        const reunioes = [];
-        const formatData = (d) => {
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        };
-
-        for (let mes = 0; mes < 12; mes++) {
-            let data = new Date(anoInt, mes + 1, 0); 
-            while (data.getDay() !== 1) { 
-                data.setDate(data.getDate() - 1);
-            }
-            
-            let dataStr = formatData(data);
-            if (occupiedDates.has(dataStr)) {
-                data.setDate(data.getDate() - 7);
-                dataStr = formatData(data);
-            }
-            
-            reunioes.push({
-                data: dataStr,
-                tipo: "Reunião Pedagógica",
-                desc: "Parada Pedagógica"
-            });
-        }
-
-        const datasFixas = [...feriadosFixos, ...reunioes];
-        datasFixas.sort((a, b) => a.data.localeCompare(b.data));
-
-        datasFixas.forEach(f => {
-            csv += `${f.data};${f.tipo};${f.desc}\n`;
-        });
-
-        let dataAtual = new Date(anoInt, 0, 1);
-        while (dataAtual.getFullYear() === anoInt) {
-            if (dataAtual.getDay() === 0) { 
-                const dataFormatada = formatData(dataAtual);
-                csv += `${dataFormatada};Domingo;Descanso Automático\n`;
-            }
-            dataAtual.setDate(dataAtual.getDate() + 1);
-        }
-
-        return csv;
-    },
-
-    async verificarExcecaoExiste(dataId) {
-        const dataNorm = this._normalizarData(dataId);
-        const doc = await window.db.collection("datas_excecoes").doc(dataNorm).get();
-        return doc.exists;
-    },
-
-    async salvarExcecaoManual(data, excecao, descricao) {
-        this._validarPermissaoAdmin();
-        const dataNorm = this._normalizarData(data);
-        const tipoNorm = this._normalizarTipo(excecao);
-        const existe = await this.verificarExcecaoExiste(dataNorm);
-        if(existe) {
-            throw new Error(`A data ${dataNorm.split('-').reverse().join('/')} já possui uma exceção cadastrada!`);
-        }
-
-        const batch = window.db.batch();
-        const diaInt = this._obterDiaSemanaInt(dataNorm);
-        const refPrincipal = window.db.collection("datas_excecoes").doc(dataNorm);
-        
-        batch.set(refPrincipal, { 
-            data: dataNorm, 
-            excecao: tipoNorm, 
-            descricao: descricao,
-            dia_semana: this.nomesDiasSemana[diaInt]
-        });
-
-        if (tipoNorm === "Feriado") {
-            const pontes = this._gerarPontes(dataNorm, descricao);
-            for (const ponte of pontes) {
-                const refPonte = window.db.collection("datas_excecoes").doc(ponte.data);
-                batch.set(refPonte, ponte, { merge: true });
-            }
-        }
-        await batch.commit();
-    },
-
-    async carregarExcecoesLote(arrayExcecoes) {
-        this._validarPermissaoAdmin();
-        const snapExistentes = await window.db.collection("datas_excecoes").get();
-        const chavesExistentes = new Set(snapExistentes.docs.map(doc => doc.id));
-
-        const dadosProcessados = [];
-        const datasAdicionadasNoLote = new Set();
-
-        arrayExcecoes.forEach(item => {
-            const dataNorm = this._normalizarData(item.data);
-            const tipoNorm = this._normalizarTipo(item.excecao);
-
-            if(dataNorm && tipoNorm) {
-                const diaInt = this._obterDiaSemanaInt(dataNorm);
-                
-                if(!chavesExistentes.has(dataNorm) && !datasAdicionadasNoLote.has(dataNorm)) {
-                    dadosProcessados.push({
-                        data: dataNorm,
-                        excecao: tipoNorm,
-                        descricao: item.descricao || "",
-                        dia_semana: this.nomesDiasSemana[diaInt]
-                    });
-                    datasAdicionadasNoLote.add(dataNorm);
-                }
-
-                if (tipoNorm === "Feriado") {
-                    const pontes = this._gerarPontes(dataNorm, item.descricao);
-                    pontes.forEach(ponte => {
-                        if(!chavesExistentes.has(ponte.data) && !datasAdicionadasNoLote.has(ponte.data)) {
-                            dadosProcessados.push(ponte);
-                            datasAdicionadasNoLote.add(ponte.data);
-                        }
-                    });
-                }
-            }
-        });
-
-        if(dadosProcessados.length === 0) return 0;
-
-        const chunks = [];
-        for (let i = 0; i < dadosProcessados.length; i += 500) {
-            chunks.push(dadosProcessados.slice(i, i + 500));
-        }
-
-        for (const chunk of chunks) {
             const batch = window.db.batch();
-            chunk.forEach(item => {
-                const ref = window.db.collection("datas_excecoes").doc(item.data);
-                batch.set(ref, item);
-            });
+            batch.set(window.db.collection("datas_excecoes").doc(novaData), payload);
+            batch.delete(window.db.collection("datas_excecoes").doc(idOriginal));
             await batch.commit();
+
+            window.Store.removerLocal("excecoes", idOriginal);
+            window.Store.upsertLocal("excecoes", { id: novaData, ...payload });
+        }
+    },
+
+    async carregarExcecoesLote(dadosArray) {
+        this._validarPermissaoCalendario();
+        await window.Store.garantirPronto();
+
+        const datasExistentes = new Set((window.Store.dados.excecoes || []).map(e => e.id || e.data));
+        const batch = window.db.batch();
+        const novosLocal = [];
+        let inseridosCount = 0;
+
+        for (const item of dadosArray) {
+            if (!item.data || !item.tipo || !item.excecao || !item.descricao) continue;
+
+            if (!datasExistentes.has(item.data)) {
+                const docRef = window.db.collection("datas_excecoes").doc(item.data);
+                const payload = {
+                    data: item.data.trim(),
+                    tipo: item.tipo.trim(),
+                    excecao: item.excecao.trim(),
+                    descricao: item.descricao.trim()
+                };
+                batch.set(docRef, payload);
+                novosLocal.push({ id: payload.data, ...payload });
+                datasExistentes.add(payload.data);
+                inseridosCount++;
+            }
         }
 
-        return dadosProcessados.length;
+        if (inseridosCount > 0) {
+            await batch.commit();
+            novosLocal.forEach(item => window.Store.upsertLocal("excecoes", item));
+        }
+        return inseridosCount;
     }
 };

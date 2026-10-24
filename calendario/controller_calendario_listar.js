@@ -1,9 +1,9 @@
-// ./calendario/controller_calendario_listar.js - Leitura e Exclusão de Exceções do Calendário
+// ./calendario/controller_calendario_listar.js - Leitura e Exclusão de Exceções do Calendário (Otimizado com Store)
 window.ControllerCalendarioListar = {
 
     async listarExcecoes() {
-        const snap = await window.db.collection("datas_excecoes").orderBy("data", "asc").get();
-        return snap.docs.map(doc => doc.data());
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.excecoes || [])].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     },
 
     async excluirExcecao(dataId) {
@@ -12,5 +12,6 @@ window.ControllerCalendarioListar = {
             throw new Error("Apenas Administradores podem excluir registros do calendário.");
         }
         await window.db.collection("datas_excecoes").doc(dataId).delete();
+        window.Store.removerLocal("excecoes", dataId);
     }
 };

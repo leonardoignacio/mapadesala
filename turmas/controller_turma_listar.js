@@ -1,4 +1,4 @@
-// ./turmas/controller_turma_listar.js - Leitura e Exclusão de Turmas
+// ./turmas/controller_turma_listar.js - Leitura e Exclusão de Turmas (Otimizado com Store Central)
 window.ControllerTurmaListar = {
 
     _validarPermissaoEdicao() {
@@ -9,22 +9,23 @@ window.ControllerTurmaListar = {
     },
 
     async listarTurmas() {
-        const snap = await window.db.collection("turmas").orderBy("referencia", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.turmas || [])].sort((a, b) => (a.referencia || "").localeCompare(b.referencia || ""));
     },
 
     async listarCursosBase() {
-        const snap = await window.db.collection("cursos").orderBy("titulo", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.cursos || [])].sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
     },
 
     async listarUCsBase() {
-        const snap = await window.db.collection("ucs").orderBy("referencia", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.ucs || [])].sort((a, b) => (a.referencia || "").localeCompare(b.referencia || ""));
     },
 
     async excluirTurma(id) {
         this._validarPermissaoEdicao();
         await window.db.collection("turmas").doc(id).delete();
+        window.Store.removerLocal("turmas", id);
     }
 };

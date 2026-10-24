@@ -1,20 +1,14 @@
-// ./admin/controller_admin_credenciamento.js - Regras de Negócio da Aba Credenciamento (Painel Admin)
+// ./admin/controller_admin_credenciamento.js - Regras de Negócio da Aba Credenciamento (Otimizado com Store)
 window.ControllerAdminCredenciamento = {
 
     hierarquiaCargos: {
-        root: 5,
-        admin: 4,
-        tecnico: 3,
-        docente: 2,
-        apoio: 1,
-        pendente: 0
+        root: 5, admin: 4, tecnico: 3, docente: 2, apoio: 1, pendente: 0
     },
 
     async listarUsuarios() {
-        const snap = await window.db.collection("usuarios").get();
-        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Ordena priorizando os cadastros "pendentes" no topo e depois por nome alfabético
+        await window.Store.garantirPronto();
+        const lista = [...(window.Store.dados.usuarios || [])];
+
         return lista.sort((a, b) => {
             const aPend = (a.status === 'pendente' || a.cargo === 'pendente') ? 0 : 1;
             const bPend = (b.status === 'pendente' || b.cargo === 'pendente') ? 0 : 1;
@@ -24,11 +18,10 @@ window.ControllerAdminCredenciamento = {
     },
 
     async listarAreasCadastradas() {
-        const snap = await window.db.collection("areas").orderBy("nome", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.areas || [])].sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
     },
 
-    // Retorna quais cargos o usuário logado tem autoridade para atribuir
     obterCargosPermitidosParaAtribuicao(cargoLogado) {
         if (cargoLogado === 'root') {
             return [
@@ -54,14 +47,11 @@ window.ControllerAdminCredenciamento = {
         return [];
     },
 
-    // Verifica se o usuário logado pode editar/gerenciar o usuário alvo
     podeGerenciarUsuario(cargoLogado, usuarioAlvo) {
         if (!usuarioAlvo) return false;
         const cargoAlvo = usuarioAlvo.cargo || 'pendente';
 
-        // Ninguém altera o ROOT pelo painel de terceiros (apenas o próprio ROOT se necessário)
         if (cargoAlvo === 'root') return cargoLogado === 'root';
-
         if (cargoLogado === 'root') return true;
         if (cargoLogado === 'admin') {
             return ['tecnico', 'docente', 'apoio', 'pendente'].includes(cargoAlvo);
@@ -72,35 +62,32 @@ window.ControllerAdminCredenciamento = {
         return false;
     },
 
-    // Define os perfis acumulados conforme a regra de negócio de cada cargo
     _calcularPerfisAcumulados(cargo) {
         switch (cargo) {
-            case 'root':
-                return ['root', 'admin', 'tecnico', 'docente', 'apoio'];
-            case 'admin':
-                return ['admin', 'tecnico', 'docente', 'apoio'];
-            case 'tecnico':
-                return ['tecnico', 'docente', 'apoio'];
-            case 'docente':
-                return ['docente'];
-            case 'apoio':
-                return ['apoio'];
-            default:
-                return [];
+            case 'root': return ['root', 'admin', 'tecnico', 'docente', 'apoio'];
+            case 'admin': return ['admin', 'tecnico', 'docente', 'apoio'];
+            case 'tecnico': return ['tecnico', 'docente', 'apoio'];
+            case 'docente': return ['docente'];
+            case 'apoio': return ['apoio'];
+            default: return [];
         }
     },
 
     async salvarCredenciamentoUsuario(emailAlvo, dadosCredenciamento, usuarioLogado) {
+        await window.Store.garantirPronto();
         const emailId = (emailAlvo || "").trim().toLowerCase();
         if (!emailId) throw new Error("E-mail do usuário inválido.");
 
         const docRef = window.db.collection("usuarios").doc(emailId);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) throw new Error("Usuário não encontrado no banco de dados.");
+        let usuarioAlvo = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
 
-        const usuarioAlvo = docSnap.data();
+        if (!usuarioAlvo) {
+            const docSnap = await docRef.get();
+            if (!docSnap.exists) throw new Error("Usuário não encontrado no banco de dados.");
+            usuarioAlvo = { id: docSnap.id, ...docSnap.data() };
+        }
+
         const cargoLogado = usuarioLogado?.cargo || 'sem_acesso';
-
         if (!this.podeGerenciarUsuario(cargoLogado, usuarioAlvo)) {
             throw new Error("Você não possui privilégio hierárquico para alterar este usuário.");
         }
@@ -108,9 +95,8 @@ window.ControllerAdminCredenciamento = {
         const novoCargo = dadosCredenciamento.cargo;
         const novoStatus = dadosCredenciamento.status || 'ativo';
 
-        // Se o status for pendente, mantém cargo como pendente
         if (novoStatus === 'pendente') {
-            await docRef.update({
+            const patchPendente = {
                 nome: dadosCredenciamento.nome.trim(),
                 sobrenome: dadosCredenciamento.sobrenome.trim(),
                 nome_completo: `${dadosCredenciamento.nome.trim()} ${dadosCredenciamento.sobrenome.trim()}`,
@@ -120,11 +106,12 @@ window.ControllerAdminCredenciamento = {
                 areas: dadosCredenciamento.areas || [],
                 atualizado_em: new Date().toISOString(),
                 credenciado_por: usuarioLogado.email
-            });
+            };
+            await docRef.update(patchPendente);
+            window.Store.upsertLocal("usuarios", { ...usuarioAlvo, id: emailId, ...patchPendente });
             return;
         }
 
-        // Valida se o cargo atribuído está dentro da alçada do usuário logado (exceto se for o próprio root editando a si mesmo)
         if (usuarioAlvo.cargo !== 'root') {
             const permitidos = this.obterCargosPermitidosParaAtribuicao(cargoLogado).map(c => c.valor);
             if (!permitidos.includes(novoCargo)) {
@@ -154,15 +141,16 @@ window.ControllerAdminCredenciamento = {
         };
 
         await docRef.update(payload);
+        window.Store.upsertLocal("usuarios", { ...usuarioAlvo, id: emailId, ...payload });
     },
 
     async excluirUsuario(emailAlvo, usuarioLogado) {
+        await window.Store.garantirPronto();
         const emailId = (emailAlvo || "").trim().toLowerCase();
         const docRef = window.db.collection("usuarios").doc(emailId);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) return;
+        const usuarioAlvo = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
+        if (!usuarioAlvo) return;
 
-        const usuarioAlvo = docSnap.data();
         if (usuarioAlvo.cargo === 'root') {
             throw new Error("A conta ROOT do sistema não pode ser excluída.");
         }
@@ -172,5 +160,6 @@ window.ControllerAdminCredenciamento = {
         }
 
         await docRef.delete();
+        window.Store.removerLocal("usuarios", emailId);
     }
 };

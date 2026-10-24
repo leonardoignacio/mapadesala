@@ -1,4 +1,4 @@
-// ./turmas/controller_turma_frm.js - Regras de Negócio de Cadastro, Cálculos e Edição de Turmas
+// ./turmas/controller_turma_frm.js - Regras de Negócio de Cadastro, Cálculos e Edição de Turmas (Otimizado com Store)
 window.ControllerTurmaFrm = {
 
     _validarPermissaoEdicao() {
@@ -83,6 +83,7 @@ window.ControllerTurmaFrm = {
 
     async salvarNovaTurma(dados, cursoObj, ucsDaTurma) {
         this._validarPermissaoEdicao();
+        await window.Store.garantirPronto();
 
         if (!Array.isArray(dados.dias_semana) || dados.dias_semana.length === 0) {
             throw new Error("Selecione pelo menos um dia da semana para a turma.");
@@ -117,12 +118,15 @@ window.ControllerTurmaFrm = {
             criado_em: new Date().toISOString()
         };
 
-        await window.db.collection("turmas").add(novaTurma);
-        return novaTurma;
+        const docRef = await window.db.collection("turmas").add(novaTurma);
+        const turmaComId = { id: docRef.id, ...novaTurma };
+        window.Store.upsertLocal("turmas", turmaComId);
+        return turmaComId;
     },
 
     async editarTurma(idTurma, dados, cursoObj, ucsDaTurma) {
         this._validarPermissaoEdicao();
+        await window.Store.garantirPronto();
 
         if (!Array.isArray(dados.dias_semana) || dados.dias_semana.length === 0) {
             throw new Error("Selecione pelo menos um dia da semana para a turma.");
@@ -158,10 +162,12 @@ window.ControllerTurmaFrm = {
         };
 
         await window.db.collection("turmas").doc(idTurma).update(payload);
+        window.Store.upsertLocal("turmas", { id: idTurma, ...payload });
     },
 
     async atualizarUCDentroDaTurma(turmaObj, ucIdx, novosDadosUC, cursoObj) {
         this._validarPermissaoEdicao();
+        await window.Store.garantirPronto();
 
         const ucsCopia = Array.isArray(turmaObj.ucs) ? [...turmaObj.ucs] : [];
         if (!ucsCopia[ucIdx]) throw new Error("Unidade Curricular não localizada nesta turma.");
@@ -186,12 +192,15 @@ window.ControllerTurmaFrm = {
 
         const { chTotalCurso, progressoTurma } = this.calcularMetricasTurma(cursoObj || { carga_horaria: turmaObj.ch_total_curso }, ucsCopia, novoStatusTurma);
 
-        await window.db.collection("turmas").doc(turmaObj.id).update({
+        const patch = {
             ucs: ucsCopia,
             ch_total_curso: chTotalCurso,
             progresso_turma: progressoTurma,
             status: novoStatusTurma,
             atualizado_em: new Date().toISOString()
-        });
+        };
+
+        await window.db.collection("turmas").doc(turmaObj.id).update(patch);
+        window.Store.upsertLocal("turmas", { ...turmaObj, ...patch });
     }
 };

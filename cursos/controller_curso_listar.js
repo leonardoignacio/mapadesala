@@ -1,4 +1,4 @@
-// ./cursos/controller_curso_listar.js - Leitura e Exclusão de Áreas, Cursos e UCs
+// ./cursos/controller_curso_listar.js - Leitura e Exclusão de Áreas, Cursos e UCs (Otimizado com Store Central)
 window.ControllerCursoListar = {
 
     _validarPermissaoEdicao() {
@@ -9,34 +9,42 @@ window.ControllerCursoListar = {
     },
 
     async listarAreas() {
-        const snap = await window.db.collection("areas").orderBy("nome", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.areas || [])].sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
     },
 
     async listarCursos() {
-        const snap = await window.db.collection("cursos").orderBy("titulo", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.cursos || [])].sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
     },
 
     async listarUCs() {
-        const snap = await window.db.collection("ucs").orderBy("referencia", "asc").get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.ucs || [])].sort((a, b) => (a.referencia || "").localeCompare(b.referencia || ""));
     },
 
     async excluirCurso(id) {
         this._validarPermissaoEdicao();
+        await window.Store.garantirPronto();
+
         await window.db.collection("cursos").doc(id).delete();
-        
-        const ucsRef = await window.db.collection("ucs").where("id_curso", "==", id).get();
-        const batch = window.db.batch();
-        ucsRef.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
+        window.Store.removerLocal("cursos", id);
+
+        // Localiza as UCs vinculadas em memória sem gastar leituras .get()
+        const ucsVinculadas = (window.Store.dados.ucs || []).filter(u => u.id_curso === id);
+        if (ucsVinculadas.length > 0) {
+            const batch = window.db.batch();
+            ucsVinculadas.forEach(uc => {
+                batch.delete(window.db.collection("ucs").doc(uc.id));
+            });
+            await batch.commit();
+            ucsVinculadas.forEach(uc => window.Store.removerLocal("ucs", uc.id));
+        }
     },
 
     async excluirUC(id) {
         this._validarPermissaoEdicao();
         await window.db.collection("ucs").doc(id).delete();
+        window.Store.removerLocal("ucs", id);
     }
 };

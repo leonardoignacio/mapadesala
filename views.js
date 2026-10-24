@@ -111,17 +111,12 @@ window.Views = {
         if (window.usuarioAtual && window.usuarioAtual.cargo === 'pendente' && window.ViewsUsuarios) {
             return window.ViewsUsuarios.renderizarDashboardPendente(window.usuarioAtual);
         }
-
         return `
         <div class="p-6 md:p-8 fade-in flex-1 overflow-y-auto">
             <h1 class="text-2xl font-bold text-slate-800 mb-2">Dashboard</h1>
             <p class="text-slate-500 text-sm">Bem-vindo ao painel de gestão pedagógica InovaTech.</p>
         </div>
         `;
-    },
-
-    turmas() {
-        return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Turmas</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
     },
 
     docentes() {
@@ -134,9 +129,5 @@ window.Views = {
 
     apoioTecnico() {
         return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Apoio Técnico</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
-    },
-
-    espelho() {
-        return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Espelho de Classe</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
     }
 };
