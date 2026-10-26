@@ -84,8 +84,6 @@ window.AppTurmaListar = {
         const tbody = document.getElementById('tabela-turmas');
         if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
         try {
-            // O Store central é a fonte compartilhada de encontros; não dependa
-            // de listarEncontros existir em versões antigas do controller carregadas no navegador.
             await window.Store.garantirPronto();
             const [turmas, cursos, ucs] = await Promise.all([
                 window.ControllerTurmaListar.listarTurmas(),
@@ -135,7 +133,6 @@ window.AppTurmaListar = {
             let horasTurma=0;
             turma.ucs=ucs.map(uc=>{
                 const id=uc.id_uc_base||uc.id, lista=(id?encontrosPassados.get(`${turma.id}|${id}`):[])||[];
-                // Use the past schedule as the authoritative initial value for legacy data; encounter writes maintain the stored field by delta.
                 const horas=horasEncontros(lista,turma),ch=numero(uc.carga_horaria);
                 horasTurma+=horas;
                 const pct=percentual(horas,ch);
@@ -395,7 +392,7 @@ window.AppTurmaListar = {
                 <td colspan="5" class="p-0 border-b-2 border-blue-100">
                     <div class="p-3 md:p-5 pl-3 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
                         <div class="mb-2.5 text-xs md:text-sm text-slate-700 leading-relaxed">
-                            <strong class="font-bold text-blue-800 uppercase tracking-wide">Unidades Curriculares da Turma (${turma.referencia})</strong>
+                            <strong class="font-bold text-blue-800 uppercase tracking-wide">UCs da Turma (${turma.referencia})</strong>
                             <span class="text-slate-300 mx-1.5">|</span>
                             <strong class="font-bold text-slate-800">Início:</strong> <span class="font-normal text-slate-600">${dataInicioBR}</span>
                             <span class="text-slate-300 mx-1.5">|</span>
