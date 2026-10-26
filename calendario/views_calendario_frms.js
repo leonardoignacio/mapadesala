@@ -39,14 +39,12 @@ window.ViewsCalendarioFrms = {
                                         type="file"
                                         id="arquivo-lote-calendario"
                                         accept=".csv"
-                                        class="flex-1 min-w-0 w-0 text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg"
-                                    >
+                                        class="flex-1 min-w-0 w-0 text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg">
 
                                     <button
                                         type="button"
                                         id="btn-carregar-lote-calendario"
-                                        class="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base"
-                                    >
+                                        class="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">
                                         Confirmar Processamento
                                     </button>
                                 </div>
