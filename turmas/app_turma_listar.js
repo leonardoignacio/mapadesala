@@ -3,12 +3,13 @@ window.AppTurmaListar = {
     cacheTurmas: [],
     cacheCursos: [],
     cacheUCsBase: [],
+    cacheEncontros: [],
 
     filtrosTurmas: {
         ref: "",
         areas: ["Todos"],
         periodos: ["Todos"],
-        status: ["Em Andamento", "Não Iniciada"]
+        status: ["Todos"]
     },
 
     _norm(str) {
@@ -69,7 +70,7 @@ window.AppTurmaListar = {
             this.filtrosTurmas.areas = ["Todos"];
         }
 
-        this.filtrosTurmas.status = ["Em Andamento", "Não Iniciada"];
+        this.filtrosTurmas.status = ["Todos"];
     },
 
     async iniciarView() {
@@ -81,47 +82,78 @@ window.AppTurmaListar = {
 
     async carregarDadosBase() {
         const tbody = document.getElementById('tabela-turmas');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
-        }
-
-        const [todasTurmas, todosCursos, todasUCs] = await Promise.all([
-            window.ControllerTurmaListar.listarTurmas(),
-            window.ControllerTurmaListar.listarCursosBase(),
-            window.ControllerTurmaListar.listarUCsBase()
-        ]);
-
-        const mapaCursosGeral = new Map(todosCursos.map(c => [c.id, c]));
-        const cargo = window.usuarioAtual?.cargo;
-        const areasUser = this.obterAreasUsuario();
-        const possuiAcessoGlobal = (window.usuarioAtual?.areas || []).includes("Todas");
-
-        if (cargo === 'docente' && !possuiAcessoGlobal) {
-            this.cacheCursos = todosCursos.filter(c => this._cursoCorrespondeAsAreas(c, areasUser));
-            this.cacheTurmas = todasTurmas.filter(t => this._turmaCorrespondeAsAreas(t, areasUser, mapaCursosGeral));
-            const idsCursosPermitidos = new Set(this.cacheCursos.map(c => c.id));
-            this.cacheUCsBase = todasUCs.filter(u => idsCursosPermitidos.has(u.id_curso));
-        } else {
-            this.cacheCursos = todosCursos;
-            this.cacheTurmas = todasTurmas;
-            this.cacheUCsBase = todasUCs;
-
-            // Se for APOIO, garante que a área real das turmas/cursos de Aprendizagem também fique marcada no filtro inicial
-            if (cargo === 'apoio' && !this.filtrosTurmas.areas.includes("Todos")) {
-                const areasExpandidas = new Set(this.filtrosTurmas.areas);
-                todasTurmas.forEach(t => {
-                    if (this._turmaCorrespondeAsAreas(t, areasUser, mapaCursosGeral) && t.area) {
-                        areasExpandidas.add(t.area);
-                    }
-                });
-                todosCursos.forEach(c => {
-                    if (this._cursoCorrespondeAsAreas(c, areasUser) && c.area) {
-                        areasExpandidas.add(c.area);
-                    }
-                });
-                this.filtrosTurmas.areas = Array.from(areasExpandidas);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
+        try {
+            // O Store central é a fonte compartilhada de encontros; não dependa
+            // de listarEncontros existir em versões antigas do controller carregadas no navegador.
+            await window.Store.garantirPronto();
+            const [turmas, cursos, ucs] = await Promise.all([
+                window.ControllerTurmaListar.listarTurmas(),
+                window.ControllerTurmaListar.listarCursosBase(),
+                window.ControllerTurmaListar.listarUCsBase()
+            ]);
+            const todasTurmas=Array.isArray(turmas)?turmas:[],todosCursos=Array.isArray(cursos)?cursos:[],todasUCs=Array.isArray(ucs)?ucs:[];
+            const encontros=window.Store.dados?.encontros;
+            this.cacheEncontros=Array.isArray(encontros)?encontros.filter(e=>e&&typeof e==='object'):[];
+            const mapaCursosGeral=new Map(todosCursos.filter(Boolean).map(c=>[c.id,c]));
+            const cargo=window.usuarioAtual?.cargo,areasUser=this.obterAreasUsuario(),possuiAcessoGlobal=(window.usuarioAtual?.areas||[]).includes('Todas');
+            if(cargo==='docente'&&!possuiAcessoGlobal){
+                this.cacheCursos=todosCursos.filter(c=>this._cursoCorrespondeAsAreas(c,areasUser));
+                this.cacheTurmas=todasTurmas.filter(t=>t&&this._turmaCorrespondeAsAreas(t,areasUser,mapaCursosGeral));
+                const idsCursosPermitidos=new Set(this.cacheCursos.map(c=>c.id));this.cacheUCsBase=todasUCs.filter(u=>idsCursosPermitidos.has(u.id_curso));
+            }else{
+                this.cacheCursos=todosCursos.filter(Boolean);this.cacheTurmas=todasTurmas.filter(Boolean);this.cacheUCsBase=todasUCs.filter(Boolean);
+                if(cargo==='apoio'&&!this.filtrosTurmas.areas.includes('Todos')){
+                    const areasExpandidas=new Set(this.filtrosTurmas.areas);
+                    todasTurmas.forEach(t=>{if(t&&this._turmaCorrespondeAsAreas(t,areasUser,mapaCursosGeral)&&t.area)areasExpandidas.add(t.area);});
+                    todosCursos.forEach(c=>{if(c&&this._cursoCorrespondeAsAreas(c,areasUser)&&c.area)areasExpandidas.add(c.area);});
+                    this.filtrosTurmas.areas=Array.from(areasExpandidas);
+                }
             }
+            this._calcularProgressoReal();
+        } catch (err) {
+            if(tbody)tbody.innerHTML=`<tr><td colspan="5" class="p-6 text-center text-rose-700"><strong>Não foi possível carregar as turmas.</strong><div class="mt-1 text-xs">${String(err?.message||err||'Erro desconhecido')}</div></td></tr>`;
+            console.error('Falha ao carregar dados da tela Turmas:',err);
+            throw err;
         }
+    },
+
+    _calcularProgressoReal() {
+        const agora=new Date(),hoje=`${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
+        const numero=valor=>{const n=Number(String(valor??'').replace(',','.'));return Number.isFinite(n)&&n>0?n:0;};
+        const encontrosPassados=new Map();
+        for(const e of this.cacheEncontros){
+            if(!e||e.tipo!=='aula'||typeof e.data!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(e.data)||e.data>=hoje||!e.id_turma||!e.id_uc)continue;
+            const key=`${e.id_turma}|${e.id_uc}`;if(!encontrosPassados.has(key))encontrosPassados.set(key,[]);encontrosPassados.get(key).push(e);
+        }
+        const horasEncontros=(lista,turma)=>lista.reduce((soma,e)=>soma+numero(e.ch_encontro||e.carga_horaria||turma.ch_encontro||this._horasDaTurma(turma)),0);
+        const statusPorHoras=(horas,ch)=>horas<=0?'Não Iniciada':(ch>0&&horas>=ch?'Concluída':'Em Andamento');
+        const percentual=(horas,ch)=>ch>0?Math.min(100,Math.max(0,Math.round(horas/ch*100))):0;
+        for(const turma of this.cacheTurmas){
+            if(!turma||typeof turma!=='object')continue;
+            const ucs=Array.isArray(turma.ucs)?turma.ucs.filter(u=>u&&typeof u==='object'):[];
+            let horasTurma=0;
+            turma.ucs=ucs.map(uc=>{
+                const id=uc.id_uc_base||uc.id, lista=(id?encontrosPassados.get(`${turma.id}|${id}`):[])||[];
+                // Use the past schedule as the authoritative initial value for legacy data; encounter writes maintain the stored field by delta.
+                const horas=horasEncontros(lista,turma),ch=numero(uc.carga_horaria);
+                horasTurma+=horas;
+                const pct=percentual(horas,ch);
+                return {...uc,status:statusPorHoras(horas,ch),horas_ministradas:horas,horas_apuradas:horas,encontros_apurados:lista.length,progresso:pct,progresso_calculado:pct};
+            });
+            const curso=this.cacheCursos.find(c=>c.id===turma.id_curso);
+            const cargaUCs=ucs.reduce((s,u)=>s+numero(u.carga_horaria),0);
+            const cargaTurma=cargaUCs||numero(turma.ch_total_curso)||numero(curso?.carga_horaria)||numero(curso?.ch_total_curso);
+            if(!ucs.length){const lista=this.cacheEncontros.filter(e=>e&&e.id_turma===turma.id&&e.tipo==='aula'&&typeof e.data==='string'&&e.data<hoje);horasTurma=horasEncontros(lista,turma);}
+            turma.status=statusPorHoras(horasTurma,cargaTurma);
+            turma.horas_ministradas=horasTurma;turma.horas_apuradas=horasTurma;
+            turma.progresso_calculado=percentual(horasTurma,cargaTurma);turma.progresso_turma=turma.progresso_calculado;
+        }
+    },
+
+    _horasDaTurma(turma) {
+        const parse=valor=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(valor||''));return m?Number(m[1])*60+Number(m[2]):null;};
+        const inicio=parse(turma?.h_inicio),fim=parse(turma?.h_termino);return inicio!==null&&fim!==null&&fim>inicio?(fim-inicio)/60:0;
     },
 
     popularFiltrosESelects() {
@@ -179,10 +211,10 @@ window.AppTurmaListar = {
 
         const iconStatus = document.getElementById('icon-filter-turma-status');
         if (iconStatus) {
-            const isPadraoSemConcluidas = !this.filtrosTurmas.status.includes("Todos") &&
+            const isPadraoSemConcluidas = this.filtrosTurmas.status.includes("Todos") || (!this.filtrosTurmas.status.includes("Todos") &&
                 this.filtrosTurmas.status.length === 2 &&
                 this.filtrosTurmas.status.includes("Em Andamento") &&
-                this.filtrosTurmas.status.includes("Não Iniciada");
+                this.filtrosTurmas.status.includes("Não Iniciada"));
             iconStatus.textContent = isPadraoSemConcluidas ? "🔎" : "✖️";
         }
     },
@@ -249,7 +281,7 @@ window.AppTurmaListar = {
                 return numA - numB;
             }) : [];
 
-            const progTurma = Math.min(100, Math.max(0, parseInt(turma.progresso_turma) || 0));
+            const progTurma = turma.progresso_calculado || 0;
             const siglaArea = this._abreviarArea(turma.area);
             const areaTooltip = turma.area || "";
 
@@ -286,14 +318,14 @@ window.AppTurmaListar = {
                     : "Clique para ver detalhes da UC";
 
                 htmlUCs = ucsDaTurma.map((uc, idx) => {
-                    const progUC = Math.min(100, Math.max(0, parseInt(uc.progresso) || 0));
+                    const progUC = uc.progresso_calculado || 0;
                     let ucStatusBadge = "text-amber-700 md:bg-amber-50 md:border-amber-200";
                     if (uc.status === "Em Andamento") ucStatusBadge = "text-blue-700 md:bg-blue-50 md:border-blue-200";
                     else if (uc.status === "Concluída") ucStatusBadge = "text-emerald-700 md:bg-emerald-50 md:border-emerald-200";
 
                     const nAulaTexto = uc.n_aula || "---";
                     const statusUCTexto = uc.status || "Não Iniciada";
-                    const horasFormatadas = this._formatarNumeroBR(uc.horas_ministradas || 0);
+                    const horasFormatadas = this._formatarNumeroBR(uc.horas_apuradas || 0);
 
                     return `
                     <tr class="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer row-turma-uc group/uc border-b border-slate-100 last:border-0" data-turma-id="${turma.id}" data-uc-idx="${idx}" title="${tooltipUC}">
