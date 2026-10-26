@@ -20,10 +20,19 @@ window.ViewsCalendarioFrms = {
                         <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
                             <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Gerador de Calendário Base (CSV)</h2>
                             <p class="text-xs md:text-sm text-slate-500 mb-4">Gere um arquivo CSV contendo os feriados nacionais, estaduais (SP) e municipais (Catanduva) e reuniões pedagógicas para o ano selecionado.</p>
-                            <div class="flex gap-2">
-                                <select id="select-ano-gerador" class="w-1/3 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
+                            <input
+                                id="select-ano-gerador"
+                                list="lista-anos-gerador"
+                                type="text"
+                                value="${new Date().getFullYear()}"
+                                onfocus="this.value = ''"
+                                onblur="if (this.value.trim() === '') this.value = new Date().getFullYear()"
+                                class="w-1/3 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer"
+                            >
+
+                                <datalist id="lista-anos-gerador">
                                     ${optionsAno}
-                                </select>
+                                </datalist>
                                 <button type="button" id="btn-gerar-csv-base" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Gerar e Baixar CSV</button>
                             </div>
                         </div>
