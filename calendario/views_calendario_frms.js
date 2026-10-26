@@ -11,41 +11,45 @@ window.ViewsCalendarioFrms = {
         <!-- CONTEÚDO: ABA ADD -->
         <div id="tab-add-calendario" class="tab-content hidden flex-1 min-h-0 overflow-y-auto pb-6 px-2 md:px-0">
             <div class="w-full lg:w-[90%] mx-auto">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-start">
+                <div class="grid grid-cols-1 gap-4 lg:gap-6 items-start">
                     
-                    <!-- Lado Esquerdo: Auto Gerador e Carga Lote -->
+                        <!-- Carga em Lote (CSV) -->
+                        <div class="bg-white p-4 md:p-6 my-4 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
+                            <!-- Lado Esquerdo: Auto Gerador e Carga Lote -->
                     <div class="flex flex-col gap-4 lg:gap-6">
                         
                         <!-- Gerador de Calendário Base -->
-                        <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
-                            <h2 class="font-bold mb-4 text-slate-800 text-base md:text-lg">Gerador de Calendário Base (CSV)</h2>
-                            <p class="text-xs md:text-sm text-slate-500 mb-4">Gere um arquivo CSV contendo os feriados nacionais, estaduais (SP) e municipais (Catanduva) e reuniões pedagógicas para o ano selecionado.</p>
-                            <input
-                                id="select-ano-gerador"
-                                list="lista-anos-gerador"
-                                type="text"
-                                value="${new Date().getFullYear()}"
-                                onfocus="this.value = ''"
-                                onblur="if (this.value.trim() === '') this.value = new Date().getFullYear()"
-                                class="w-1/3 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer"
-                            >
+                        <div class="flex w-full items-center gap-4">
+                            <input  id="select-ano-gerador"  list="lista-anos-gerador"  type="text"  value="${new Date().getFullYear()}"  onfocus="this.value = ''"  onblur="if (this.value.trim() === '') this.value = new Date().getFullYear()"  class="flex-1 min-w-0 border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer">
 
-                                <datalist id="lista-anos-gerador">
-                                    ${optionsAno}
-                                </datalist>
-                                <button type="button" id="btn-gerar-csv-base" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Gerar e Baixar CSV</button>
-                            </div>
+                            <datalist id="lista-anos-gerador">
+                                ${optionsAno}
+                            </datalist>
+                            <button type="button"   id="btn-gerar-csv-base"   class="flex-1 min-w-0 bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Baixar CSV</button>
                         </div>
-
-                        <!-- Carga em Lote (CSV) -->
-                        <div class="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col relative h-fit">
-                            <div class="flex items-center justify-between mb-4">
+                        </div> 
+                        
+                        <div class="flex items-center justify-between mb-4">
                                 <h2 class="font-bold text-slate-800 text-base md:text-lg">Carga em Lote de Exceções</h2>
                             </div>
                             <p class="text-xs md:text-sm text-slate-500 mb-4">Importe o arquivo CSV gerado (após ajustar datas variáveis como Carnaval) ou um modelo próprio contendo <strong>data</strong>, <strong>excecao</strong> e <strong>descricao</strong>.</p>
                             <div class="space-y-3">
-                                <input type="file" id="arquivo-lote-calendario" accept=".csv" class="block w-full text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg">
-                                <button type="button" id="btn-carregar-lote-calendario" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base">Confirmar Processamento</button>
+                              <div class="flex w-full items-center gap-4">
+                                    <input
+                                        type="file"
+                                        id="arquivo-lote-calendario"
+                                        accept=".csv"
+                                        class="flex-1 min-w-0 w-0 text-sm md:text-base text-slate-500 file:mr-2 md:file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-lg"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        id="btn-carregar-lote-calendario"
+                                        class="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 md:py-3 rounded-lg transition shadow-sm text-sm md:text-base"
+                                    >
+                                        Confirmar Processamento
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
