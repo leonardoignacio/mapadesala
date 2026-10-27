@@ -60,6 +60,7 @@ window.auth.onAuthStateChanged(async (user) => {
         UI.root.classList.remove('hidden');
         roteador(); 
     } else {
+        if (window.Store) window.Store.limpar();
         window.usuarioAtual = { email: null, cargo: null, nome: null, sobrenome: null, perfis: [], areas: [] };
         UI.root.innerHTML = '';
         UI.root.classList.add('hidden');
@@ -233,6 +234,19 @@ async function roteador() {
     }
 }
 window.addEventListener('hashchange', roteador);
+
+// O Store mantém uma assinatura por coleção; a UI revalida no máximo uma vez por rajada.
+let _storeRefreshTimer = null;
+window.Store.onUpdateCallback = () => {
+    if (_storeRefreshTimer) clearTimeout(_storeRefreshTimer);
+    _storeRefreshTimer = setTimeout(() => {
+        if (!window.usuarioAtual?.email || document.hidden || UI.root.classList.contains('hidden')) return;
+        if (document.querySelector('[role="dialog"]:not(.hidden)')) return;
+        const pendentes = window.AppEspelho?.pendenciasArraste;
+        if (pendentes?.size || window.AppEspelho?.alvosEdicaoLote?.size) return;
+        roteador();
+    }, 220);
+};
 
 // ==========================================
 // 4. DELEGAÇÃO DE EVENTOS GLOBAIS

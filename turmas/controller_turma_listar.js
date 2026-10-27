@@ -23,6 +23,11 @@ window.ControllerTurmaListar = {
         return [...(window.Store.dados.ucs || [])].sort((a, b) => (a.referencia || "").localeCompare(b.referencia || ""));
     },
 
+    async listarEncontros() {
+        await window.Store.garantirPronto();
+        return [...(window.Store.dados.encontros || [])];
+    },
+
     async excluirTurma(id) {
         this._validarPermissaoEdicao();
         await window.db.collection("turmas").doc(id).delete();

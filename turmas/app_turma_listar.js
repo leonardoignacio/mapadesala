@@ -84,6 +84,8 @@ window.AppTurmaListar = {
         const tbody = document.getElementById('tabela-turmas');
         if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm md:text-base">Carregando dados...</td></tr>';
         try {
+            // O Store central é a fonte compartilhada de encontros; não dependa
+            // de listarEncontros existir em versões antigas do controller carregadas no navegador.
             await window.Store.garantirPronto();
             const [turmas, cursos, ucs] = await Promise.all([
                 window.ControllerTurmaListar.listarTurmas(),
@@ -133,6 +135,7 @@ window.AppTurmaListar = {
             let horasTurma=0;
             turma.ucs=ucs.map(uc=>{
                 const id=uc.id_uc_base||uc.id, lista=(id?encontrosPassados.get(`${turma.id}|${id}`):[])||[];
+                // Use the past schedule as the authoritative initial value for legacy data; encounter writes maintain the stored field by delta.
                 const horas=horasEncontros(lista,turma),ch=numero(uc.carga_horaria);
                 horasTurma+=horas;
                 const pct=percentual(horas,ch);

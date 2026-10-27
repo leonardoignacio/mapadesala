@@ -1,91 +1,99 @@
 // ./controller.js - Controlador Global de Sessão, Perfis e Store Central com Cache Persistente
-const STORAGE_CACHE_KEY = "inovatech_store_cache_v1";
+const STORAGE_CACHE_PREFIX = "inovatech_store_cache_v2:";
+const STORAGE_CACHE_TTL_MS = 15 * 60 * 1000;
+const STORAGE_CACHE_DEBOUNCE_MS = 250;
 
 window.Store = {
-    dados: {
-        areas: [],
-        cursos: [],
-        ucs: [],
-        turmas: [],
-        encontros: [],
-        excecoes: [],
-        salas: [],
-        usuarios: [],
-        docentes: []
-    },
+    dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], docentes: [] },
     listeners: [],
     inicializado: false,
     _promessaInicio: null,
+    _usuarioId: null,
+    _cacheTimer: null,
+    _cacheRestaurado: false,
     onUpdateCallback: null,
 
-    // Carrega instantaneamente os dados salvos no navegador ao abrir a página
-    _carregarCacheNavegador() {
+    _identificarUsuario(usuario) {
+        const valor = usuario || window.usuarioAtual?.email || window.auth?.currentUser?.email || "";
+        return String(valor).trim().toLowerCase();
+    },
+
+    _chaveCache() {
+        return this._usuarioId ? STORAGE_CACHE_PREFIX + encodeURIComponent(this._usuarioId) : null;
+    },
+
+    _carregarCacheNavegador(usuario) {
+        const uid = this._identificarUsuario(usuario);
+        if (!uid) return false;
+        if (this._usuarioId && this._usuarioId !== uid) this.limpar(false);
+        this._usuarioId = uid;
         try {
-            const salvo = localStorage.getItem(STORAGE_CACHE_KEY) || sessionStorage.getItem(STORAGE_CACHE_KEY);
+            const chave = this._chaveCache();
+            const salvo = localStorage.getItem(chave);
             if (!salvo) return false;
             const parsed = JSON.parse(salvo);
-            if (parsed && typeof parsed === "object") {
-                Object.keys(this.dados).forEach(k => {
-                    if (Array.isArray(parsed[k])) this.dados[k] = parsed[k];
-                });
-                this._processarDocentes();
-                return true;
+            if (parsed?.version !== 2 || parsed.user !== uid || !Number.isFinite(parsed.savedAt) || Date.now() - parsed.savedAt > STORAGE_CACHE_TTL_MS) {
+                localStorage.removeItem(chave);
+                return false;
             }
+            Object.keys(this.dados).forEach(k => {
+                if (Array.isArray(parsed.data?.[k])) this.dados[k] = parsed.data[k];
+            });
+            this._cacheRestaurado = true;
+            this._processarDocentes();
+            return true;
         } catch (err) {
             console.warn("[Store] Não foi possível ler o cache local:", err);
+            return false;
         }
-        return false;
+    },
+
+    _sanitizarCache(valor) {
+        if (Array.isArray(valor)) return valor.map(v => this._sanitizarCache(v));
+        if (!valor || typeof valor !== "object") return valor;
+        const limpo = {};
+        Object.keys(valor).forEach(k => {
+            if (/(password|senha|token|credential|credencial|secret|segredo|auth)/i.test(k)) return;
+            limpo[k] = this._sanitizarCache(valor[k]);
+        });
+        return limpo;
     },
 
     _salvarCacheNavegador() {
-        try {
-            const payload = JSON.stringify({
-                areas: this.dados.areas,
-                cursos: this.dados.cursos,
-                ucs: this.dados.ucs,
-                turmas: this.dados.turmas,
-                encontros: this.dados.encontros,
-                excecoes: this.dados.excecoes,
-                salas: this.dados.salas,
-                usuarios: this.dados.usuarios
-            });
-            sessionStorage.setItem(STORAGE_CACHE_KEY, payload);
-            localStorage.setItem(STORAGE_CACHE_KEY, payload);
-        } catch (err) {
-            console.warn("[Store] Limite de armazenamento local atingido:", err);
-        }
+        if (!this._usuarioId) return;
+        if (this._cacheTimer) clearTimeout(this._cacheTimer);
+        this._cacheTimer = setTimeout(() => {
+            this._cacheTimer = null;
+            try {
+                const data = {};
+                Object.keys(this.dados).forEach(k => { data[k] = this._sanitizarCache(this.dados[k]); });
+                localStorage.setItem(this._chaveCache(), JSON.stringify({ version: 2, user: this._usuarioId, savedAt: Date.now(), data }));
+            } catch (err) {
+                console.warn("[Store] Limite de armazenamento local atingido:", err);
+            }
+        }, STORAGE_CACHE_DEBOUNCE_MS);
     },
 
-    async iniciar() {
-        return this.garantirPronto();
-    },
+    async iniciar() { return this.garantirPronto(); },
 
-    // Garante que os listeners foram ativados e que os dados estão prontos para qualquer Controller
-    async garantirPronto() {
-        if (this.inicializado && this.listeners.length > 0) {
-            return this.dados;
-        }
-        if (this._promessaInicio) {
-            return this._promessaInicio;
-        }
+    async garantirPronto(usuario) {
+        const uid = this._identificarUsuario(usuario);
+        if (!uid) return this.dados;
+        if (this._usuarioId && this._usuarioId !== uid) this.limpar(false);
+        this._usuarioId = uid;
+        if (this.inicializado && this.listeners.length > 0) return this.dados;
+        if (this._promessaInicio) return this._promessaInicio;
 
-        const tinhaCacheLocal = this._carregarCacheNavegador();
-
-        this._promessaInicio = new Promise((resolve) => {
+        const tinhaCacheLocal = this._carregarCacheNavegador(uid);
+        this._promessaInicio = new Promise(resolve => {
             const colecoes = [
-                { col: "areas", chave: "areas" },
-                { col: "cursos", chave: "cursos" },
-                { col: "ucs", chave: "ucs" },
-                { col: "turmas", chave: "turmas" },
-                { col: "encontros", chave: "encontros" },
-                { col: "datas_excecoes", chave: "excecoes" },
-                { col: "salas_aula", chave: "salas" },
-                { col: "usuarios", chave: "usuarios" }
+                { col: "areas", chave: "areas" }, { col: "cursos", chave: "cursos" },
+                { col: "ucs", chave: "ucs" }, { col: "turmas", chave: "turmas" },
+                { col: "encontros", chave: "encontros" }, { col: "datas_excecoes", chave: "excecoes" },
+                { col: "salas_aula", chave: "salas" }, { col: "usuarios", chave: "usuarios" }
             ];
-
             let pendentes = colecoes.length;
             let resolvido = false;
-
             const concluir = () => {
                 if (resolvido) return;
                 resolvido = true;
@@ -94,94 +102,51 @@ window.Store = {
                 this._salvarCacheNavegador();
                 resolve(this.dados);
             };
-
-            // Se já existia cache no navegador, libera a interface rapidamente sem travar
-            if (tinhaCacheLocal && (this.dados.cursos.length > 0 || this.dados.turmas.length > 0 || this.dados.usuarios.length > 0)) {
-                setTimeout(concluir, 60);
-            }
-
-            // Timeout de segurança para nunca travar a tela caso alguma coleção demore ou falhe
+            if (tinhaCacheLocal && (this.dados.cursos.length || this.dados.turmas.length || this.dados.usuarios.length)) setTimeout(concluir, 60);
             const timerSeguranca = setTimeout(concluir, 4000);
-
             const checkPronto = () => {
-                pendentes--;
-                if (pendentes <= 0) {
-                    clearTimeout(timerSeguranca);
-                    concluir();
-                }
+                if (--pendentes <= 0) { clearTimeout(timerSeguranca); concluir(); }
             };
-
-            colecoes.forEach(({ col, chave }) => {
-                this._escutarColecao(col, chave, checkPronto);
-            });
+            colecoes.forEach(({ col, chave }) => this._escutarColecao(col, chave, checkPronto));
         });
-
         return this._promessaInicio;
     },
 
     _escutarColecao(nomeColecao, nomeEstado, callbackInicial) {
-        if (!window.db) {
-            callbackInicial();
-            return;
-        }
-
+        if (!window.db) { callbackInicial(); return; }
         let primeiroDisparo = true;
-        const unsubscribe = window.db.collection(nomeColecao).onSnapshot((snapshot) => {
+        const unsubscribe = window.db.collection(nomeColecao).onSnapshot(snapshot => {
             const teveMudancaReal = snapshot.docChanges().length > 0;
             if (primeiroDisparo || teveMudancaReal) {
-                const lista = [];
-                snapshot.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
-                this.dados[nomeEstado] = lista;
-
-                if (nomeEstado === "usuarios") {
-                    this._processarDocentes();
-                }
+                this.dados[nomeEstado] = [];
+                snapshot.forEach(doc => this.dados[nomeEstado].push({ id: doc.id, ...doc.data() }));
+                if (nomeEstado === "usuarios") this._processarDocentes();
                 this._salvarCacheNavegador();
-
-                if (!primeiroDisparo && teveMudancaReal && typeof this.onUpdateCallback === "function") {
-                    this.onUpdateCallback(nomeEstado);
-                }
+                if (!primeiroDisparo && teveMudancaReal && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado);
+                if (primeiroDisparo && this.inicializado && this._cacheRestaurado && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado, { snapshotInicial: true });
             }
-
-            if (primeiroDisparo) {
-                primeiroDisparo = false;
-                callbackInicial();
-            }
-        }, (err) => {
+            if (primeiroDisparo) { primeiroDisparo = false; callbackInicial(); }
+        }, err => {
             console.warn(`[Store] Aviso ao monitorar coleção '${nomeColecao}':`, err.message);
-            if (primeiroDisparo) {
-                primeiroDisparo = false;
-                callbackInicial();
-            }
+            if (primeiroDisparo) { primeiroDisparo = false; callbackInicial(); }
         });
-
         this.listeners.push(unsubscribe);
     },
 
     _processarDocentes() {
         const norm = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-        this.dados.docentes = (this.dados.usuarios || []).filter(u =>
-            u.status === "ativo" &&
-            norm(u.cargo) === "docente" &&
-            Array.isArray(u.perfis) &&
-            u.perfis.some(p => norm(p) === "docente")
-        );
+        this.dados.docentes = (this.dados.usuarios || []).filter(u => u.status === "ativo" && norm(u.cargo) === "docente" && Array.isArray(u.perfis) && u.perfis.some(p => norm(p) === "docente"));
     },
 
-    // Atualiza ou insere imediatamente um item no cache em memória e no navegador
     upsertLocal(chave, item) {
         if (!item || !item.id || !Array.isArray(this.dados[chave])) return;
         const idx = this.dados[chave].findIndex(x => x.id === item.id);
-        if (idx >= 0) {
-            this.dados[chave][idx] = { ...this.dados[chave][idx], ...item };
-        } else {
-            this.dados[chave].push(item);
-        }
+        if (idx >= 0) this.dados[chave][idx] = { ...this.dados[chave][idx], ...item };
+        else this.dados[chave].push(item);
         if (chave === "usuarios") this._processarDocentes();
         this._salvarCacheNavegador();
     },
 
-    // Remove imediatamente um item do cache em memória e do navegador
     removerLocal(chave, id) {
         if (!id || !Array.isArray(this.dados[chave])) return;
         this.dados[chave] = this.dados[chave].filter(x => x.id !== id);
@@ -189,23 +154,18 @@ window.Store = {
         this._salvarCacheNavegador();
     },
 
-    limpar() {
-        this.listeners.forEach(unsub => {
-            try { unsub(); } catch (_) {}
-        });
+    limpar(apagarCache = true) {
+        this.listeners.forEach(unsub => { try { unsub(); } catch (_) {} });
         this.listeners = [];
+        if (this._cacheTimer) { clearTimeout(this._cacheTimer); this._cacheTimer = null; }
+        if (apagarCache && this._usuarioId) { try { localStorage.removeItem(this._chaveCache()); } catch (_) {} }
         this.inicializado = false;
         this._promessaInicio = null;
+        this._usuarioId = null;
+        this._cacheRestaurado = false;
         Object.keys(this.dados).forEach(k => { this.dados[k] = []; });
-        try {
-            sessionStorage.removeItem(STORAGE_CACHE_KEY);
-            localStorage.removeItem(STORAGE_CACHE_KEY);
-        } catch (_) {}
     }
 };
-
-// Carrega dados prévios do navegador imediatamente ao abrir o script
-window.Store._carregarCacheNavegador();
 
 window.Controller = {
 
@@ -213,13 +173,11 @@ window.Controller = {
         const emailId = (email || "").trim().toLowerCase();
         if (!emailId) return "sem_acesso";
 
-        // Inicia os listeners e o cache global assim que o usuário autentica
-        await window.Store.garantirPronto();
-
         if (isSuperUser) {
             const todosPerfis = ["root", "admin", "tecnico", "docente", "apoio"];
-            const existente = window.Store.dados.usuarios.find(u => (u.id || u.email || "").toLowerCase() === emailId);
             const refRoot = window.db.collection("usuarios").doc(emailId);
+            const snapRoot = await refRoot.get();
+            const existente = snapRoot.exists ? { id: snapRoot.id, ...snapRoot.data() } : null;
 
             if (!existente) {
                 const novoRoot = {
@@ -237,6 +195,7 @@ window.Controller = {
                     criado_em: new Date().toISOString()
                 };
                 await refRoot.set(novoRoot);
+                await window.Store.garantirPronto(emailId);
                 window.Store.upsertLocal("usuarios", novoRoot);
             } else if (existente.cargo !== "root" || existente.status !== "ativo") {
                 await refRoot.update({
@@ -244,22 +203,15 @@ window.Controller = {
                     perfis: todosPerfis,
                     status: "ativo"
                 });
+                await window.Store.garantirPronto(emailId);
                 window.Store.upsertLocal("usuarios", { ...existente, id: emailId, cargo: "root", perfis: todosPerfis, status: "ativo" });
-            }
+            } else await window.Store.garantirPronto(emailId);
             return "root";
         }
 
-        // 1. Busca primeiro em memória no Store (0 leituras extras)
-        let dados = window.Store.dados.usuarios.find(u => (u.id || u.email || "").toLowerCase() === emailId);
-
-        // Fallback seguro caso o documento acabe de ser criado e ainda não conste no Store
-        if (!dados) {
-            const docUsuario = await window.db.collection("usuarios").doc(emailId).get();
-            if (docUsuario.exists) {
-                dados = { id: docUsuario.id, ...docUsuario.data() };
-                window.Store.upsertLocal("usuarios", dados);
-            }
-        }
+        // Autoriza pelo documento individual antes de ativar listeners de coleções globais.
+        const docUsuario = await window.db.collection("usuarios").doc(emailId).get();
+        const dados = docUsuario.exists ? { id: docUsuario.id, ...docUsuario.data() } : null;
 
         if (dados) {
             if (dados.status === "pendente" || dados.cargo === "pendente") {
@@ -268,6 +220,8 @@ window.Controller = {
             if (dados.status === "inativo" || dados.status === "bloqueado") {
                 return "sem_acesso";
             }
+            await window.Store.garantirPronto(emailId);
+            window.Store.upsertLocal("usuarios", dados);
             return dados.cargo || "apoio";
         }
 
@@ -275,6 +229,7 @@ window.Controller = {
         try {
             const docPerm = await window.db.collection("permissoes").doc(emailId).get();
             if (docPerm.exists) {
+                await window.Store.garantirPronto(emailId);
                 return docPerm.data().cargo || "apoio";
             }
         } catch (_) {}
