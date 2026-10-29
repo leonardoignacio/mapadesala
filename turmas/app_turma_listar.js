@@ -182,7 +182,7 @@ window.AppTurmaListar = {
             const chks = areasUnicas.map(nomeArea => {
                 const isChecked = isTodosChecked || normSelecionadas.has(this._norm(nomeArea));
                 const attrItem = isChecked ? 'checked' : '';
-                return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + nomeArea + '" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + nomeArea + '">' + nomeArea + '</span></label>';
+                return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + window.Util.esc(nomeArea) + '" class="popover-area-turma-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + window.Util.esc(nomeArea) + '">' + window.Util.esc(nomeArea) + '</span></label>';
             }).join('');
 
             containerAreas.innerHTML = 
@@ -286,7 +286,7 @@ window.AppTurmaListar = {
             const areaTooltip = turma.area || "";
 
             const htmlSiglaArea = siglaArea
-                ? ' <span class="text-slate-300 font-normal">|</span> <span class="text-blue-600 font-extrabold" title="' + areaTooltip + '">' + siglaArea + '</span>'
+                ? ' <span class="text-slate-300 font-normal">|</span> <span class="text-blue-600 font-extrabold" title="' + window.Util.esc(areaTooltip) + '">' + window.Util.esc(siglaArea) + '</span>'
                 : '';
 
             const htmlBotoesAcao = temPermissaoEdicao
@@ -330,10 +330,10 @@ window.AppTurmaListar = {
                     return `
                     <tr class="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer row-turma-uc group/uc border-b border-slate-100 last:border-0" data-turma-id="${turma.id}" data-uc-idx="${idx}" title="${tooltipUC}">
                         <td class="px-1.5 py-2 md:p-3 w-[16%] md:w-[12%] text-[11px] md:text-xs font-bold text-slate-600 whitespace-normal break-words group-hover/uc:text-blue-600">
-                            ${uc.referencia}
+                            ${window.Util.esc(uc.referencia)}
                         </td>
                         <td class="px-1.5 py-2 md:p-3 w-[34%] md:w-[38%] text-[11px] leading-snug md:text-sm font-medium text-slate-700 whitespace-normal break-words">
-                            ${uc.titulo}
+                            ${window.Util.esc(uc.titulo)}
                         </td>
                         <td class="px-1.5 py-2 md:p-3 w-[18%] md:w-[16%] text-[10px] md:text-xs font-semibold text-slate-500 whitespace-normal break-words">
                             Aula: <span class="text-slate-800 font-bold">${nAulaTexto}</span>
@@ -366,17 +366,17 @@ window.AppTurmaListar = {
                     ${htmlBotoesAcao}
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[22%] md:w-[18%] whitespace-normal break-words">
-                    <p class="text-[11px] md:text-sm font-black text-blue-600 leading-tight">${turma.referencia}</p>
+                    <p class="text-[11px] md:text-sm font-black text-blue-600 leading-tight">${window.Util.esc(turma.referencia)}</p>
                     <p class="text-[9px] md:text-xs font-semibold text-slate-400">Oferta: <span class="font-normal text-slate-500">${ofertaTexto}</span></p>
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[34%] md:w-[38%] whitespace-normal break-words">
                     <p class="text-[11px] leading-snug md:text-sm font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
-                        ${turma.curso_titulo}${htmlSiglaArea}
+                        ${window.Util.esc(turma.curso_titulo)}${htmlSiglaArea}
                     </p>
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[20%] md:w-[22%] whitespace-normal break-words">
                     <span class="inline-block p-1 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs md:border md:shadow-sm ${badgePeriodo} leading-relaxed">
-                        <strong class="font-extrabold">${turma.periodo}</strong><br>
+                        <strong class="font-extrabold">${window.Util.esc(turma.periodo)}</strong><br>
                         <span class="font-medium">${turma.h_inicio} - ${turma.h_termino} (${chEncontroFormatada}h)</span><br>
                         <span class="text-[10px] font-bold text-slate-600">${diasTexto}</span>
                     </span>
@@ -395,7 +395,7 @@ window.AppTurmaListar = {
                 <td colspan="5" class="p-0 border-b-2 border-blue-100">
                     <div class="p-3 md:p-5 pl-3 md:pl-12 border-l-4 border-blue-400 bg-gradient-to-r from-blue-50/50 to-transparent">
                         <div class="mb-2.5 text-xs md:text-sm text-slate-700 leading-relaxed">
-                            <strong class="font-bold text-blue-800 uppercase tracking-wide">UCs da Turma (${turma.referencia})</strong>
+                            <strong class="font-bold text-blue-800 uppercase tracking-wide">UCs da Turma (${window.Util.esc(turma.referencia)})</strong>
                             <span class="text-slate-300 mx-1.5">|</span>
                             <strong class="font-bold text-slate-800">Início:</strong> <span class="font-normal text-slate-600">${dataInicioBR}</span>
                             <span class="text-slate-300 mx-1.5">|</span>
@@ -464,11 +464,15 @@ window.AppTurmaListar = {
         if (e.target.closest('.btn-excluir-turma')) {
             if (!this.podeEditar()) return true;
             const id = e.target.closest('.btn-excluir-turma').getAttribute('data-id');
-            if (confirm("ATENÇÃO: Confirma a exclusão desta Turma e do histórico de progresso de suas UCs?")) {
-                await window.ControllerTurmaListar.excluirTurma(id);
-                await this.carregarDadosBase();
-                this.popularFiltrosESelects();
-                this.renderizarTabelaTurmas();
+            if (await window.Dialog.confirmar("Confirma a exclusão desta Turma e do histórico de progresso de suas UCs?", { perigo: true, textoConfirmar: "Excluir" })) {
+                try {
+                    await window.ControllerTurmaListar.excluirTurma(id);
+                    await this.carregarDadosBase();
+                    this.popularFiltrosESelects();
+                    this.renderizarTabelaTurmas();
+                } catch (err) {
+                    await window.Dialog.erro(err, "Não foi possível excluir a turma");
+                }
             }
             return true;
         }

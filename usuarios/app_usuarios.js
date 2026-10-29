@@ -82,7 +82,7 @@ window.AppUsuarios = {
 
         // Botão de excluir o próprio cadastro e solicitação (na aba Home do Dashboard pendente)
         if (e.target.closest('#btn-excluir-proprio-cadastro')) {
-            const confirmacao = confirm("ATENÇÃO: Tem certeza que deseja excluir seu pré-cadastro e cancelar sua solicitação de credenciamento?");
+            const confirmacao = await window.Dialog.confirmar("Tem certeza que deseja excluir seu pré-cadastro e cancelar sua solicitação de credenciamento?", { perigo: true, titulo: "Excluir pré-cadastro", textoConfirmar: "Excluir cadastro" });
             if (!confirmacao) return true;
 
             const btn = e.target.closest('#btn-excluir-proprio-cadastro');
@@ -92,9 +92,9 @@ window.AppUsuarios = {
 
             try {
                 await window.ControllerUsuarios.excluirCadastroProprio(window.usuarioAtual.email);
-                alert("Seu cadastro e sua solicitação de credenciamento foram excluídos com sucesso.");
+                await window.Dialog.sucesso("Seu cadastro e sua solicitação de credenciamento foram excluídos com sucesso.");
             } catch (err) {
-                alert("Erro ao excluir cadastro: " + err.message);
+                await window.Dialog.erro(err, "Erro ao excluir cadastro");
                 btn.innerText = textoOriginal;
                 btn.disabled = false;
             }
@@ -128,7 +128,7 @@ window.AppUsuarios = {
                     solicitacao_credenciamento: document.getElementById('pre-cad-solicitacao').value
                 };
 
-                const novoUsuario = await window.ControllerUsuarios.registrarPreCadastro(dados, !isOrigemGoogle);
+                const novoUsuario = await window.ControllerUsuarios.registrarPreCadastro(dados, isOrigemGoogle);
 
                 document.getElementById('modal-pre-cadastro')?.classList.add('hidden');
                 e.target.reset();
@@ -152,7 +152,7 @@ window.AppUsuarios = {
                 window.location.hash = '#/dashboard';
                 if (typeof roteador === 'function') await roteador();
             } catch (err) {
-                alert(err.message);
+                await window.Dialog.erro(err, "Não foi possível enviar a solicitação");
             } finally {
                 if (btnSubmit) {
                     btnSubmit.innerText = textoOriginal;
@@ -189,9 +189,9 @@ window.AppUsuarios = {
                 window.usuarioAtual.cargo_solicitado = atualizados.cargo_solicitado;
                 window.usuarioAtual.solicitacao_credenciamento = atualizados.solicitacao_credenciamento;
 
-                alert("Solicitação de credenciamento atualizada e reenviada com sucesso!");
+                await window.Dialog.sucesso("Solicitação de credenciamento atualizada e reenviada com sucesso!");
             } catch (err) {
-                alert("Erro ao reenviar solicitação: " + err.message);
+                await window.Dialog.erro(err, "Erro ao reenviar solicitação");
             } finally {
                 if (btnSubmit) {
                     btnSubmit.innerText = textoOriginal;

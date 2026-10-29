@@ -65,7 +65,7 @@ window.ViewsCalendarioFrms = {
                                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Exceção</label>
                                 <select id="add-cal-tipo" class="w-full border border-slate-300 p-2 md:p-3 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base cursor-pointer" required>
                                     <option value="" disabled selected>Selecione...</option>
-                                    <option value="Feriado">Feriado</option>
+                                    <option value="Feriado Nacional">Feriado Nacional</option><option value="Feriado Estadual">Feriado Estadual</option><option value="Feriado Municipal">Feriado Municipal</option><option value="Feriado">Feriado (data variável)</option>
                                     <option value="Ponte">Ponte</option>
                                     <option value="Reunião Pedagógica">Reunião Pedagógica</option>
                                     <option value="Domingo">Domingo</option>

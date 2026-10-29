@@ -26,7 +26,18 @@ window.auth.onAuthStateChanged(async (user) => {
         document.getElementById('loading-text').innerText = "Verificando credenciamento...";
         
         const isSuperUser = (user.email.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
-        const cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
+        let cargo;
+        try {
+            cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
+        } catch (err) {
+            // Ex.: sem internet, regras do Firestore ou limite diário do plano gratuito atingido.
+            console.error('[Auth] Falha ao verificar credenciamento:', err);
+            UI.load.classList.add('hidden');
+            UI.login.classList.remove('hidden');
+            await window.auth.signOut();
+            await window.Dialog.erro(err, 'Não foi possível verificar seu credenciamento');
+            return;
+        }
 
         if (cargo === 'nao_cadastrado') {
             UI.load.classList.add('hidden');
@@ -38,12 +49,17 @@ window.auth.onAuthStateChanged(async (user) => {
         }
 
         if (cargo === 'sem_acesso') {
-            alert("Acesso Negado: Seu perfil encontra-se bloqueado ou sem permissão de acesso.");
             await window.auth.signOut();
+            await window.Dialog.aviso("Seu perfil encontra-se bloqueado ou sem permissão de acesso.", "Acesso negado");
             return;
         }
 
-        const dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
+        let dadosUsuario = null;
+        try {
+            dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
+        } catch (err) {
+            console.warn('[Auth] Não foi possível carregar os dados do usuário:', err);
+        }
         window.usuarioAtual = {
             email: user.email.toLowerCase(),
             cargo: cargo,
@@ -69,12 +85,17 @@ window.auth.onAuthStateChanged(async (user) => {
     }
 });
 
-document.getElementById('btn-google-login').onclick = () => window.auth.signInWithPopup(window.googleProvider);
+document.getElementById('btn-google-login').onclick = () => {
+    window.auth.signInWithPopup(window.googleProvider).catch(err => {
+        if (['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(err.code)) return; // fechou a janela: não é erro
+        window.Dialog.erro(err, 'Erro ao autenticar');
+    });
+};
 
 document.getElementById('login-form').onsubmit = (e) => {
     e.preventDefault();
     window.auth.signInWithEmailAndPassword(document.getElementById('email-input').value, document.getElementById('password-input').value)
-        .catch(err => alert("Erro ao autenticar: " + err.message));
+        .catch(err => window.Dialog.erro(err, 'Erro ao autenticar'));
 };
 
 // ==========================================
@@ -244,6 +265,11 @@ window.Store.onUpdateCallback = () => {
         if (document.querySelector('[role="dialog"]:not(.hidden)')) return;
         const pendentes = window.AppEspelho?.pendenciasArraste;
         if (pendentes?.size || window.AppEspelho?.alvosEdicaoLote?.size) return;
+        // Espelho: atualização suave (mantém a rolagem exatamente onde está). Demais telas: re-render completo.
+        if (window.location.hash === '#/espelho' && window.AppEspelho?.atualizarSuave && document.getElementById('espelho-painel')) {
+            window.AppEspelho.atualizarSuave().catch(() => roteador());
+            return;
+        }
         roteador();
     }, 220);
 };
@@ -259,12 +285,12 @@ document.addEventListener('submit', async (e) => {
 
     if (window.usuarioAtual.cargo === 'pendente') {
         e.preventDefault();
-        return alert("Acesso restrito: Aguardando credenciamento.");
+        return window.Dialog.aviso("Aguardando credenciamento. Esta operação só será liberada após a análise da sua solicitação.", "Acesso restrito");
     }
 
     if(window.usuarioAtual.cargo === 'apoio') {
         e.preventDefault();
-        return alert("Perfil Somente Leitura: Operação de gravação não permitida.");
+        return window.Dialog.aviso("Seu perfil é somente leitura e não permite gravar alterações.", "Perfil somente leitura");
     }
     
     if (window.AppCalendarioFrms && await window.AppCalendarioFrms.tratarSubmits(e)) return;

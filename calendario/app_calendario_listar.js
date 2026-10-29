@@ -37,7 +37,7 @@ window.AppCalendarioListar = {
             const isTodosChecked = this.filtrosCalendario.tipos.includes("Todos");
             const chks = tiposUnicos.map(t => {
                 const isChecked = isTodosChecked || this.filtrosCalendario.tipos.includes(t);
-                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-medium text-slate-700"><input type="checkbox" value="${t}" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${t}">${t}</span></label>`;
+                return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-medium text-slate-700"><input type="checkbox" value="${window.Util.esc(t)}" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${window.Util.esc(t)}">${window.Util.esc(t)}</span></label>`;
             }).join('');
             containerTipos.innerHTML = `
                 <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition font-semibold text-slate-700"><input type="checkbox" value="Todos" class="popover-tipo-cal-chk w-4 h-4 text-blue-600 rounded" ${isTodosChecked ? 'checked' : ''}> Todos</label>
@@ -99,16 +99,16 @@ window.AppCalendarioListar = {
             else if (tipoLower.includes("cancelamento")) badgeColor = "text-orange-700 md:bg-orange-50 md:border-orange-200";
 
             return `
-            <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-default row-calendario group border-b border-slate-100" data-id="${exc.data}">
+            <tr class="hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 cursor-default row-calendario group border-b border-slate-100" data-id="${window.Util.esc(exc.data)}">
                 <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     ${temPermissaoEdicao
-                        ? `<span class="btn-excluir-cal transform hover:scale-110 transition-transform cursor-pointer inline-block" data-id="${exc.data}" title="Excluir">${svgLixeira}</span>`
+                        ? `<span class="btn-excluir-cal transform hover:scale-110 transition-transform cursor-pointer inline-block" data-id="${window.Util.esc(exc.data)}" title="Excluir">${svgLixeira}</span>`
                         : `<span class="text-slate-300">-</span>`}
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-slate-700 align-middle whitespace-nowrap w-[22%] md:w-[15%] group-hover:text-blue-700 transition-colors">${dataBR}</td>
                 <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words md:whitespace-nowrap w-[22%] md:w-[15%]">${exc.dia_semana}</td>
-                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${exc.excecao}</span></td>
-                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${exc.descricao}</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[18%]"><span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${window.Util.esc(exc.excecao)}</span></td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-600 align-middle whitespace-normal break-words w-[30%] md:w-[45%] group-hover:text-slate-800 transition-colors">${window.Util.esc(exc.descricao)}</td>
             </tr>
             `;
         }).join('');
@@ -148,11 +148,15 @@ window.AppCalendarioListar = {
         if (e.target.closest('.btn-excluir-cal')) {
             if (!this.podeEditar()) return true;
             const id = e.target.closest('.btn-excluir-cal').getAttribute('data-id');
-            if(confirm("Confirma exclusão desta exceção no calendário?")) {
-                await window.ControllerCalendarioListar.excluirExcecao(id);
-                await this.carregarDadosBase();
-                this.popularFiltros();
-                this.renderizarTabelaCalendario();
+            if (await window.Dialog.confirmar("Confirma exclusão desta exceção no calendário?", { perigo: true, titulo: "Excluir exceção", textoConfirmar: "Excluir" })) {
+                try {
+                    await window.ControllerCalendarioListar.excluirExcecao(id);
+                    await this.carregarDadosBase();
+                    this.popularFiltros();
+                    this.renderizarTabelaCalendario();
+                } catch (err) {
+                    await window.Dialog.erro(err, "Não foi possível excluir a exceção");
+                }
             }
             return true;
         }

@@ -90,11 +90,11 @@ window.ViewsUsuarios = {
 
     // View exibida exclusivamente no Dashboard quando o usuário logado está com status "pendente"
     renderizarDashboardPendente(usuario) {
-        const nome = usuario?.nome || "";
-        const sobrenome = usuario?.sobrenome || "";
-        const email = usuario?.email || "";
+        const nome = window.Util.esc(usuario?.nome || "");
+        const sobrenome = window.Util.esc(usuario?.sobrenome || "");
+        const email = window.Util.esc(usuario?.email || "");
         const cargoSolicitado = usuario?.cargo_solicitado || "docente";
-        const solicitacao = usuario?.solicitacao_credenciamento || "";
+        const solicitacao = window.Util.esc(usuario?.solicitacao_credenciamento || "");
 
         return `
         <div class="px-2 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-y-auto flex flex-col w-full relative">

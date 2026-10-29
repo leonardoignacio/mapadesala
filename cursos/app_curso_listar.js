@@ -132,7 +132,7 @@ window.AppCursoListar = {
             const chksAreas = this.cacheAreas.map(a => {
                 const isChecked = isTodosChecked || normSelecionadas.has(this._norm(a.nome));
                 const attrItem = isChecked ? 'checked' : '';
-                return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + a.nome + '" class="popover-area-curso-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + a.nome + '">' + a.nome + '</span></label>';
+                return '<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="' + window.Util.esc(a.nome) + '" class="popover-area-curso-chk w-4 h-4 text-blue-600 rounded" ' + attrItem + '> <span class="truncate" title="' + window.Util.esc(a.nome) + '">' + window.Util.esc(a.nome) + '</span></label>';
             }).join('');
             
             containerAreas.innerHTML = 
@@ -257,8 +257,8 @@ window.AppCursoListar = {
                         <td class="px-1.5 py-2 md:p-3 w-[12%] md:w-[8%] text-center flex items-center justify-center relative z-10">
                             ${acaoUC}
                         </td>
-                        <td class="px-1.5 py-2 md:p-3 w-[20%] text-[11px] md:text-sm font-bold text-slate-500 whitespace-normal break-words group-hover/uc:text-blue-600 transition-colors">${uc.referencia}</td>
-                        <td class="px-1.5 py-2 md:p-3 w-[53%] md:w-[57%] text-[11px] leading-snug md:text-sm font-medium text-slate-600 whitespace-normal break-words group-hover/uc:text-slate-800 transition-colors">${uc.titulo}</td>
+                        <td class="px-1.5 py-2 md:p-3 w-[20%] text-[11px] md:text-sm font-bold text-slate-500 whitespace-normal break-words group-hover/uc:text-blue-600 transition-colors">${window.Util.esc(uc.referencia)}</td>
+                        <td class="px-1.5 py-2 md:p-3 w-[53%] md:w-[57%] text-[11px] leading-snug md:text-sm font-medium text-slate-600 whitespace-normal break-words group-hover/uc:text-slate-800 transition-colors">${window.Util.esc(uc.titulo)}</td>
                         <td class="px-1.5 py-2 md:p-3 w-[15%] text-[11px] md:text-sm font-bold text-blue-600 whitespace-nowrap text-right group-hover/uc:text-blue-700 transition-colors">${uc.carga_horaria}h</td>
                     </tr>
                     `;
@@ -277,9 +277,9 @@ window.AppCursoListar = {
                 <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     ${htmlAcaoCurso}
                 </td>
-                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-blue-600 align-middle whitespace-normal break-words md:whitespace-nowrap w-[14%] md:w-[10%]">${curso.sigla || '---'}</td>
-                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[30%] md:w-[35%] group-hover:text-blue-700 transition-colors">${curso.titulo}</td>
-                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[18%] md:w-[20%]">${curso.area}</td>
+                <td class="px-1 py-2 md:py-4 md:px-3 text-[11px] md:text-sm font-black text-blue-600 align-middle whitespace-normal break-words md:whitespace-nowrap w-[14%] md:w-[10%]">${window.Util.esc(curso.sigla || '---')}</td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-base font-bold text-slate-800 align-middle whitespace-normal break-words w-[30%] md:w-[35%] group-hover:text-blue-700 transition-colors">${window.Util.esc(curso.titulo)}</td>
+                <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] leading-snug md:text-sm font-medium text-slate-500 align-middle whitespace-normal break-words w-[18%] md:w-[20%]">${window.Util.esc(curso.area)}</td>
                 <td class="px-1 py-2 text-center md:py-4 md:px-4 align-middle w-[14%] md:w-[13%]"><span class="p-0 text-center border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[11px] md:text-xs font-bold md:border md:shadow-sm ${badgeColor} whitespace-normal break-words md:whitespace-nowrap">${curso.tipo}</span></td>
                 <td class="px-1 py-2 md:py-4 md:px-4 text-[11px] md:text-base font-black text-slate-700 align-middle whitespace-nowrap w-[14%] md:w-[15%] text-right group-hover:text-blue-600 transition-colors">${chTotal}h</td>
             </tr>
@@ -353,11 +353,15 @@ window.AppCursoListar = {
         if (e.target.closest('.btn-excluir-curso')) {
             if (!this.podeEditar()) return true;
             const id = e.target.closest('.btn-excluir-curso').getAttribute('data-id');
-            if(confirm("ATENÇÃO: Excluir este curso também excluirá TODAS as UCs vinculadas a ele. Confirma?")) {
-                await window.ControllerCursoListar.excluirCurso(id);
-                await this.carregarDadosBase();
-                this.renderizarTabelaCursos();
-                this.popularFiltrosESelects();
+            if(await window.Dialog.confirmar("Excluir este curso também excluirá TODAS as UCs vinculadas a ele. Confirma?", { perigo: true, textoConfirmar: "Excluir" })) {
+                try {
+                    await window.ControllerCursoListar.excluirCurso(id);
+                    await this.carregarDadosBase();
+                    this.renderizarTabelaCursos();
+                    this.popularFiltrosESelects();
+                } catch (err) {
+                    await window.Dialog.erro(err, "Não foi possível excluir o curso");
+                }
             }
             return true;
         }
@@ -365,10 +369,14 @@ window.AppCursoListar = {
         if (e.target.closest('.btn-excluir-uc')) {
             if (!this.podeEditar()) return true;
             const id = e.target.closest('.btn-excluir-uc').getAttribute('data-id');
-            if(confirm("Confirma exclusão desta UC?")) {
-                await window.ControllerCursoListar.excluirUC(id);
-                await this.carregarDadosBase();
-                this.renderizarTabelaCursos();
+            if(await window.Dialog.confirmar("Confirma exclusão desta UC?", { perigo: true, textoConfirmar: "Excluir" })) {
+                try {
+                    await window.ControllerCursoListar.excluirUC(id);
+                    await this.carregarDadosBase();
+                    this.renderizarTabelaCursos();
+                } catch (err) {
+                    await window.Dialog.erro(err, "Não foi possível excluir a UC");
+                }
             }
             return true;
         }

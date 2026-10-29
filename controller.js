@@ -2,6 +2,11 @@
 const STORAGE_CACHE_PREFIX = "inovatech_store_cache_v2:";
 const STORAGE_CACHE_TTL_MS = 15 * 60 * 1000;
 const STORAGE_CACHE_DEBOUNCE_MS = 250;
+// Perfis que gerenciam credenciamento e, por isso, podem manter os dados completos de todos os usuários.
+const CARGOS_GESTORES = ["root", "admin", "tecnico"];
+// Campos de outros usuários que os demais perfis (docente/apoio) precisam para montar o Espelho.
+// Justificativas de credenciamento, datas de auditoria e usuários pendentes/inativos NÃO são mantidos.
+const CAMPOS_USUARIO_PUBLICOS = ["id", "email", "nome", "sobrenome", "nome_completo", "cargo", "perfis", "areas", "status"];
 
 window.Store = {
     dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], docentes: [] },
@@ -9,9 +14,30 @@ window.Store = {
     inicializado: false,
     _promessaInicio: null,
     _usuarioId: null,
+    cargo: null,
     _cacheTimer: null,
     _cacheRestaurado: false,
     onUpdateCallback: null,
+
+    _ehGestor() { return CARGOS_GESTORES.includes(this.cargo); },
+
+    // Mantém apenas os campos não sensíveis de usuários que não sejam o próprio titular.
+    _projetarUsuario(u) {
+        if (!u || this._ehGestor() || u.id === (this._usuarioId || this._identificarUsuario())) return u;
+        const publico = {};
+        CAMPOS_USUARIO_PUBLICOS.forEach(c => { if (u[c] !== undefined) publico[c] = u[c]; });
+        return publico;
+    },
+
+    _aplicarProjecaoUsuarios() {
+        if (this._ehGestor()) return;
+        const meuId = this._usuarioId || this._identificarUsuario();
+        this.dados.usuarios = (this.dados.usuarios || [])
+            .filter(u => u.id === meuId || u.status === "ativo")
+            .map(u => this._projetarUsuario(u));
+    },
+
+    definirCargo(cargo) { this.cargo = cargo || null; },
 
     _identificarUsuario(usuario) {
         const valor = usuario || window.usuarioAtual?.email || window.auth?.currentUser?.email || "";
@@ -25,7 +51,7 @@ window.Store = {
     _carregarCacheNavegador(usuario) {
         const uid = this._identificarUsuario(usuario);
         if (!uid) return false;
-        if (this._usuarioId && this._usuarioId !== uid) this.limpar(false);
+        if (this._usuarioId && this._usuarioId !== uid) { const cargoAtual = this.cargo; this.limpar(false); this.cargo = cargoAtual; }
         this._usuarioId = uid;
         try {
             const chave = this._chaveCache();
@@ -39,6 +65,7 @@ window.Store = {
             Object.keys(this.dados).forEach(k => {
                 if (Array.isArray(parsed.data?.[k])) this.dados[k] = parsed.data[k];
             });
+            this._aplicarProjecaoUsuarios();
             this._cacheRestaurado = true;
             this._processarDocentes();
             return true;
@@ -79,7 +106,7 @@ window.Store = {
     async garantirPronto(usuario) {
         const uid = this._identificarUsuario(usuario);
         if (!uid) return this.dados;
-        if (this._usuarioId && this._usuarioId !== uid) this.limpar(false);
+        if (this._usuarioId && this._usuarioId !== uid) { const cargoAtual = this.cargo; this.limpar(false); this.cargo = cargoAtual; }
         this._usuarioId = uid;
         if (this.inicializado && this.listeners.length > 0) return this.dados;
         if (this._promessaInicio) return this._promessaInicio;
@@ -115,12 +142,14 @@ window.Store = {
     _escutarColecao(nomeColecao, nomeEstado, callbackInicial) {
         if (!window.db) { callbackInicial(); return; }
         let primeiroDisparo = true;
-        const unsubscribe = window.db.collection(nomeColecao).onSnapshot(snapshot => {
+        let consulta = window.db.collection(nomeColecao);
+        if (nomeColecao === "usuarios" && !this._ehGestor()) consulta = consulta.where("status", "==", "ativo");
+        const unsubscribe = consulta.onSnapshot(snapshot => {
             const teveMudancaReal = snapshot.docChanges().length > 0;
             if (primeiroDisparo || teveMudancaReal) {
                 this.dados[nomeEstado] = [];
                 snapshot.forEach(doc => this.dados[nomeEstado].push({ id: doc.id, ...doc.data() }));
-                if (nomeEstado === "usuarios") this._processarDocentes();
+                if (nomeEstado === "usuarios") { this._aplicarProjecaoUsuarios(); this._processarDocentes(); }
                 this._salvarCacheNavegador();
                 if (!primeiroDisparo && teveMudancaReal && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado);
                 if (primeiroDisparo && this.inicializado && this._cacheRestaurado && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado, { snapshotInicial: true });
@@ -140,6 +169,7 @@ window.Store = {
 
     upsertLocal(chave, item) {
         if (!item || !item.id || !Array.isArray(this.dados[chave])) return;
+        if (chave === "usuarios") item = this._projetarUsuario(item);
         const idx = this.dados[chave].findIndex(x => x.id === item.id);
         if (idx >= 0) this.dados[chave][idx] = { ...this.dados[chave][idx], ...item };
         else this.dados[chave].push(item);
@@ -162,6 +192,7 @@ window.Store = {
         this.inicializado = false;
         this._promessaInicio = null;
         this._usuarioId = null;
+        this.cargo = null;
         this._cacheRestaurado = false;
         Object.keys(this.dados).forEach(k => { this.dados[k] = []; });
     }
@@ -174,6 +205,7 @@ window.Controller = {
         if (!emailId) return "sem_acesso";
 
         if (isSuperUser) {
+            window.Store.definirCargo("root");
             const todosPerfis = ["root", "admin", "tecnico", "docente", "apoio"];
             const refRoot = window.db.collection("usuarios").doc(emailId);
             const snapRoot = await refRoot.get();
@@ -215,11 +247,13 @@ window.Controller = {
 
         if (dados) {
             if (dados.status === "pendente" || dados.cargo === "pendente") {
+                window.Store.upsertLocal("usuarios", dados); // evita nova leitura ao montar o dashboard pendente
                 return "pendente";
             }
             if (dados.status === "inativo" || dados.status === "bloqueado") {
                 return "sem_acesso";
             }
+            window.Store.definirCargo(dados.cargo || "apoio");
             await window.Store.garantirPronto(emailId);
             window.Store.upsertLocal("usuarios", dados);
             return dados.cargo || "apoio";
@@ -229,8 +263,10 @@ window.Controller = {
         try {
             const docPerm = await window.db.collection("permissoes").doc(emailId).get();
             if (docPerm.exists) {
+                const cargoLegado = docPerm.data().cargo || "apoio";
+                window.Store.definirCargo(cargoLegado);
                 await window.Store.garantirPronto(emailId);
-                return docPerm.data().cargo || "apoio";
+                return cargoLegado;
             }
         } catch (_) {}
 

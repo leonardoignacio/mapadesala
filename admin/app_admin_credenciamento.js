@@ -35,7 +35,7 @@ window.AppAdminCredenciamento = {
         const isTodosChecked = filtrosCredenciamento.areas.includes("Todos");
         const chks = cacheAreasCred.map(a => {
             const isChecked = isTodosChecked || filtrosCredenciamento.areas.includes(a.nome);
-            return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${a.nome}" class="popover-area-cred-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${a.nome}">${a.nome}</span></label>`;
+            return `<label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded transition"><input type="checkbox" value="${window.Util.esc(a.nome)}" class="popover-area-cred-chk w-4 h-4 text-blue-600 rounded" ${isChecked ? 'checked' : ''}> <span class="truncate" title="${window.Util.esc(a.nome)}">${window.Util.esc(a.nome)}</span></label>`;
         }).join('');
 
         container.innerHTML = `
@@ -155,25 +155,25 @@ window.AppAdminCredenciamento = {
             // Resumo de Áreas ou Solicitação
             const areasList = Array.isArray(u.areas) && u.areas.length > 0 ? u.areas.join(", ") : null;
             const textoColunaAreas = isPendente
-                ? `<span class="italic text-amber-800">"${u.solicitacao_credenciamento || 'Sem descrição'}"</span>`
+                ? `<span class="italic text-amber-800">"${window.Util.esc(u.solicitacao_credenciamento || 'Sem descrição')}"</span>`
                 : (areasList
-                    ? `<span class="font-semibold text-slate-700">${areasList}</span>`
+                    ? `<span class="font-semibold text-slate-700">${window.Util.esc(areasList)}</span>`
                     : `<span class="text-slate-400">Nenhuma área específica</span>`);
 
             return `
-            <tr class="${isPendente ? 'bg-amber-50/20' : ''} hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 ${podeGerenciar ? 'cursor-pointer row-cred-usuario' : 'cursor-default'} group border-b border-slate-100" data-email="${u.email}">
+            <tr class="${isPendente ? 'bg-amber-50/20' : ''} hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 ${podeGerenciar ? 'cursor-pointer row-cred-usuario' : 'cursor-default'} group border-b border-slate-100" data-email="${window.Util.esc(u.email)}">
                 <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     ${podeGerenciar ? `
                     <div class="flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2">
-                        <span class="btn-abrir-credenciamento transform hover:scale-110 transition-transform" data-email="${u.email}" title="Credenciar / Editar Perfil">${svgCredenciar}</span>${u.cargo !== 'root' ? `<span class="btn-excluir-cred-usuario transform hover:scale-110 transition-transform" data-email="${u.email}" title="Excluir Usuário">${svgLixeira}</span>` : ''}
+                        <span class="btn-abrir-credenciamento transform hover:scale-110 transition-transform" data-email="${window.Util.esc(u.email)}" title="Credenciar / Editar Perfil">${svgCredenciar}</span>${u.cargo !== 'root' ? `<span class="btn-excluir-cred-usuario transform hover:scale-110 transition-transform" data-email="${window.Util.esc(u.email)}" title="Excluir Usuário">${svgLixeira}</span>` : ''}
                     </div>` : `<span class="text-slate-300 text-xs" title="Nível hierárquico superior">🔒</span>`}
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[13%]">
                     <span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1 md:rounded-full text-[11px] md:text-xs font-extrabold md:border ${statusBadge} whitespace-nowrap">${statusTexto}</span>
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-4 align-middle w-[30%] md:w-[28%] whitespace-normal break-words">
-                    <p class="text-[11px] md:text-sm font-bold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug">${u.nome_completo || 'Sem Nome'}</p>
-                    <p class="text-[10px] md:text-xs text-slate-500 truncate">${u.email}</p>
+                    <p class="text-[11px] md:text-sm font-bold text-slate-800 group-hover:text-blue-700 transition-colors leading-snug">${window.Util.esc(u.nome_completo || 'Sem Nome')}</p>
+                    <p class="text-[10px] md:text-xs text-slate-500 truncate">${window.Util.esc(u.email)}</p>
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[20%] md:w-[18%]">
                     <span class="p-0 border-0 bg-transparent shadow-none md:px-2.5 md:py-1.5 md:rounded-md text-[10px] md:text-xs font-bold md:border md:shadow-sm ${cargoBadge} whitespace-normal break-words md:whitespace-nowrap">${rotuloCargo}</span>
@@ -194,7 +194,7 @@ window.AppAdminCredenciamento = {
 
         const cargoLogado = window.usuarioAtual?.cargo || 'sem_acesso';
         if (!window.ControllerAdminCredenciamento.podeGerenciarUsuario(cargoLogado, usuarioAlvo)) {
-            alert("Você não possui autoridade hierárquica para alterar este perfil.");
+            window.Dialog.aviso("Você não possui autoridade hierárquica para alterar este perfil.");
             return;
         }
 
@@ -263,8 +263,8 @@ window.AppAdminCredenciamento = {
             const checked = possuiTodas || areasMarcadas.includes(a.nome);
             return `
             <label class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:bg-blue-50/40 cursor-pointer transition text-xs md:text-sm font-medium text-slate-700">
-                <input type="checkbox" value="${a.nome}" class="chk-area-cred-modal w-4 h-4 text-blue-600 rounded" ${checked ? 'checked' : ''}>
-                <span class="truncate" title="${a.nome}">${a.nome}</span>
+                <input type="checkbox" value="${window.Util.esc(a.nome)}" class="chk-area-cred-modal w-4 h-4 text-blue-600 rounded" ${checked ? 'checked' : ''}>
+                <span class="truncate" title="${window.Util.esc(a.nome)}">${window.Util.esc(a.nome)}</span>
             </label>
             `;
         }).join('');
@@ -375,14 +375,14 @@ window.AppAdminCredenciamento = {
         // Excluir Usuário
         if (e.target.closest('.btn-excluir-cred-usuario')) {
             const email = e.target.closest('.btn-excluir-cred-usuario').getAttribute('data-email');
-            if (confirm(`ATENÇÃO: Confirma a exclusão do registro e credenciamento de "${email}"?`)) {
+            if (await window.Dialog.confirmar(`Confirma a exclusão do registro e credenciamento de "${email}"?\nEsta ação não pode ser desfeita.`, { perigo: true, titulo: "Excluir usuário", textoConfirmar: "Excluir usuário" })) {
                 try {
                     await window.ControllerAdminCredenciamento.excluirUsuario(email, window.usuarioAtual);
                     await this.carregarDadosBase();
                     this.renderizarResumoBadges();
                     this.renderizarTabelaCredenciamento();
                 } catch (err) {
-                    alert(err.message);
+                    await window.Dialog.erro(err, "Não foi possível excluir o usuário");
                 }
             }
             return true;
@@ -527,7 +527,7 @@ window.AppAdminCredenciamento = {
                 this.renderizarResumoBadges();
                 this.renderizarTabelaCredenciamento();
             } catch (err) {
-                alert("Erro ao salvar credenciamento: " + err.message);
+                await window.Dialog.erro(err, "Erro ao salvar credenciamento");
             } finally {
                 if (btn) {
                     btn.innerText = textoOriginal;

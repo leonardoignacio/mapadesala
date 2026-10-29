@@ -20,28 +20,28 @@ window.AppCursoFrm = {
 
         // 1. Popula Datalists (usados por Root, Admin e Técnico)
         const datalistArea = document.getElementById('add-curso-datalist-area');
-        if (datalistArea) datalistArea.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">`).join('');
+        if (datalistArea) datalistArea.innerHTML = listaNomesAreas.map(nome => `<option value="${window.Util.esc(nome)}">`).join('');
 
         const datalistAreaEdit = document.getElementById('edit-curso-datalist-area');
-        if (datalistAreaEdit) datalistAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">`).join('');
+        if (datalistAreaEdit) datalistAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${window.Util.esc(nome)}">`).join('');
 
         // 2. Popula Selects de Área (usados quando logado como Docente)
         const campoAreaAdd = document.getElementById('add-curso-area');
         if (campoAreaAdd && campoAreaAdd.tagName === 'SELECT') {
             campoAreaAdd.innerHTML = '<option value="" disabled selected>Selecione a Área...</option>' +
-                listaNomesAreas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+                listaNomesAreas.map(nome => `<option value="${window.Util.esc(nome)}">${window.Util.esc(nome)}</option>`).join('');
         }
 
         const campoAreaEdit = document.getElementById('edit-curso-area');
         if (campoAreaEdit && campoAreaEdit.tagName === 'SELECT') {
-            campoAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+            campoAreaEdit.innerHTML = listaNomesAreas.map(nome => `<option value="${window.Util.esc(nome)}">${window.Util.esc(nome)}</option>`).join('');
         }
 
         // 3. Popula Selects de Cursos (para vincular UCs manual e em lote)
         const selectCursoAddUC = document.getElementById('add-uc-curso');
         const selectCursoLote = document.getElementById('add-uc-lote-curso');
         const optionsCursos = '<option value="" disabled selected>Selecione o Curso...</option>' +
-                              cacheCursos.map(c => `<option value="${c.id}">[${c.sigla || '---'}] ${c.titulo}</option>`).join('');
+                              cacheCursos.map(c => `<option value="${window.Util.esc(c.id)}">[${window.Util.esc(c.sigla || '---')}] ${window.Util.esc(c.titulo)}</option>`).join('');
         
         if (selectCursoAddUC) selectCursoAddUC.innerHTML = optionsCursos;
         if (selectCursoLote) selectCursoLote.innerHTML = optionsCursos;
@@ -110,7 +110,7 @@ window.AppCursoFrm = {
         const campoAreaEdit = document.getElementById('edit-curso-area');
         if (campoAreaEdit) {
             if (campoAreaEdit.tagName === 'SELECT' && !Array.from(campoAreaEdit.options).some(o => o.value === curso.area)) {
-                campoAreaEdit.insertAdjacentHTML('beforeend', `<option value="${curso.area}">${curso.area}</option>`);
+                campoAreaEdit.insertAdjacentHTML('beforeend', `<option value="${window.Util.esc(curso.area)}">${window.Util.esc(curso.area)}</option>`);
             }
             campoAreaEdit.value = curso.area;
         }
@@ -153,7 +153,7 @@ window.AppCursoFrm = {
         } else {
             container.innerHTML = cacheAreas.slice().sort((a, b) => a.nome.localeCompare(b.nome)).map(area => `
                 <div class="flex items-center gap-2">
-                    <input type="text" value="${area.nome}" id="input-area-${area.id}" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base font-semibold text-slate-700">
+                    <input type="text" value="${window.Util.esc(area.nome)}" id="input-area-${area.id}" class="flex-1 border border-slate-300 p-2 md:p-2.5 rounded-lg outline-none focus:border-blue-500 transition text-sm md:text-base font-semibold text-slate-700">
                     <button type="button" data-id="${area.id}" class="btn-save-area bg-blue-600 hover:bg-blue-700 text-white p-2 md:p-2.5 rounded-lg transition shadow-sm flex items-center justify-center" title="Salvar Área">
                         ${saveIcon}
                     </button>
@@ -195,7 +195,7 @@ window.AppCursoFrm = {
             const input = document.getElementById(`input-area-${id}`);
             const novoNome = input.value;
 
-            if (!novoNome.trim()) { alert("O nome da área não pode ser vazio."); return true; }
+            if (!novoNome.trim()) { await window.Dialog.alerta("O nome da área não pode ser vazio."); return true; }
 
             const iconeOriginal = btn.innerHTML;
             btn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`;
@@ -209,7 +209,7 @@ window.AppCursoFrm = {
                 window.AppCursoListar.popularFiltrosESelects();
                 window.AppCursoListar.renderizarTabelaCursos(); 
             } catch (error) {
-                alert(error.message);
+                await window.Dialog.erro(error);
                 btn.innerHTML = iconeOriginal;
                 btn.disabled = false;
             }
@@ -248,8 +248,8 @@ window.AppCursoFrm = {
             const idCurso = document.getElementById('add-uc-lote-curso').value;
             const fileInput = document.getElementById('arquivo-lote-ucs');
 
-            if (!idCurso) { alert("Por favor, selecione um curso no seletor para vincular as UCs."); return true; }
-            if (!fileInput.files.length) { alert("Por favor, selecione um arquivo .csv para processar."); return true; }
+            if (!idCurso) { await window.Dialog.alerta("Por favor, selecione um curso no seletor para vincular as UCs."); return true; }
+            if (!fileInput.files.length) { await window.Dialog.alerta("Por favor, selecione um arquivo .csv para processar."); return true; }
 
             const btnConfirma = e.target.closest('#btn-carregar-lote-ucs');
             btnConfirma.innerText = "Processando Lote...";
@@ -301,14 +301,14 @@ window.AppCursoFrm = {
                     const qtdInseridos = await window.ControllerCursoFrm.carregarUCsLote(idCurso, dadosArray);
                     
                     if(qtdInseridos === 0) {
-                        alert("Concluído: Nenhuma nova UC inserida. Todas as referências enviadas já estão ativas para este Curso.");
+                        await window.Dialog.alerta("Concluído: Nenhuma nova UC inserida. Todas as referências enviadas já estão ativas para este Curso.");
                     } else {
-                        alert(`Fantástico! ${qtdInseridos} novas UCs foram vinculadas ao curso.`);
+                        await window.Dialog.alerta(`Fantástico! ${qtdInseridos} novas UCs foram vinculadas ao curso.`);
                         await window.AppCursoListar.carregarDadosBase();
                         window.AppCursoListar.renderizarTabelaCursos(); 
                     }
                 } catch(error) {
-                    alert("Erro ao ler o CSV: " + error.message);
+                    await window.Dialog.erro(error, "Erro ao ler o CSV");
                 } finally {
                     btnConfirma.innerText = "Confirmar Processamento em Lote";
                     btnConfirma.disabled = false;
@@ -329,7 +329,7 @@ window.AppCursoFrm = {
 
         e.preventDefault();
         if (!this.podeEditar()) {
-            alert("Perfil Somente Leitura: Operação não permitida.");
+            await window.Dialog.alerta("Perfil Somente Leitura: Operação não permitida.");
             return true;
         }
 
@@ -349,13 +349,13 @@ window.AppCursoFrm = {
                     await window.ControllerCursoFrm.salvarArea(area);
                 }
 
-                alert("Curso cadastrado com sucesso!");
+                await window.Dialog.alerta("Curso cadastrado com sucesso!");
                 e.target.reset();
                 this.aoMudarTipoCurso('add');
                 await window.AppCursoListar.carregarDadosBase();
                 window.AppCursoListar.renderizarTabelaCursos();
                 window.AppCursoListar.popularFiltrosESelects();
-            } catch (error) { alert(error.message); }
+            } catch (error) { await window.Dialog.erro(error); }
             return true;
         }
 
@@ -385,7 +385,7 @@ window.AppCursoFrm = {
                 await window.AppCursoListar.carregarDadosBase();
                 window.AppCursoListar.renderizarTabelaCursos();
                 window.AppCursoListar.popularFiltrosESelects();
-            } catch (error) { alert(error.message); }
+            } catch (error) { await window.Dialog.erro(error); }
             return true;
         }
 
@@ -400,11 +400,11 @@ window.AppCursoFrm = {
 
                 await window.ControllerCursoFrm.salvarUC(idCurso, `UC-${refSufixo}`, titulo, ch, ind, con);
                 
-                alert("Unidade Curricular cadastrada com sucesso!");
+                await window.Dialog.alerta("Unidade Curricular cadastrada com sucesso!");
                 e.target.reset();
                 await window.AppCursoListar.carregarDadosBase();
                 window.AppCursoListar.renderizarTabelaCursos();
-            } catch (error) { alert(error.message); }
+            } catch (error) { await window.Dialog.erro(error); }
             return true;
         }
 
@@ -418,7 +418,7 @@ window.AppCursoFrm = {
                 
                 await window.AppCursoListar.carregarDadosBase();
                 window.AppCursoListar.popularFiltrosESelects();
-            } catch (error) { alert(error.message); }
+            } catch (error) { await window.Dialog.erro(error); }
             return true;
         }
 
@@ -439,7 +439,7 @@ window.AppCursoFrm = {
                 
                 await window.AppCursoListar.carregarDadosBase();
                 window.AppCursoListar.renderizarTabelaCursos();
-            } catch (error) { alert(error.message); }
+            } catch (error) { await window.Dialog.erro(error); }
             return true;
         }
 

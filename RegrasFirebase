@@ -1,34 +1,165 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isSuperAdmin() {
-      return request.auth != null && request.auth.token.email == "leoignacio@gmail.com";
-    }
-    
-    function getCargo() {
-      return exists(/databases/$(database)/documents/usuarios/$(request.auth.token.email)) 
-        ? get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.cargo 
-        : (exists(/databases/$(database)/documents/usuarios_permissoes/$(request.auth.token.email)) 
-          ? get(/databases/$(database)/documents/usuarios_permissoes/$(request.auth.token.email)).data.cargo 
-          : 'pendente');
+
+    // =====================================================================
+    // FUNÇÕES AUXILIARES
+    // O cargo e o status do usuário vêm do documento usuarios/{email}.
+    // Cada requisição faz no máximo 1 leitura desse documento (o Firestore
+    // reaproveita o resultado dentro da mesma requisição).
+    // =====================================================================
+    function logado() {
+      return request.auth != null && request.auth.token.email != null;
     }
 
-    // Coleção de usuários: permite criar pré-cadastro e permite ao titular atualizar/excluir a própria solicitação
+    function meuEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function ehSuper() {
+      return logado() && meuEmail() == 'leoignacio@gmail.com';
+    }
+
+    function meuDoc() {
+      return get(/databases/$(database)/documents/usuarios/$(meuEmail())).data;
+    }
+
+    function cargo() {
+      return meuDoc().get('cargo', 'pendente');
+    }
+
+    // Só passa quem possui um dos cargos informados e NÃO está pendente/inativo/bloqueado
+    // (mesmo critério do app: status ausente = ativo). Perde o acesso imediatamente ao ser desativado.
+    function ehUm(lista) {
+      return logado()
+        && !(meuDoc().get('status', 'ativo') in ['pendente', 'inativo', 'bloqueado'])
+        && cargo() in lista;
+    }
+
+    function ehGestor()      { return ehUm(['root', 'admin', 'tecnico']); }
+    function ehAdmin()       { return ehUm(['root', 'admin']); }
+    function ehOperacional() { return ehUm(['root', 'admin', 'tecnico', 'docente']); }
+    function ehEquipe()      { return ehUm(['root', 'admin', 'tecnico', 'docente', 'apoio']); }
+
+    function leituraEquipe()      { return ehSuper() || ehEquipe(); }
+    function escritaOperacional() { return ehSuper() || ehOperacional(); }
+
+    // Hierarquia usada pela interface de credenciamento.
+    function rank(c) {
+      return c == 'root' ? 5 : c == 'admin' ? 4 : c == 'tecnico' ? 3 : c == 'docente' ? 2 : c == 'apoio' ? 1 : 0;
+    }
+
+    // Gestor só altera usuários de nível inferior ao seu (root altera todos)
+    // e só atribui cargos de nível inferior ao seu.
+    function gestorPodeAlterar() {
+      return ehGestor()
+        && (cargo() == 'root' || rank(cargo()) > rank(resource.data.get('cargo', 'pendente')))
+        && (request.resource.data.get('cargo', 'pendente') == resource.data.get('cargo', 'pendente')
+            || rank(request.resource.data.get('cargo', 'pendente')) < rank(cargo()));
+    }
+
+    function gestorPodeExcluir() {
+      return ehGestor()
+        && (cargo() == 'root'
+            ? resource.data.get('cargo', 'pendente') != 'root'
+            : rank(cargo()) > rank(resource.data.get('cargo', 'pendente')));
+    }
+
+    // =====================================================================
+    // USUÁRIOS
+    // =====================================================================
     match /usuarios/{emailId} {
-      allow create: if true;
-      allow read: if request.auth != null && (isSuperAdmin() || request.auth.token.email == emailId || getCargo() in ['root', 'admin', 'tecnico']);
-      allow update, delete: if request.auth != null && (isSuperAdmin() || request.auth.token.email == emailId || getCargo() in ['root', 'admin', 'tecnico']);
+
+      // Gestores leem tudo. Os demais perfis leem apenas o próprio documento e usuários
+      // ATIVOS (o app já consulta com where('status','==','ativo')): pendentes e
+      // inativos, com suas justificativas, não ficam acessíveis a docentes/apoio.
+      allow read: if ehSuper()
+        || (logado() && meuEmail() == emailId)
+        || ehGestor()
+        || (ehEquipe() && resource.data.status == 'ativo');
+
+      // Pré-cadastro: exige login, somente com o PRÓPRIO e-mail e sempre como pendente.
+      // Ninguém consegue se criar já como admin/root.
+      allow create: if ehSuper()
+        || (logado() && meuEmail() == emailId
+            && request.resource.data.keys().hasOnly(['nome', 'sobrenome', 'nome_completo', 'email',
+                 'cargo_solicitado', 'solicitacao_credenciamento', 'cargo', 'perfis', 'areas', 'status', 'criado_em'])
+            && request.resource.data.cargo == 'pendente'
+            && request.resource.data.status == 'pendente'
+            && request.resource.data.perfis == []
+            && request.resource.data.areas == []);
+
+      // O titular edita os dados da própria solicitação, mas NUNCA cargo/perfis/áreas/status.
+      allow update: if ehSuper()
+        || (logado() && meuEmail() == emailId
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['cargo', 'perfis', 'areas', 'status', 'email', 'tipo_vinculo_area', 'credenciado_por', 'credenciado_em']))
+        || gestorPodeAlterar();
+
+      // O titular só exclui o próprio pré-cadastro enquanto estiver pendente.
+      allow delete: if ehSuper()
+        || (logado() && meuEmail() == emailId && resource.data.status == 'pendente')
+        || gestorPodeExcluir();
     }
 
+    // Coleções legadas: só o titular lê; só o superusuário escreve.
     match /usuarios_permissoes/{emailId} {
-      allow read, write: if isSuperAdmin();
-      allow read: if request.auth != null && request.auth.token.email == emailId;
+      allow read: if ehSuper() || (logado() && meuEmail() == emailId);
+      allow write: if ehSuper();
+    }
+    match /permissoes/{emailId} {
+      allow read: if ehSuper() || (logado() && meuEmail() == emailId);
+      allow write: if ehSuper();
     }
 
-    match /{document=**} {
-      allow read: if request.auth != null && (isSuperAdmin() || getCargo() in ['root', 'admin', 'tecnico', 'docente', 'apoio']);
-      allow write: if request.auth != null && (isSuperAdmin() || getCargo() in ['root', 'admin', 'tecnico', 'docente']);
+    // =====================================================================
+    // DADOS OPERACIONAIS (leitura: toda a equipe ativa / escrita: operacional)
+    // =====================================================================
+    match /areas/{id} {
+      allow read: if leituraEquipe();
+      allow write: if escritaOperacional();
+    }
+    match /cursos/{id} {
+      allow read: if leituraEquipe();
+      allow write: if escritaOperacional();
+    }
+    match /ucs/{id} {
+      allow read: if leituraEquipe();
+      allow write: if escritaOperacional();
+    }
+    match /turmas/{id} {
+      allow read: if leituraEquipe();
+      allow write: if escritaOperacional();
+    }
+
+    // Encontros: o Apoio Técnico pode alterar SOMENTE os marcadores SS/SGO.
+    match /encontros/{id} {
+      allow read: if leituraEquipe();
+      allow create, delete: if escritaOperacional();
+      allow update: if escritaOperacional()
+        || (ehUm(['apoio'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['SS', 'SGO', 'atualizado_em']));
+    }
+
+    // Calendário (exceções): somente Admin/Root gravam, como na interface.
+    match /datas_excecoes/{id} {
+      allow read: if leituraEquipe();
+      allow write: if ehSuper() || ehAdmin();
+    }
+
+    // Recursos (salas): Admin/Root/Técnico gravam, como na interface.
+    match /salas_aula/{id} {
+      allow read: if leituraEquipe();
+      allow write: if ehSuper() || ehGestor();
+    }
+
+    // =====================================================================
+    // TRILHA DE AUDITORIA ("Alterações" tem acento, por isso a comparação por texto)
+    // Só é possível CRIAR registros; ninguém edita ou apaga o histórico pelo app.
+    // =====================================================================
+    match /{colecao}/{id} {
+      allow read: if colecao == 'Alterações' && (ehSuper() || ehGestor());
+      allow create: if colecao == 'Alterações' && escritaOperacional();
     }
   }
 }

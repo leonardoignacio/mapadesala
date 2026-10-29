@@ -3,7 +3,16 @@ window.ControllerCalendarioListar = {
 
     async listarExcecoes() {
         await window.Store.garantirPronto();
-        return [...(window.Store.dados.excecoes || [])].sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+        // Normaliza registros antigos ou incompletos (sem dia_semana, só com "tipo" ou sem descrição),
+        // evitando "undefined" na tabela e erros nos filtros.
+        return (window.Store.dados.excecoes || [])
+            .map(e => {
+                const data = (e.data || e.id || "").toString();
+                const excecao = (e.excecao || e.tipo || "Outros").toString();
+                return { ...e, data, excecao, descricao: (e.descricao || "").toString(), dia_semana: e.dia_semana || window.Util.diaSemana(data) };
+            })
+            .filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.data))
+            .sort((a, b) => a.data.localeCompare(b.data));
     },
 
     async excluirExcecao(dataId) {

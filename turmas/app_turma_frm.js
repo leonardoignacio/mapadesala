@@ -9,7 +9,7 @@ window.AppTurmaFrm = {
     popularSelectCursos() {
         const cacheCursos = window.AppTurmaListar?.cacheCursos || [];
         const options = '<option value="" disabled selected>Selecione o Curso...</option>' +
-            cacheCursos.map(c => '<option value="' + c.id + '">[' + (c.sigla || '---') + '] ' + c.titulo + '</option>').join('');
+            cacheCursos.map(c => '<option value="' + window.Util.esc(c.id) + '">[' + window.Util.esc(c.sigla || '---') + '] ' + window.Util.esc(c.titulo) + '</option>').join('');
 
         const selectAdd = document.getElementById('add-turma-curso');
         if (selectAdd) selectAdd.innerHTML = options;
@@ -112,7 +112,7 @@ window.AppTurmaFrm = {
         container.innerHTML = ucsDoCurso.map((uc, idx) => `
             <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2 item-uc-form-add" data-uc-id="${uc.id}">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-extrabold text-blue-700">${uc.referencia} — ${uc.titulo}</span>
+                    <span class="text-xs font-extrabold text-blue-700">${window.Util.esc(uc.referencia)} — ${window.Util.esc(uc.titulo)}</span>
                     <span class="text-xs font-black text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">${uc.carga_horaria}h</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -273,7 +273,7 @@ window.AppTurmaFrm = {
 
         e.preventDefault();
         if (!this.podeEditar()) {
-            alert("Perfil Somente Leitura: Operação não permitida.");
+            await window.Dialog.alerta("Perfil Somente Leitura: Operação não permitida.");
             return true;
         }
 
@@ -330,7 +330,7 @@ window.AppTurmaFrm = {
 
                 await window.ControllerTurmaFrm.salvarNovaTurma(dados, cursoObj, ucsMontadas);
 
-                alert("Turma cadastrada com sucesso!");
+                await window.Dialog.alerta("Turma cadastrada com sucesso!");
                 e.target.reset();
                 document.getElementById('add-turma-periodo').value = "NOITE";
                 this.aoMudarPeriodoNoForm('add');
@@ -341,7 +341,7 @@ window.AppTurmaFrm = {
                 window.AppTurmaListar.popularFiltrosESelects();
                 window.AppTurmaListar.renderizarTabelaTurmas();
             } catch (err) {
-                alert(err.message);
+                await window.Dialog.erro(err);
             }
             return true;
         }
@@ -398,7 +398,7 @@ window.AppTurmaFrm = {
                 window.AppTurmaListar.popularFiltrosESelects();
                 window.AppTurmaListar.renderizarTabelaTurmas();
             } catch (err) {
-                alert(err.message);
+                await window.Dialog.erro(err);
             }
             return true;
         }
@@ -427,7 +427,7 @@ window.AppTurmaFrm = {
 
                 document.getElementById(`accordion-turma-${idTurma}`)?.classList.remove('hidden');
             } catch (err) {
-                alert(err.message);
+                await window.Dialog.erro(err);
             }
             return true;
         }

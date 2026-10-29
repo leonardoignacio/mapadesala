@@ -93,7 +93,7 @@ window.Views = {
             <!-- Rodapé da Sidebar -->
             <div class="p-4 border-t border-slate-200 bg-slate-50 flex flex-col">
                 <div class="sidebar-text mb-2 overflow-hidden">
-                    <p class="text-xs font-bold text-slate-700 truncate" title="${user?.email || ''}">${user?.email || ''}</p>
+                    <p class="text-xs font-bold text-slate-700 truncate" title="${window.Util.esc(user?.email)}">${window.Util.esc(user?.email)}</p>
                     <p class="text-[10px] font-extrabold uppercase tracking-wider ${isPendente ? 'text-amber-600' : 'text-slate-400'}">${cargo.toUpperCase()}</p>
                 </div>
                 <button id="btn-logout" class="text-left text-xs font-bold text-red-600 hover:text-red-700 hover:underline transition">
