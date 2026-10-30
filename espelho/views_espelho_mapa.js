@@ -20,6 +20,7 @@ Object.assign(window.ViewsEspelho, {
             ${this.renderizarAbaRecursos(podeGerenciarRecursos)}
             ${this.renderizarModalSala(podeGerenciarRecursos)}
             ${this.renderizarModalConfiguracoesTurmas()}
+            ${this.renderizarModalFiltroTurma()}
             ${podeGerenciarFlagsLote ? this.renderizarModalFlagsLote() : ''}
             ${podeEditar ? this.renderizarModalEdicaoLote() : ''}
             ${this.renderizarModais(podeEditar)}

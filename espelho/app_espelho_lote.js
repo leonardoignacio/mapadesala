@@ -73,6 +73,24 @@ Object.assign(window.AppEspelho, {
         }catch(err){const out=document.getElementById('flags-lote-resumo');if(out){out.textContent=err?.message||'Não foi possível atualizar SS/SGO.';out.className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800';}this._mostrarStatus(err?.message||'Não foi possível atualizar SS/SGO.',true);return false;}
         finally{if(btn&&document.getElementById('modal-flags-lote')?.classList.contains('flex')){btn.disabled=false;btn.textContent='Aplicar alterações';this._atualizarResumoFlagsLote();}}
     },
+    // Atalho do cabeçalho: ativa SS e SGO nos encontros selecionados da turma (Admin e Apoio).
+    async ativarSsSgoSelecionados(idTurma) {
+        if(!this._podeGerenciarFlagsLote()){this._mostrarStatus('Somente Apoio Técnico ou Admin pode aplicar SS/SGO em lote.',true);return false;}
+        const turma=this.turmas.find(t=>t.id===idTurma);if(!turma)return false;
+        if([...this.pendenciasArraste.values()].some(m=>m.id_turma===idTurma)){this._mostrarStatus('Salve ou descarte as alterações pendentes desta turma antes de aplicar SS/SGO.',true);return false;}
+        const ids=new Set([...this.alvosEdicaoLote.values()].filter(a=>a.id_turma===idTurma&&a.id).map(a=>a.id));
+        const alvos=this.encontros.filter(e=>ids.has(e.id)&&e.id_turma===idTurma&&e.tipo!=='cancelamento');
+        if(!alvos.length){this._mostrarStatus('Selecione ao menos um encontro desta turma.',true);return false;}
+        const faltantes=alvos.filter(e=>!(e.SS===true&&e.SGO===true));
+        if(!faltantes.length){this._mostrarStatus(`Os ${alvos.length} encontro(s) selecionado(s) já estão com SS e SGO ativos.`);return false;}
+        if(!(await window.Dialog.confirmar(`Ativar SS e SGO em ${faltantes.length} encontro(s) selecionado(s) da turma ${turma.referencia}?`,{titulo:'Ativar SS e SGO',textoConfirmar:'Ativar'})))return false;
+        try{
+            const atualizados=await window.ControllerEspelho.atualizarFlagsEncontrosLote(idTurma,faltantes.map(e=>e.id),{SS:true,SGO:true}),porId=new Map(atualizados.map(e=>[e.id,e]));
+            this.encontros=this.encontros.map(e=>porId.get(e.id)||e);
+            for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma&&a.id&&ids.has(a.id))this.alvosEdicaoLote.delete(key);
+            this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus(`SS e SGO ativados em ${atualizados.length} encontro(s).`);return true;
+        }catch(err){await window.Dialog.erro(err,'Não foi possível ativar SS e SGO');return false;}
+    },
     limparSelecaoTurma(idTurma) {for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma)this.alvosEdicaoLote.delete(key);this.renderizarMapa();this._registrarDragDrop();},
     _atualizarResumoRemocaoUC() {
         const select=document.getElementById('select-remover-uc'),out=document.getElementById('resumo-remocao-uc'),btn=document.getElementById('btn-confirmar-remover-uc');

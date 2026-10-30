@@ -45,14 +45,84 @@ Object.assign(window.ControllerEspelho, {
         const p=this._normalizarEncontro(dados,turma);p.SS=false;p.SGO=false;const ids=new Set(old?[old.id]:[]);this._validarDatasETurmas([p],cacheTurmas,ids);this._validarLimiteUC([p],ids);this._validarConflitos([p],ids);
         const ref=old?this._docRefEncontro(old.id):window.db.collection(this.colecaoEncontros).doc();p.atualizado_em=new Date().toISOString();if(!old)p.criado_em=p.atualizado_em;const logRef=window.db.collection('Alterações').doc(),batch=window.db.batch();if(old)batch.update(ref,p);else batch.set(ref,p);batch.set(logRef,this._logAlteracao({...p,id:ref.id},this._tipoAlteracao(old,p),old));const patchesHoras=this._calcularPatchesHoras([{antes:old,depois:p}]);for(const [idTurma,patch] of patchesHoras)batch.update(window.db.collection('turmas').doc(idTurma),patch);await batch.commit();this._sincronizarPatchesHoras(patchesHoras);window.Store.upsertLocal('encontros',{...p,id:ref.id});
     },
-    async salvarMovimentos(movimentos, cacheTurmas, excecoes=[]) {
-        await window.Store.garantirPronto();if(!Array.isArray(movimentos)||!movimentos.length)return;
-        const store=window.Store.dados.encontros||[],porId=new Map(store.map(e=>[e.id,e])),ids=new Set(movimentos.map(m=>m.id));if(ids.size!==movimentos.length)throw new Error('Encontro duplicado na operação.');
+    // Movimentação de encontros (arrastar e soltar).
+    // Fluxo: o encontro movido sai da data original e entra na nova; o encontro sobreposto (se houver) só é
+    // excluído AQUI, ao salvar, nunca durante o arrasto. Cada alteração gera o seu próprio registro em
+    // "Alterações": 'Excluir' para cada encontro excluído (inclusive a data original) e 'Redistribuir' para cada inserção.
+    // "exclusoes" lista encontros sobrepostos; cada movimento também pode trazer "substitui" (id do encontro sobreposto).
+    async salvarMovimentos(movimentos, cacheTurmas, excecoes=[], exclusoes=[]) {
+        await window.Store.garantirPronto();
+        if(!Array.isArray(movimentos)||!movimentos.length)return;
+        const store=window.Store.dados.encontros||[],porId=new Map(store.map(e=>[e.id,e])),ids=new Set(movimentos.map(m=>m.id));
+        if(ids.size!==movimentos.length)throw new Error('Encontro duplicado na operação.');
+
+        const idsExcluir=new Set([...(exclusoes||[]),...movimentos.map(m=>m.substitui).filter(Boolean)]);
+        if([...idsExcluir].some(id=>ids.has(id)))throw new Error('Um encontro não pode ser movido e excluído na mesma operação.');
+        const hoje=this._hojeISO(),substituidos=[];
+        for(const id of idsExcluir){
+            const ocupante=porId.get(id);
+            if(!ocupante)throw new Error('Um encontro a ser substituído não existe mais; atualize o mapa.');
+            this._validarEdicao(this._buscarTurma(cacheTurmas,ocupante.id_turma));
+            if(ocupante.tipo==='cancelamento')throw new Error('Cancelamentos não podem ser substituídos por arraste.');
+            if(ocupante.data<=hoje)throw new Error('Só é possível substituir encontros de datas futuras; hoje e datas passadas são preservados.');
+            substituidos.push(ocupante);
+        }
+
         const preparados=[],antigos=[],mudancasAgenda=[];
-        for(const m of movimentos){const old=porId.get(m.id);if(!old)throw new Error('Encontro não encontrado.');const move=m.data&&m.data!==old.data;if(move){const turma=this._buscarTurma(cacheTurmas,old.id_turma);this._validarEdicao(turma);if(old.tipo==='cancelamento')throw new Error('Cancelamentos não podem ser movidos.');if(!this._dataValida(m.data))throw new Error('Data inválida.');if((turma.d_inicio&&m.data<turma.d_inicio)||(turma.d_termino&&m.data>turma.d_termino))throw new Error('Data fora do período da turma.');if(this._excecaoAtiva(m.data,turma))throw new Error(`A data ${m.data} está bloqueada por exceção.`);const p={...old,data:m.data,SS:false,SGO:false,atualizado_em:new Date().toISOString()};preparados.push(p);mudancasAgenda.push(true);}else{this._validarFlags();const p={...old};if(Object.prototype.hasOwnProperty.call(m,'SS'))p.SS=m.SS===true;if(Object.prototype.hasOwnProperty.call(m,'SGO'))p.SGO=m.SGO===true;p.atualizado_em=new Date().toISOString();preparados.push(p);mudancasAgenda.push(false);}antigos.push(old);}
-        const candidatos=preparados.filter((_,i)=>mudancasAgenda[i]);if(candidatos.length){const chaves=new Set();for(const p of candidatos){const k=`${p.id_turma}|${p.data}`;if(chaves.has(k)||store.some(e=>!ids.has(e.id)&&`${e.id_turma}|${e.data}`===k))throw new Error(`Data da turma já ocupada: ${p.data}.`);chaves.add(k);this._validarDocentes(p,(window.Store.dados.turmas||[]).find(t=>t.id===p.id_turma));}this._validarConflitos(candidatos,ids);}
-        const grupos=[];for(let i=0;i<preparados.length;i++){const p=preparados[i],old=antigos[i];if(!mudancasAgenda[i]&&p.SS===old.SS&&p.SGO===old.SGO)continue;const ref=this._docRefEncontro(old.id),patch=mudancasAgenda[i]?{data:p.data,SS:false,SGO:false,atualizado_em:p.atualizado_em}:{SS:p.SS,SGO:p.SGO,atualizado_em:p.atualizado_em};if(mudancasAgenda[i]){const logRef=window.db.collection('Alterações').doc();grupos.push([b=>b.update(ref,patch),b=>b.set(logRef,this._logAlteracao(p,'Redistribuir',old))]);}else grupos.push([b=>b.update(ref,patch)]);}
-        const patchesHoras=this._anexarPatchesHoras(grupos,preparados.map((depois,i)=>mudancasAgenda[i]?({antes:antigos[i],depois}):null).filter(Boolean));await this._commitGrupos(grupos);this._sincronizarPatchesHoras(patchesHoras);preparados.forEach(p=>window.Store.upsertLocal('encontros',p));
+        for(const m of movimentos){
+            const old=porId.get(m.id);if(!old)throw new Error('Encontro não encontrado.');
+            const move=m.data&&m.data!==old.data;
+            if(move){
+                const turma=this._buscarTurma(cacheTurmas,old.id_turma);this._validarEdicao(turma);
+                if(old.tipo==='cancelamento')throw new Error('Cancelamentos não podem ser movidos.');
+                if(!this._dataValida(m.data))throw new Error('Data inválida.');
+                if((turma.d_inicio&&m.data<turma.d_inicio)||(turma.d_termino&&m.data>turma.d_termino))throw new Error('Data fora do período da turma.');
+                if(this._excecaoAtiva(m.data,turma))throw new Error(`A data ${m.data} está bloqueada por exceção.`);
+                preparados.push({...old,data:m.data,SS:false,SGO:false,atualizado_em:new Date().toISOString()});mudancasAgenda.push(true);
+            }else{
+                this._validarFlags();
+                const p={...old};
+                if(Object.prototype.hasOwnProperty.call(m,'SS'))p.SS=m.SS===true;
+                if(Object.prototype.hasOwnProperty.call(m,'SGO'))p.SGO=m.SGO===true;
+                p.atualizado_em=new Date().toISOString();preparados.push(p);mudancasAgenda.push(false);
+            }
+            antigos.push(old);
+        }
+
+        // Ocupação e conflitos: ignoram os próprios movidos e os encontros que serão excluídos nesta operação.
+        const ignorar=new Set([...ids,...idsExcluir]);
+        const candidatos=preparados.filter((_,i)=>mudancasAgenda[i]);
+        if(candidatos.length){
+            const chaves=new Set();
+            for(const p of candidatos){
+                const k=`${p.id_turma}|${p.data}`;
+                if(chaves.has(k)||store.some(e=>!ignorar.has(e.id)&&`${e.id_turma}|${e.data}`===k))throw new Error(`Data da turma já ocupada: ${p.data}.`);
+                chaves.add(k);this._validarDocentes(p,(window.Store.dados.turmas||[]).find(t=>t.id===p.id_turma));
+            }
+            this._validarConflitos(candidatos,ignorar);
+        }
+
+        const grupos=[];
+        for(const ocupante of substituidos){
+            const logRef=window.db.collection('Alterações').doc();
+            grupos.push([b=>b.delete(this._docRefEncontro(ocupante.id)),b=>b.set(logRef,this._logAlteracao(ocupante,'Excluir',ocupante))]);
+        }
+        for(let i=0;i<preparados.length;i++){
+            const p=preparados[i],old=antigos[i];
+            if(!mudancasAgenda[i]&&p.SS===old.SS&&p.SGO===old.SGO)continue;
+            const ref=this._docRefEncontro(old.id);
+            if(mudancasAgenda[i]){
+                const logExcluir=window.db.collection('Alterações').doc(),logInserir=window.db.collection('Alterações').doc();
+                const patch={data:p.data,SS:false,SGO:false,atualizado_em:p.atualizado_em};
+                grupos.push([b=>b.update(ref,patch),b=>b.set(logExcluir,this._logAlteracao(old,'Excluir',old)),b=>b.set(logInserir,this._logAlteracao(p,'Redistribuir'))]);
+            }else grupos.push([b=>b.update(ref,{SS:p.SS,SGO:p.SGO,atualizado_em:p.atualizado_em})]);
+        }
+        const pares=[...preparados.map((depois,i)=>mudancasAgenda[i]?{antes:antigos[i],depois}:null).filter(Boolean),...substituidos.map(o=>({antes:o,depois:null}))];
+        const patchesHoras=this._anexarPatchesHoras(grupos,pares);
+        await this._commitGrupos(grupos);
+        this._sincronizarPatchesHoras(patchesHoras);
+        substituidos.forEach(o=>window.Store.removerLocal('encontros',o.id));
+        preparados.forEach(p=>window.Store.upsertLocal('encontros',p));
     },
     async moverEncontro(encontro,novaData,cacheTurmas){return this.salvarMovimentos([{id:encontro.id,id_turma:encontro.id_turma,data:novaData}],cacheTurmas);},
     async atualizarFlagsEncontro(encontroId, flags) {

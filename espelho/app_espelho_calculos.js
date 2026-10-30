@@ -7,7 +7,18 @@ Object.assign(window.AppEspelho, {
     _ucsPendentes(turma,ch) { return this._ucsOrdenadas(turma).map(uc=>{const id=uc.id_uc_base||uc.id,total=this._totalEncontrosComCH(uc,turma,ch),distribuidos=this.encontros.filter(e=>e.id_turma===turma.id&&e.id_uc===id&&e.tipo!=='cancelamento').length;return{uc,id,total,distribuidos,faltam:Math.max(0,total-distribuidos)};}).filter(x=>x.faltam>0); },
     _ucsOrdenadas(turma) { return (Array.isArray(turma.ucs) ? [...turma.ucs] : []).sort((a,b) => (parseInt((a.referencia||'').replace(/\D/g,''),10)||0) - (parseInt((b.referencia||'').replace(/\D/g,''),10)||0)); },
     _totalEncontros(uc, turma) { const ch = Number(uc.carga_horaria) || 0; const chEncontro = Number(turma.ch_encontro) || (window.ControllerTurmaFrm?.calcularCHEncontro(turma.h_inicio,turma.h_termino) || 0); return ch > 0 && chEncontro > 0 ? Math.ceil(ch/chEncontro) : 0; },
-    _mapaEncontros() { const m = new Map(); this.encontros.forEach(e => {const staged=this.pendenciasArraste.get(e.id);const moved=staged&&staged.data!==e.data;const item=staged?{...e,data:staged.data??e.data,SS:moved?false:(staged.SS??e.SS),SGO:moved?false:(staged.SGO??e.SGO)}:e;m.set(`${item.id_turma}|${item.data}`,item);}); return m; },
+    // Encontros que serão excluídos ao salvar porque foram sobrepostos por outro encontro arrastado.
+    _idsSubstituidos() { const ids=new Set(); this.pendenciasArraste.forEach(m=>{if(m.substitui)ids.add(m.substitui);}); return ids; },
+    _mapaEncontros() {
+        const m=new Map(),excluidos=this._idsSubstituidos();
+        this.encontros.forEach(e=>{
+            if(excluidos.has(e.id))return;
+            const staged=this.pendenciasArraste.get(e.id),moved=staged&&staged.data!==e.data;
+            const item=staged?{...e,data:staged.data??e.data,SS:moved?false:(staged.SS??e.SS),SGO:moved?false:(staged.SGO??e.SGO),_substitui:staged.substitui?(this.encontros.find(x=>x.id===staged.substitui)||null):null}:e;
+            m.set(`${item.id_turma}|${item.data}`,item);
+        });
+        return m;
+    },
     _mapaExcecoes() { return new Map(this.excecoes.map(e => [e.data,e])); },
     _diasTurma(t) { const map = {'Seg':1,'Ter':2,'Qua':3,'Qui':4,'Sex':5,'Sáb':6,'Sab':6,'Dom':0}; return (t.dias_semana || []).map(d => map[d] ?? map[d.slice(0,3)]).filter(Number.isInteger); },
     _grupoPeriodo(t) { const dias=this._diasTurma(t); if(dias.includes(6)) return 'SÁBADOS'; const p=this._norm(t.periodo||''); if(p.includes('manha')) return 'MANHÃ'; if(p.includes('tarde')) return 'TARDE'; if(p.includes('noite')) return 'NOITE'; return 'MANHÃ'; },

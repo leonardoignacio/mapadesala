@@ -24,37 +24,51 @@ Object.assign(window.AppEspelho, {
         if(this._dndDocHandler){document.removeEventListener('dragover',this._dndDocHandler);this._dndDocHandler=null;}
         this._dndPonteiro=null;
     },
+    // Ao SOLTAR sobre uma data válida: registra a pendência (o encontro sai da data original e entra na nova) e, se a
+    // data estiver ocupada, marca o encontro sobreposto para exclusão. Nada é gravado: tudo vale só ao "Salvar".
+    _confirmarArrasto() {
+        const id=this.draggedId,alvo=this._dragAlvo;if(!id||!alvo)return false;
+        const source=this.encontros.find(x=>x.id===id);if(!source)return false;
+        if(alvo.data===source.data&&!alvo.ocupanteId)this.pendenciasArraste.delete(id);
+        else this.pendenciasArraste.set(id,{id_turma:alvo.idTurma,data:alvo.data,SS:false,SGO:false,...(alvo.ocupanteId?{substitui:alvo.ocupanteId}:{})});
+        this._ultimoDrop={substitui:!!alvo.ocupanteId};
+        this._dragAlvo=null;return true;
+    },
     _registrarDragDrop() {
         const pane=document.getElementById('espelho-painel'); if(!pane)return;
         const limparPreview=()=>{
             pane.querySelectorAll('.espelho-drag-preview').forEach(n=>n.remove());
             pane.querySelectorAll('[data-dnd-oculto]').forEach(n=>{n.style.display='';n.removeAttribute('data-dnd-oculto');});
-            pane.querySelectorAll('.espelho-dnd-alvo').forEach(n=>n.classList.remove('espelho-dnd-alvo','ring-2','ring-inset','ring-indigo-400'));
+            pane.querySelectorAll('.espelho-dnd-alvo').forEach(n=>n.classList.remove('espelho-dnd-alvo','ring-2','ring-inset','ring-indigo-400','ring-rose-500'));
         };
-        // A célula da turma na data (vaga ou ocupada), vista como um único espaço do dia.
         const celulaDaData=(idTurma,data)=>{
             const vaga=[...pane.querySelectorAll('td[data-id-turma][data-data]')].find(td=>td.dataset.idTurma===idTurma&&td.dataset.data===data);
             if(vaga)return vaga;
             return [...pane.querySelectorAll('.espelho-card')].find(c=>c.dataset.idTurma===idTurma&&c.dataset.data===data&&!c.classList.contains('espelho-drag-preview'))?.closest('td')||null;
         };
-        // O cartão arrastado "encaixa" no lugar do conteúdo da data: esconde o quadro vazio (ou o cartão atual) e ocupa o espaço.
-        const colocarPreview=(cell,origem,destacar=false)=>{
+        // Pré-visualização apenas visual: o cartão "encaixa" no espaço da data. Se houver ocupante, ele é escondido e a data
+        // fica destacada em vermelho, avisando que ele será substituído (e excluído) somente se o usuário soltar e salvar.
+        const colocarPreview=(cell,origem,substitui)=>{
             if(!cell||!origem)return;
             const filhos=[...cell.children].filter(n=>!n.classList.contains('espelho-drag-preview'));
             const alturaVaga=Math.max(88,...filhos.map(n=>n.offsetHeight||0));
             filhos.forEach(n=>{n.setAttribute('data-dnd-oculto','1');n.style.display='none';});
             const clone=origem.cloneNode(true);
             clone.removeAttribute('draggable');clone.removeAttribute('data-dnd-oculto');clone.style.display='';clone.classList.remove('opacity-30');
-            clone.classList.add('espelho-drag-preview','w-full','shadow-lg','ring-2','ring-indigo-400');
+            clone.classList.add('espelho-drag-preview','w-full','shadow-lg','ring-2',substitui?'ring-rose-500':'ring-indigo-400');
             clone.style.pointerEvents='none';clone.style.minHeight=`${alturaVaga}px`;
             clone.querySelectorAll('button,input').forEach(b=>b.remove());
+            if(substitui){const aviso=document.createElement('div');aviso.className='mb-1 rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700';aviso.textContent='Substituirá o encontro desta data ao soltar';clone.prepend(aviso);}
             cell.appendChild(clone);
-            if(destacar)cell.classList.add('espelho-dnd-alvo','ring-2','ring-inset','ring-indigo-400');
+            cell.classList.add('espelho-dnd-alvo','ring-2','ring-inset',substitui?'ring-rose-500':'ring-indigo-400');
         };
+        const semAlvo=(e)=>{this._dragAlvo=null;this.lastDragTarget='';limparPreview();if(e?.dataTransfer)e.dataTransfer.dropEffect='none';};
+        // Shift+clique alterna a seleção: impede a seleção de texto e o início de arrasto nesse caso.
+        pane.onmousedown=e=>{if(e.shiftKey&&e.target.closest('.espelho-card,td.espelho-dropzone')&&!e.target.closest('input,button,label,select,a'))e.preventDefault();};
         pane.ondragstart=e=>{
             const card=e.target.closest('.espelho-card');if(!card||card.dataset.tipo==='cancelamento')return;
             if(this.alvosEdicaoLote.size){e.preventDefault();this._mostrarStatus('Limpe a seleção em lote antes de arrastar encontros.',true);return;}
-            this.draggedId=card.dataset.encontroId;this.lastDragTarget='';
+            this.draggedId=card.dataset.encontroId;this.lastDragTarget='';this._dragAlvo=null;this._ultimoDrop=null;
             e.dataTransfer.setData('text/plain',this.draggedId);e.dataTransfer.effectAllowed='move';
             this._dndPonteiro={x:e.clientX,y:e.clientY};
             this._dndDocHandler=ev=>{this._dndPonteiro={x:ev.clientX,y:ev.clientY};};
@@ -62,35 +76,38 @@ Object.assign(window.AppEspelho, {
             this._iniciarAutoScrollArrasto(pane);
         };
         pane.ondragover=e=>{
-            const id=this.draggedId||e.dataTransfer?.getData?.('text/plain');if(!id)return;
+            const id=this.draggedId;if(!id)return;
             e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';
             this._dndPonteiro={x:e.clientX,y:e.clientY};
             const source=this.encontros.find(x=>x.id===id);if(!source)return;
-            // O alvo é a DATA inteira: o ponteiro em qualquer ponto da linha (inclusive no rótulo do dia) resolve a célula da turma.
-            const linha=e.target.closest?.('tbody tr');if(!linha)return;
-            const cell=celulaDaData(source.id_turma,[...linha.querySelectorAll('td[data-id-turma][data-data],.espelho-card:not(.espelho-drag-preview)')].find(n=>n.dataset.idTurma===source.id_turma)?.dataset.data||'');
-            const newDate=cell?(cell.dataset.data||cell.querySelector('.espelho-card')?.dataset.data):null;
-            if(!cell||!newDate)return;
-            const idTurma=source.id_turma,key=`${idTurma}|${newDate}`;if(this.lastDragTarget===key)return;this.lastDragTarget=key;
-            const turma=this.turmas.find(t=>t.id===idTurma);if(!turma)return;
-            const ignoradas = Array.isArray(turma.excecoes_ignoradas) ? turma.excecoes_ignoradas : [];
-            if(window.Util.excecaoAplica(this._mapaExcecoes().get(newDate),turma) && !ignoradas.includes(newDate))return;
-            const map=this._mapaEncontros(),occupant=map.get(`${turma.id}|${newDate}`),current=this.pendenciasArraste.get(id)?.data||source.data;
-            if(current===newDate||occupant?.id===id||occupant?.tipo==='cancelamento')return;
-            if(occupant){const next=this._proximaDataLivre(turma,newDate,new Set([id,occupant.id]));if(!next)return;this.pendenciasArraste.set(occupant.id,{id_turma:turma.id,data:next,SS:false,SGO:false});}
-            if(newDate===source.data&&!source.SS&&!source.SGO&&!this.pendenciasArraste.has(id))this.pendenciasArraste.delete(id);else this.pendenciasArraste.set(id,{id_turma:turma.id,data:newDate,SS:false,SGO:false});
-            limparPreview();
-            const sourceCard=pane.querySelector(`.espelho-card[data-encontro-id="${CSS.escape(id)}"]`);if(sourceCard)sourceCard.classList.add('opacity-30');
-            colocarPreview(cell,sourceCard,true);
-            for(const [movedId,mv] of this.pendenciasArraste){
-                if(movedId===id)continue;
-                const origem=pane.querySelector(`.espelho-card[data-encontro-id="${CSS.escape(movedId)}"]:not(.espelho-drag-preview)`);origem?.classList.add('opacity-30');
-                const destino=celulaDaData(source.id_turma,mv.data);if(destino&&destino!==cell)colocarPreview(destino,origem);
+            // O alvo é a DATA inteira: o ponteiro em qualquer ponto da linha resolve a célula da turma do encontro.
+            const linha=e.target.closest?.('tbody tr');if(!linha){semAlvo(e);return;}
+            const ref=[...linha.querySelectorAll('td[data-id-turma][data-data],.espelho-card:not(.espelho-drag-preview)')].find(n=>n.dataset.idTurma===source.id_turma);
+            const cell=celulaDaData(source.id_turma,ref?.dataset.data||'');
+            const newDate=cell?(cell.dataset.data||cell.querySelector('.espelho-card:not(.espelho-drag-preview)')?.dataset.data):null;
+            if(!cell||!newDate){semAlvo(e);return;}
+            const turma=this.turmas.find(t=>t.id===source.id_turma);if(!turma){semAlvo(e);return;}
+            const ignoradas=Array.isArray(turma.excecoes_ignoradas)?turma.excecoes_ignoradas:[];
+            if(window.Util.excecaoAplica(this._mapaExcecoes().get(newDate),turma)&&!ignoradas.includes(newDate)){semAlvo(e);return;}
+            const ocupante=this._mapaEncontros().get(`${turma.id}|${newDate}`),atual=this.pendenciasArraste.get(id)?.data||source.data;
+            if(ocupante?.id===id||newDate===atual){this._dragAlvo=null;this.lastDragTarget='';limparPreview();return;}
+            if(ocupante){
+                const real=this.encontros.find(x=>x.id===ocupante.id);
+                if(ocupante.tipo==='cancelamento'||!real||real.data<=this._hojeISO()){semAlvo(e);return;}   // só substitui encontros futuros
             }
+            const key=`${turma.id}|${newDate}|${ocupante?.id||''}`;if(this.lastDragTarget===key&&this._dragAlvo)return;
+            this.lastDragTarget=key;this._dragAlvo={idTurma:turma.id,data:newDate,ocupanteId:ocupante?.id||null};
+            limparPreview();
+            const sourceCard=pane.querySelector(`.espelho-card[data-encontro-id="${CSS.escape(id)}"]:not(.espelho-drag-preview)`);sourceCard?.classList.add('opacity-30');
+            colocarPreview(cell,sourceCard,!!ocupante);
         };
-        pane.ondragleave=e=>{if(!pane.contains(e.relatedTarget))this.lastDragTarget='';};
-        pane.ondrop=e=>{if(e.target.closest('tbody tr'))e.preventDefault();};
-        pane.ondragend=()=>{this._pararAutoScrollArrasto();this.draggedId=null;this.lastDragTarget='';this.renderizarMapa();this._registrarDragDrop();if(this.pendenciasArraste.size)this._mostrarStatus('Encontro(s) reposicionado(s). Use Salvar Alterações no cabeçalho da turma.');};
+        pane.ondragleave=e=>{if(!pane.contains(e.relatedTarget)){this._dragAlvo=null;this.lastDragTarget='';limparPreview();}};
+        pane.ondrop=e=>{if(!this.draggedId)return;e.preventDefault();this._confirmarArrasto();};
+        pane.ondragend=()=>{
+            this._pararAutoScrollArrasto();this.draggedId=null;this._dragAlvo=null;this.lastDragTarget='';
+            this.renderizarMapa();this._registrarDragDrop();
+            if(this._ultimoDrop){this._mostrarStatus(this._ultimoDrop.substitui?'Encontro reposicionado. O encontro sobreposto será excluído ao salvar; use Salvar Alterações (ou ↶ para descartar).':'Encontro reposicionado. Use Salvar Alterações no cabeçalho da turma.');this._ultimoDrop=null;}
+        };
     },
 
     async _salvarFlagEncontro(input) {
@@ -123,6 +140,7 @@ Object.assign(window.AppEspelho, {
         return false;
     },
     tratarDuploClique(e) {
+        if(e.shiftKey)return true;
         if(e.target.closest('.espelho-alvo-chk'))return true;
         if(e.target.closest('.btn-remover-encontro'))return true;
         if(e.target.closest('.espelho-flag-encontro'))return true;

@@ -71,12 +71,26 @@ Object.assign(window.AppEspelho, {
         document.getElementById('encontro-h-inicio').value=encontro?.h_inicio||t.h_inicio||'';document.getElementById('encontro-h-termino').value=encontro?.h_termino||t.h_termino||'';document.getElementById('encontro-ch').value=encontro?.ch_encontro??chTurma;
         document.getElementById('encontro-ss').checked=!!encontro?.SS;document.getElementById('encontro-sgo').checked=!!encontro?.SGO;document.getElementById('encontro-descricao').value=encontro?.descricao||'';this._alternarCamposTipo();this._renderizarProgressoEncontro();
     },
+    // Shift + clique esquerdo sobre um encontro ou data vaga marca/desmarca a seleção (sem precisar acertar o checkbox).
+    _alternarSelecaoComShift(e) {
+        if(e.target.closest('button,a,select,textarea,label,.espelho-alvo-chk'))return false;
+        const area=e.target.closest('.espelho-card,td.espelho-dropzone');if(!area||area.classList.contains('espelho-drag-preview'))return false;
+        const chk=area.querySelector('.espelho-alvo-chk');if(!chk)return false;
+        e.preventDefault();chk.click();return true;
+    },
     fecharModal(id) { const m=document.getElementById(id); if(m){m.classList.add('hidden');m.classList.remove('flex');} },
     async tratarCliques(e) {
         const t=e.target;
         if(await this._tratarCliqueRecurso(e))return true;
+        if(e.shiftKey&&this._alternarSelecaoComShift(e))return true;
         if(t.closest('.espelho-alvo-chk'))return true;
         if(t.closest('.btn-editar-lote')){this.abrirEdicaoLote(t.closest('.btn-editar-lote').dataset.idTurma);return true;}
+        if(t.closest('.btn-filtro-turma')){this.abrirFiltroTurma(t.closest('.btn-filtro-turma').dataset.idTurma);return true;}
+        if(t.closest('.btn-limpar-filtro-turma')){this.limparFiltroTurma();return true;}
+        if(t.closest('#btn-aplicar-filtro-turma')){this.aplicarFiltroTurma();return true;}
+        if(t.closest('#btn-limpar-filtro-modal')){this.limparFiltroTurma();return true;}
+        if(t.closest('.btn-fechar-filtro-turma')||t.id==='modal-filtro-turma'){this.fecharModal('modal-filtro-turma');return true;}
+        if(t.closest('.btn-ativar-ss-sgo-lote')){await this.ativarSsSgoSelecionados(t.closest('.btn-ativar-ss-sgo-lote').dataset.idTurma);return true;}
         if(t.closest('.btn-flags-lote')){this.abrirModalFlagsLote(t.closest('.btn-flags-lote').dataset.idTurma);return true;}
         if(t.closest('#btn-confirmar-flags-lote')){await this.aplicarFlagsLote();return true;}
         if(t.closest('.btn-fechar-flags-lote')||t.id==='modal-flags-lote'){this.fecharModal('modal-flags-lote');return true;}
@@ -101,17 +115,20 @@ Object.assign(window.AppEspelho, {
         if(t.closest('.btn-descartar-movimentos')){await this._descartarMovimentosTurma(t.closest('.btn-descartar-movimentos').dataset.idTurma);return true;}
         if(t.closest('.btn-salvar-movimentos')){
             const btn=t.closest('.btn-salvar-movimentos'),turmaId=btn.dataset.idTurma;
-            const moves=[...this.pendenciasArraste.entries()].filter(([,m])=>m.id_turma===turmaId).map(([id,m])=>({id,...m}));
+            const todas=[...this.pendenciasArraste.entries()].filter(([,m])=>m.id_turma===turmaId);
+            // Encontros sobrepostos são excluídos apenas aqui; os que serão excluídos não são "movidos".
+            const exclusoes=[...new Set(todas.map(([,m])=>m.substitui).filter(Boolean))];
+            const moves=todas.filter(([id])=>!exclusoes.includes(id)).map(([id,m])=>({id,...m}));
             if(!moves.length){this._mostrarStatus('Não há alterações pendentes para esta turma.',true);return true;}
             if(btn.dataset.saving==='1')return true;
             btn.dataset.saving='1';btn.disabled=true;btn.textContent='Salvando…';btn.classList.add('opacity-60','cursor-wait');
             try{
-                await window.ControllerEspelho.salvarMovimentos(moves,this.turmas,this.excecoes);
+                await window.ControllerEspelho.salvarMovimentos(moves,this.turmas,this.excecoes,exclusoes);
                 const porId=new Map(moves.map(m=>[m.id,m]));
-                this.encontros=this.encontros.map(en=>{const m=porId.get(en.id);if(!m)return en;const mudouData=!!m.data&&m.data!==en.data;return{...en,data:m.data||en.data,SS:mudouData?false:(Object.prototype.hasOwnProperty.call(m,'SS')?m.SS===true:en.SS===true),SGO:mudouData?false:(Object.prototype.hasOwnProperty.call(m,'SGO')?m.SGO===true:en.SGO===true)};});
-                moves.forEach(m=>this.pendenciasArraste.delete(m.id));
+                this.encontros=this.encontros.filter(en=>!exclusoes.includes(en.id)).map(en=>{const m=porId.get(en.id);if(!m)return en;const mudouData=!!m.data&&m.data!==en.data;return{...en,data:m.data||en.data,SS:mudouData?false:(Object.prototype.hasOwnProperty.call(m,'SS')?m.SS===true:en.SS===true),SGO:mudouData?false:(Object.prototype.hasOwnProperty.call(m,'SGO')?m.SGO===true:en.SGO===true)};});
+                todas.forEach(([id])=>this.pendenciasArraste.delete(id));
                 for(const [key,alvo] of this.alvosEdicaoLote)if(alvo.id_turma===turmaId)this.alvosEdicaoLote.delete(key);
-                this._mostrarStatus(`${moves.length} alteração(ões) salva(s) para a turma.`);
+                this._mostrarStatus(`${moves.length} alteração(ões) salva(s) para a turma${exclusoes.length?` e ${exclusoes.length} encontro(s) sobreposto(s) excluído(s)`:''}.`);
                 this.renderizarMapa();this._registrarDragDrop();
             }catch(err){
                 this._mostrarStatus(`Não foi possível salvar: ${err?.message||'erro desconhecido'}`,true);
