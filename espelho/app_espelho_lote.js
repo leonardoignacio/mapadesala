@@ -91,7 +91,7 @@ Object.assign(window.AppEspelho, {
             this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus(`SS e SGO ativados em ${atualizados.length} encontro(s).`);return true;
         }catch(err){await window.Dialog.erro(err,'Não foi possível ativar SS e SGO');return false;}
     },
-    limparSelecaoTurma(idTurma) {for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma)this.alvosEdicaoLote.delete(key);this.renderizarMapa();this._registrarDragDrop();},
+    limparSelecaoTurma(idTurma) {for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma)this.alvosEdicaoLote.delete(key);if(this._ancoraSelecao?.idTurma===idTurma)this._ancoraSelecao=null;this.renderizarMapa();this._registrarDragDrop();},
     _atualizarResumoRemocaoUC() {
         const select=document.getElementById('select-remover-uc'),out=document.getElementById('resumo-remocao-uc'),btn=document.getElementById('btn-confirmar-remover-uc');
         const todas=select?.value==='TODAS',uc=(this.turmaRemocao?.ucs||[]).find(x=>(x.id_uc_base||x.id)===select?.value),n=select?.value?this._contagemFuturaUC(this.turmaRemocao?.id,select.value):0;

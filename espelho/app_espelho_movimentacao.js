@@ -63,8 +63,8 @@ Object.assign(window.AppEspelho, {
             cell.classList.add('espelho-dnd-alvo','ring-2','ring-inset',substitui?'ring-rose-500':'ring-indigo-400');
         };
         const semAlvo=(e)=>{this._dragAlvo=null;this.lastDragTarget='';limparPreview();if(e?.dataTransfer)e.dataTransfer.dropEffect='none';};
-        // Shift+clique alterna a seleção: impede a seleção de texto e o início de arrasto nesse caso.
-        pane.onmousedown=e=>{if(e.shiftKey&&e.target.closest('.espelho-card,td.espelho-dropzone')&&!e.target.closest('input,button,label,select,a'))e.preventDefault();};
+        // Ctrl/Shift+clique seleciona cartões: impede a seleção de texto e o início de arrasto nesse caso.
+        pane.onmousedown=e=>{if((e.shiftKey||e.ctrlKey||e.metaKey)&&e.target.closest('.espelho-card,td.espelho-dropzone')&&!e.target.closest('input,button,label,select,a'))e.preventDefault();};
         pane.ondragstart=e=>{
             const card=e.target.closest('.espelho-card');if(!card||card.dataset.tipo==='cancelamento')return;
             if(this.alvosEdicaoLote.size){e.preventDefault();this._mostrarStatus('Limpe a seleção em lote antes de arrastar encontros.',true);return;}
@@ -140,7 +140,7 @@ Object.assign(window.AppEspelho, {
         return false;
     },
     tratarDuploClique(e) {
-        if(e.shiftKey)return true;
+        if(e.shiftKey||e.ctrlKey||e.metaKey)return true;
         if(e.target.closest('.espelho-alvo-chk'))return true;
         if(e.target.closest('.btn-remover-encontro'))return true;
         if(e.target.closest('.espelho-flag-encontro'))return true;

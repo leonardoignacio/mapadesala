@@ -16,7 +16,7 @@ Object.assign(window.AppEspelho, {
         this.editavel = this._podeEditar();
         this.podeGerenciarFlags = this._podeGerenciarFlags();
         this.podeGerenciarFlagsLote = this._podeGerenciarFlagsLote();
-        this.alvosEdicaoLote.clear();
+        this.alvosEdicaoLote.clear();this._ancoraSelecao=null;
         const pane = document.getElementById('espelho-painel');
         try {
             const base = await window.ControllerEspelho.carregarBase();
@@ -71,18 +71,34 @@ Object.assign(window.AppEspelho, {
         document.getElementById('encontro-h-inicio').value=encontro?.h_inicio||t.h_inicio||'';document.getElementById('encontro-h-termino').value=encontro?.h_termino||t.h_termino||'';document.getElementById('encontro-ch').value=encontro?.ch_encontro??chTurma;
         document.getElementById('encontro-ss').checked=!!encontro?.SS;document.getElementById('encontro-sgo').checked=!!encontro?.SGO;document.getElementById('encontro-descricao').value=encontro?.descricao||'';this._alternarCamposTipo();this._renderizarProgressoEncontro();
     },
-    // Shift + clique esquerdo sobre um encontro ou data vaga marca/desmarca a seleção (sem precisar acertar o checkbox).
-    _alternarSelecaoComShift(e) {
+    // Seleção pelo cartão, no padrão dos aplicativos: Ctrl (ou Cmd) + clique alterna um item; Shift + clique seleciona o
+    // intervalo entre o último item selecionado e o clicado (somente da mesma turma; cancelamentos, pontes e feriados não entram).
+    _selecaoPorTeclado(e) {
+        if(!(e.shiftKey||e.ctrlKey||e.metaKey))return false;
         if(e.target.closest('button,a,select,textarea,label,.espelho-alvo-chk'))return false;
         const area=e.target.closest('.espelho-card,td.espelho-dropzone');if(!area||area.classList.contains('espelho-drag-preview'))return false;
         const chk=area.querySelector('.espelho-alvo-chk');if(!chk)return false;
-        e.preventDefault();chk.click();return true;
+        e.preventDefault();
+        if(e.shiftKey)return this._selecionarIntervalo(chk);
+        chk.click();return true;
+    },
+    _selecionarIntervalo(chk) {
+        const idTurma=chk.dataset.idTurma,data=chk.dataset.data,anc=this._ancoraSelecao;
+        if(!anc||anc.idTurma!==idTurma||!this.alvosEdicaoLote.size){if(!chk.checked)chk.click();else this._ancoraSelecao={idTurma,data};return true;}   // sem âncora: seleciona só este
+        const [de,ate]=[anc.data,data].sort();
+        document.querySelectorAll('.espelho-alvo-chk').forEach(x=>{
+            if(x.dataset.idTurma!==idTurma||x.dataset.data<de||x.dataset.data>ate)return;
+            const a={id_turma:idTurma,data:x.dataset.data,...(x.dataset.id?{id:x.dataset.id}:{})};
+            this.alvosEdicaoLote.set(`${a.id_turma}|${a.data}|${a.id||''}`,a);
+        });
+        this._ancoraSelecao={idTurma,data};
+        this.renderizarMapa();this._registrarDragDrop();return true;
     },
     fecharModal(id) { const m=document.getElementById(id); if(m){m.classList.add('hidden');m.classList.remove('flex');} },
     async tratarCliques(e) {
         const t=e.target;
         if(await this._tratarCliqueRecurso(e))return true;
-        if(e.shiftKey&&this._alternarSelecaoComShift(e))return true;
+        if((e.shiftKey||e.ctrlKey||e.metaKey)&&this._selecaoPorTeclado(e))return true;
         if(t.closest('.espelho-alvo-chk'))return true;
         if(t.closest('.btn-editar-lote')){this.abrirEdicaoLote(t.closest('.btn-editar-lote').dataset.idTurma);return true;}
         if(t.closest('.btn-filtro-turma')){this.abrirFiltroTurma(t.closest('.btn-filtro-turma').dataset.idTurma);return true;}
@@ -165,7 +181,7 @@ Object.assign(window.AppEspelho, {
         return false;
     },
     async tratarMudancas(e) {
-        if(e.target.matches('.espelho-alvo-chk')){const a={id_turma:e.target.dataset.idTurma,data:e.target.dataset.data,...(e.target.dataset.id?{id:e.target.dataset.id}:{})},k=`${a.id_turma}|${a.data}|${a.id||''}`;e.target.checked?this.alvosEdicaoLote.set(k,a):this.alvosEdicaoLote.delete(k);this.renderizarMapa();this._registrarDragDrop();return true;}
+        if(e.target.matches('.espelho-alvo-chk')){const a={id_turma:e.target.dataset.idTurma,data:e.target.dataset.data,...(e.target.dataset.id?{id:e.target.dataset.id}:{})},k=`${a.id_turma}|${a.data}|${a.id||''}`;e.target.checked?this.alvosEdicaoLote.set(k,a):this.alvosEdicaoLote.delete(k);this._ancoraSelecao={idTurma:a.id_turma,data:a.data};this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.matches('.espelho-filtro-dia-chk')){const set=this._diasVisiveisPeriodo(),dia=Number(e.target.value);e.target.checked?set.add(dia):set.delete(dia);this.filtroDiasAberto=true;this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.matches('.espelho-filtro-mes-chk')){this._alternarMesFiltro(e.target.dataset.mes,e.target.checked);this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.matches('.espelho-filtro-ano-chk')){const ano=Number(e.target.dataset.ano);for(let mi=0;mi<12;mi++)this._alternarMesFiltro(`${ano}-${String(mi+1).padStart(2,'0')}`,e.target.checked);this.renderizarMapa();this._registrarDragDrop();return true;}
