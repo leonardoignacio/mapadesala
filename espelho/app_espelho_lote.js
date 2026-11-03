@@ -70,8 +70,14 @@ Object.assign(window.AppEspelho, {
             this.encontros=this.encontros.map(e=>porId.get(e.id)||e);const alterados=new Set(ids);
             for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma&&a.id&&alterados.has(a.id))this.alvosEdicaoLote.delete(key);
             this.fecharModal('modal-flags-lote');this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus(atualizados.length?`SS/SGO atualizado(s) em ${atualizados.length} encontro(s).`:'Os encontros já estavam com os valores escolhidos.');return true;
-        }catch(err){const out=document.getElementById('flags-lote-resumo');if(out){out.textContent=err?.message||'Não foi possível atualizar SS/SGO.';out.className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800';}this._mostrarStatus(err?.message||'Não foi possível atualizar SS/SGO.',true);return false;}
+        }catch(err){const msg=this._mensagemErroGravacao(err);const out=document.getElementById('flags-lote-resumo');if(out){out.textContent=msg;out.className='rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800';}this._mostrarStatus(msg,true);return false;}
         finally{if(btn&&document.getElementById('modal-flags-lote')?.classList.contains('flex')){btn.disabled=false;btn.textContent='Aplicar alterações';this._atualizarResumoFlagsLote();}}
+    },
+    // Mensagem de erro de gravação (SS/SGO e salvamento do mapa). Registra o contexto no console para facilitar o diagnóstico.
+    _mensagemErroGravacao(err) {
+        console.error('[Espelho] gravação recusada:',{codigo:err?.code,mensagem:err?.message,cargo:window.usuarioAtual?.cargo,email:window.usuarioAtual?.email});
+        if(err?.code==='permission-denied')return `O Firebase recusou a gravação para o seu usuário (cargo: ${window.usuarioAtual?.cargo||'desconhecido'}). Peça ao administrador para conferir se as regras mais recentes do Firestore (arquivo RegrasFirebase) estão publicadas e se o cadastro do usuário está com o cargo correto e status ativo.`;
+        return err?.message||'Não foi possível concluir a gravação.';
     },
     // Atalho do cabeçalho: ativa SS e SGO nos encontros selecionados da turma (Admin e Apoio).
     async ativarSsSgoSelecionados(idTurma) {
@@ -89,7 +95,7 @@ Object.assign(window.AppEspelho, {
             this.encontros=this.encontros.map(e=>porId.get(e.id)||e);
             for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma&&a.id&&ids.has(a.id))this.alvosEdicaoLote.delete(key);
             this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus(`SS e SGO ativados em ${atualizados.length} encontro(s).`);return true;
-        }catch(err){await window.Dialog.erro(err,'Não foi possível ativar SS e SGO');return false;}
+        }catch(err){await window.Dialog.erro(this._mensagemErroGravacao(err),'Não foi possível ativar SS e SGO');return false;}
     },
     limparSelecaoTurma(idTurma) {for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma)this.alvosEdicaoLote.delete(key);if(this._ancoraSelecao?.idTurma===idTurma)this._ancoraSelecao=null;this.renderizarMapa();this._registrarDragDrop();},
     _atualizarResumoRemocaoUC() {

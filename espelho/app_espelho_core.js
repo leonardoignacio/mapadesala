@@ -147,7 +147,7 @@ Object.assign(window.AppEspelho, {
                 this._mostrarStatus(`${moves.length} alteração(ões) salva(s) para a turma${exclusoes.length?` e ${exclusoes.length} encontro(s) sobreposto(s) excluído(s)`:''}.`);
                 this.renderizarMapa();this._registrarDragDrop();
             }catch(err){
-                this._mostrarStatus(`Não foi possível salvar: ${err?.message||'erro desconhecido'}`,true);
+                this._mostrarStatus(`Não foi possível salvar: ${this._mensagemErroGravacao(err)}`,true);
                 btn.dataset.saving='0';btn.disabled=false;btn.textContent=`Salvar Alterações (${moves.length})`;btn.classList.remove('opacity-60','cursor-wait');
             }
             return true;
