@@ -2,14 +2,13 @@
 const STORAGE_CACHE_PREFIX = "inovatech_store_cache_v2:";
 const STORAGE_CACHE_TTL_MS = 15 * 60 * 1000;
 const STORAGE_CACHE_DEBOUNCE_MS = 250;
-// Perfis que gerenciam credenciamento e, por isso, podem manter os dados completos de todos os usuários.
-const CARGOS_GESTORES = ["root", "admin", "tecnico"];
-// Campos de outros usuários que os demais perfis (docente/apoio) precisam para montar o Espelho.
-// Justificativas de credenciamento, datas de auditoria e usuários pendentes/inativos NÃO são mantidos.
-const CAMPOS_USUARIO_PUBLICOS = ["id", "email", "nome", "sobrenome", "nome_completo", "cargo", "perfis", "areas", "status"];
+// SEGURANÇA: somente estes perfis carregam (e guardam em cache) a coleção completa "usuarios".
+// Os demais (técnico, docente, apoio) nunca recebem essa coleção: consultam e alteram apenas o PRÓPRIO documento,
+// direto no Firebase, e obtêm a lista de docentes pelo "diretorio_docentes" (somente nome, áreas e status).
+const CARGOS_COLECAO_USUARIOS = ["root", "admin"];
 
 window.Store = {
-    dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], docentes: [] },
+    dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], diretorio: [], docentes: [] },
     listeners: [],
     inicializado: false,
     _promessaInicio: null,
@@ -19,23 +18,11 @@ window.Store = {
     _cacheRestaurado: false,
     onUpdateCallback: null,
 
-    _ehGestor() { return CARGOS_GESTORES.includes(this.cargo); },
+    // true somente para Root/Admin.
+    _carregaUsuarios() { return CARGOS_COLECAO_USUARIOS.includes(this.cargo); },
 
-    // Mantém apenas os campos não sensíveis de usuários que não sejam o próprio titular.
-    _projetarUsuario(u) {
-        if (!u || this._ehGestor() || u.id === (this._usuarioId || this._identificarUsuario())) return u;
-        const publico = {};
-        CAMPOS_USUARIO_PUBLICOS.forEach(c => { if (u[c] !== undefined) publico[c] = u[c]; });
-        return publico;
-    },
-
-    _aplicarProjecaoUsuarios() {
-        if (this._ehGestor()) return;
-        const meuId = this._usuarioId || this._identificarUsuario();
-        this.dados.usuarios = (this.dados.usuarios || [])
-            .filter(u => u.id === meuId || u.status === "ativo")
-            .map(u => this._projetarUsuario(u));
-    },
+    // Documento do próprio usuário logado: lido direto do Firebase e mantido apenas em memória (nunca em cache).
+    meuUsuario: null,
 
     definirCargo(cargo) { this.cargo = cargo || null; },
 
@@ -65,7 +52,12 @@ window.Store = {
             Object.keys(this.dados).forEach(k => {
                 if (Array.isArray(parsed.data?.[k])) this.dados[k] = parsed.data[k];
             });
-            this._aplicarProjecaoUsuarios();
+            if (!this._carregaUsuarios()) {
+                // Perfis sem acesso à coleção: remove qualquer resquício de versões anteriores do cache.
+                const tinhaUsuarios = Array.isArray(parsed.data?.usuarios) && parsed.data.usuarios.length > 0;
+                this.dados.usuarios = [];
+                if (tinhaUsuarios) this._salvarCacheNavegador();
+            }
             this._cacheRestaurado = true;
             this._processarDocentes();
             return true;
@@ -93,7 +85,7 @@ window.Store = {
             this._cacheTimer = null;
             try {
                 const data = {};
-                Object.keys(this.dados).forEach(k => { data[k] = this._sanitizarCache(this.dados[k]); });
+                Object.keys(this.dados).forEach(k => { data[k] = (k === "usuarios" && !this._carregaUsuarios()) ? [] : this._sanitizarCache(this.dados[k]); });
                 localStorage.setItem(this._chaveCache(), JSON.stringify({ version: 2, user: this._usuarioId, savedAt: Date.now(), data }));
             } catch (err) {
                 console.warn("[Store] Limite de armazenamento local atingido:", err);
@@ -117,8 +109,9 @@ window.Store = {
                 { col: "areas", chave: "areas" }, { col: "cursos", chave: "cursos" },
                 { col: "ucs", chave: "ucs" }, { col: "turmas", chave: "turmas" },
                 { col: "encontros", chave: "encontros" }, { col: "datas_excecoes", chave: "excecoes" },
-                { col: "salas_aula", chave: "salas" }, { col: "usuarios", chave: "usuarios" }
+                { col: "salas_aula", chave: "salas" }, { col: "diretorio_docentes", chave: "diretorio" }
             ];
+            if (this._carregaUsuarios()) colecoes.push({ col: "usuarios", chave: "usuarios" });
             let pendentes = colecoes.length;
             let resolvido = false;
             const concluir = () => {
@@ -129,7 +122,7 @@ window.Store = {
                 this._salvarCacheNavegador();
                 resolve(this.dados);
             };
-            if (tinhaCacheLocal && (this.dados.cursos.length || this.dados.turmas.length || this.dados.usuarios.length)) setTimeout(concluir, 60);
+            if (tinhaCacheLocal && (this.dados.cursos.length || this.dados.turmas.length || this.dados.diretorio.length)) setTimeout(concluir, 60);
             const timerSeguranca = setTimeout(concluir, 4000);
             const checkPronto = () => {
                 if (--pendentes <= 0) { clearTimeout(timerSeguranca); concluir(); }
@@ -142,14 +135,12 @@ window.Store = {
     _escutarColecao(nomeColecao, nomeEstado, callbackInicial) {
         if (!window.db) { callbackInicial(); return; }
         let primeiroDisparo = true;
-        let consulta = window.db.collection(nomeColecao);
-        if (nomeColecao === "usuarios" && !this._ehGestor()) consulta = consulta.where("status", "==", "ativo");
-        const unsubscribe = consulta.onSnapshot(snapshot => {
+        const unsubscribe = window.db.collection(nomeColecao).onSnapshot(snapshot => {
             const teveMudancaReal = snapshot.docChanges().length > 0;
             if (primeiroDisparo || teveMudancaReal) {
                 this.dados[nomeEstado] = [];
                 snapshot.forEach(doc => this.dados[nomeEstado].push({ id: doc.id, ...doc.data() }));
-                if (nomeEstado === "usuarios") { this._aplicarProjecaoUsuarios(); this._processarDocentes(); }
+                if (nomeEstado === "usuarios" || nomeEstado === "diretorio") this._processarDocentes();
                 this._salvarCacheNavegador();
                 if (!primeiroDisparo && teveMudancaReal && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado);
                 if (primeiroDisparo && this.inicializado && this._cacheRestaurado && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado, { snapshotInicial: true });
@@ -164,23 +155,25 @@ window.Store = {
 
     _processarDocentes() {
         const norm = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-        this.dados.docentes = (this.dados.usuarios || []).filter(u => u.status === "ativo" && norm(u.cargo) === "docente" && Array.isArray(u.perfis) && u.perfis.some(p => norm(p) === "docente"));
+        // Root/Admin: a partir de "usuarios". Demais perfis: a partir do diretório público de docentes.
+        const origem = this._carregaUsuarios() ? this.dados.usuarios : this.dados.diretorio;
+        this.dados.docentes = (origem || []).filter(u => u.status === "ativo" && norm(u.cargo) === "docente" && Array.isArray(u.perfis) && u.perfis.some(p => norm(p) === "docente"));
     },
 
     upsertLocal(chave, item) {
         if (!item || !item.id || !Array.isArray(this.dados[chave])) return;
-        if (chave === "usuarios") item = this._projetarUsuario(item);
+        if (chave === "usuarios" && !this._carregaUsuarios()) return;   // perfis sem acesso nunca guardam usuários
         const idx = this.dados[chave].findIndex(x => x.id === item.id);
         if (idx >= 0) this.dados[chave][idx] = { ...this.dados[chave][idx], ...item };
         else this.dados[chave].push(item);
-        if (chave === "usuarios") this._processarDocentes();
+        if (chave === "usuarios" || chave === "diretorio") this._processarDocentes();
         this._salvarCacheNavegador();
     },
 
     removerLocal(chave, id) {
         if (!id || !Array.isArray(this.dados[chave])) return;
         this.dados[chave] = this.dados[chave].filter(x => x.id !== id);
-        if (chave === "usuarios") this._processarDocentes();
+        if (chave === "usuarios" || chave === "diretorio") this._processarDocentes();
         this._salvarCacheNavegador();
     },
 
@@ -193,6 +186,7 @@ window.Store = {
         this._promessaInicio = null;
         this._usuarioId = null;
         this.cargo = null;
+        this.meuUsuario = null;
         this._cacheRestaurado = false;
         Object.keys(this.dados).forEach(k => { this.dados[k] = []; });
     }
@@ -247,15 +241,15 @@ window.Controller = {
 
         if (dados) {
             if (dados.status === "pendente" || dados.cargo === "pendente") {
-                window.Store.upsertLocal("usuarios", dados); // evita nova leitura ao montar o dashboard pendente
+                window.Store.meuUsuario = dados;   // em memória: evita nova leitura ao montar o dashboard pendente
                 return "pendente";
             }
             if (dados.status === "inativo" || dados.status === "bloqueado") {
                 return "sem_acesso";
             }
             window.Store.definirCargo(dados.cargo || "apoio");
+            window.Store.meuUsuario = dados;
             await window.Store.garantirPronto(emailId);
-            window.Store.upsertLocal("usuarios", dados);
             return dados.cargo || "apoio";
         }
 

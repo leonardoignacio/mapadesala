@@ -49,17 +49,18 @@ service cloud.firestore {
       return c == 'root' ? 5 : c == 'admin' ? 4 : c == 'tecnico' ? 3 : c == 'docente' ? 2 : c == 'apoio' ? 1 : 0;
     }
 
-    // Gestor só altera usuários de nível inferior ao seu (root altera todos)
+    // Somente Root e Admin gerenciam usuários (o técnico não acessa a coleção "usuarios").
+    // Quem gerencia só altera usuários de nível inferior ao seu (root altera todos)
     // e só atribui cargos de nível inferior ao seu.
     function gestorPodeAlterar() {
-      return ehGestor()
+      return ehAdmin()
         && (cargo() == 'root' || rank(cargo()) > rank(resource.data.get('cargo', 'pendente')))
         && (request.resource.data.get('cargo', 'pendente') == resource.data.get('cargo', 'pendente')
             || rank(request.resource.data.get('cargo', 'pendente')) < rank(cargo()));
     }
 
     function gestorPodeExcluir() {
-      return ehGestor()
+      return ehAdmin()
         && (cargo() == 'root'
             ? resource.data.get('cargo', 'pendente') != 'root'
             : rank(cargo()) > rank(resource.data.get('cargo', 'pendente')));
@@ -70,13 +71,11 @@ service cloud.firestore {
     // =====================================================================
     match /usuarios/{emailId} {
 
-      // Gestores leem tudo. Os demais perfis leem apenas o próprio documento e usuários
-      // ATIVOS (o app já consulta com where('status','==','ativo')): pendentes e
-      // inativos, com suas justificativas, não ficam acessíveis a docentes/apoio.
+      // SEGURANÇA: somente Root/Admin leem a coleção inteira; cada pessoa lê apenas o PRÓPRIO documento.
+      // Técnico, docente e apoio não listam usuários (a lista de docentes vem de "diretorio_docentes").
       allow read: if ehSuper()
         || (logado() && meuEmail() == emailId)
-        || ehGestor()
-        || (ehEquipe() && resource.data.status == 'ativo');
+        || ehAdmin();
 
       // Pré-cadastro: exige login, somente com o PRÓPRIO e-mail e sempre como pendente.
       // Ninguém consegue se criar já como admin/root.
@@ -100,6 +99,13 @@ service cloud.firestore {
       allow delete: if ehSuper()
         || (logado() && meuEmail() == emailId && resource.data.status == 'pendente')
         || gestorPodeExcluir();
+    }
+
+    // Diretório público de docentes (nome, áreas e status; sem dados sensíveis). Toda a equipe lê;
+    // somente Root/Admin gravam (o painel de credenciamento mantém o diretório sincronizado).
+    match /diretorio_docentes/{emailId} {
+      allow read: if leituraEquipe();
+      allow write: if ehSuper() || ehAdmin();
     }
 
     // Coleções legadas: só o titular lê; só o superusuário escreve.

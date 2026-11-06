@@ -5,7 +5,7 @@ Object.assign(window.ControllerEspelho, {
         if (!encontro.docentes?.length) throw new Error('Selecione ao menos um docente.');
         const areaTurma = [turma.curso_area, turma.area, turma.curso_tipo].map(a => this._norm(this._valorArea(a))).filter(Boolean);
         for (const escalado of encontro.docentes) {
-            const usuario = (window.Store.dados.usuarios || []).find(u => u.id === escalado.id || this._norm(u.email) === this._norm(escalado.email));
+            const usuario = (window.Store.dados.docentes || []).find(u => u.id === escalado.id || this._norm(u.email) === this._norm(escalado.email));
             if (!usuario || usuario.status !== 'ativo' || this._norm(usuario.cargo) !== 'docente' || !Array.isArray(usuario.perfis) || !usuario.perfis.some(p => this._norm(p) === 'docente')) throw new Error('Somente usuários ativos cujo perfil principal é Docente podem ser escalados.');
             const areas = (usuario.areas || []).map(a => this._norm(this._valorArea(a)));
             if (!areas.includes('todas') && !areas.some(a => areaTurma.includes(a))) throw new Error(`${usuario.nome_completo || usuario.email} não possui habilitação para a área desta turma.`);

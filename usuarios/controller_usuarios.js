@@ -1,18 +1,24 @@
 // ./usuarios/controller_usuarios.js - Regras de Negócio de Usuários e Pré-Cadastro (Otimizado com Store)
 window.ControllerUsuarios = {
 
+    // O próprio usuário é lido direto do Firebase (e mantido só em memória). A coleção completa "usuarios" existe
+    // em memória/cache apenas para Root e Admin; os demais perfis nunca a recebem.
     async obterUsuarioPorEmail(email) {
         const emailId = (email || "").trim().toLowerCase();
         if (!emailId) return null;
 
-        // Não inicia listeners aqui: usuários pendentes não possuem acesso às coleções globais.
-        const emCache = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
-        if (emCache) return emCache;
+        const proprio = window.Store.meuUsuario;
+        if (proprio && (proprio.id || proprio.email || "").toLowerCase() === emailId) return proprio;
+
+        if (window.Store._carregaUsuarios()) {
+            const emCache = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
+            if (emCache) return emCache;
+        }
 
         const doc = await window.db.collection("usuarios").doc(emailId).get();
         if (!doc.exists) return null;
         const dados = { id: doc.id, ...doc.data() };
-        window.Store.upsertLocal("usuarios", dados);
+        if (emailId === (window.auth.currentUser?.email || "").toLowerCase()) window.Store.meuUsuario = dados;
         return dados;
     },
 
@@ -55,7 +61,7 @@ window.ControllerUsuarios = {
             };
 
             await window.db.collection("usuarios").doc(emailId).set(novoUsuario, { merge: true });
-            window.Store.upsertLocal("usuarios", { id: emailId, ...novoUsuario });
+            window.Store.meuUsuario = { id: emailId, ...novoUsuario };
             return novoUsuario;
         } finally {
             window.emProcessoDePreCadastro = false;
@@ -86,7 +92,7 @@ window.ControllerUsuarios = {
         };
 
         await window.db.collection("usuarios").doc(emailId).update(atualizados);
-        window.Store.upsertLocal("usuarios", { id: emailId, ...atualizados });
+        window.Store.meuUsuario = { ...(window.Store.meuUsuario || {}), id: emailId, ...atualizados };
         return atualizados;
     },
 
@@ -98,7 +104,7 @@ window.ControllerUsuarios = {
         if (!emailId || emailId !== logado) throw new Error("Só é possível excluir o próprio cadastro.");
 
         await window.db.collection("usuarios").doc(emailId).delete();
-        window.Store.removerLocal("usuarios", emailId);
+        window.Store.meuUsuario = null;
         await window.auth.signOut();
     }
 };

@@ -5,7 +5,7 @@ window.Views = {
         const cargo = user?.cargo || 'sem_acesso';
         const isPendente = (cargo === 'pendente');
         const isCalendarioAllowed = ['root', 'admin'].includes(cargo);
-        const isAdminViewAllowed = ['root', 'admin', 'tecnico'].includes(cargo);
+        const isAdminViewAllowed = ['root', 'admin'].includes(cargo);
         const hashAtual = window.location.hash || '#/dashboard';
 
         const linkClass = (targetHash) => {

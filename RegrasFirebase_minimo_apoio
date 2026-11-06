@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == "leoignacio@gmail.com";
+    }
+    
+    function getCargo() {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.token.email)) 
+        ? get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.cargo 
+        : (exists(/databases/$(database)/documents/usuarios_permissoes/$(request.auth.token.email)) 
+          ? get(/databases/$(database)/documents/usuarios_permissoes/$(request.auth.token.email)).data.cargo 
+          : 'pendente');
+    }
+
+    // Coleção de usuários: permite criar pré-cadastro e permite ao titular atualizar/excluir a própria solicitação
+    match /usuarios/{emailId} {
+      allow create: if true;
+      // SEGURANÇA: somente Root/Admin leem e gerenciam a coleção; cada pessoa acessa apenas o PRÓPRIO documento.
+      allow read: if request.auth != null && (isSuperAdmin() || request.auth.token.email == emailId || getCargo() in ['root', 'admin']);
+      allow update, delete: if request.auth != null && (isSuperAdmin() || request.auth.token.email == emailId || getCargo() in ['root', 'admin']);
+    }
+
+    match /usuarios_permissoes/{emailId} {
+      allow read, write: if isSuperAdmin();
+      allow read: if request.auth != null && request.auth.token.email == emailId;
+    }
+
+    // >>> NOVO: diretório público de docentes (nome, áreas e status). Leitura: toda a equipe (regra geral abaixo).
+    // Escrita: Root/Admin (o painel de credenciamento mantém sincronizado). Obs.: nesta versão "mínima" a regra geral
+    // ainda permite escrita a docente/técnico; use o arquivo RegrasFirebase (completo) para fechar também esse ponto.
+    match /diretorio_docentes/{emailId} {
+      allow write: if request.auth != null && (isSuperAdmin() || getCargo() in ['root', 'admin']);
+    }
+
+    // >>> Apoio Técnico pode alterar SOMENTE os marcadores SS/SGO dos encontros
+    // (sincronização com o sistema acadêmico e o SGO). Qualquer outro campo continua bloqueado para o Apoio.
+    match /encontros/{encontroId} {
+      allow update: if request.auth != null
+        && getCargo() == 'apoio'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['SS', 'SGO', 'atualizado_em']);
+    }
+
+    match /{document=**} {
+      allow read: if request.auth != null && (isSuperAdmin() || getCargo() in ['root', 'admin', 'tecnico', 'docente', 'apoio']);
+      allow write: if request.auth != null && (isSuperAdmin() || getCargo() in ['root', 'admin', 'tecnico', 'docente']);
+    }
+  }
+}

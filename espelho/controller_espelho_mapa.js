@@ -35,7 +35,7 @@ Object.assign(window.ControllerEspelho, {
         const todasTurmas = [...(window.Store.dados.turmas || [])].map(t => ({...t, curso_area: mapaCursos.get(t.id_curso)?.area || t.curso_area || '', curso_tipo: mapaCursos.get(t.id_curso)?.tipo || t.curso_tipo || ''}));
         const turmas = todasTurmas.filter(t => this._turmaPermitida(t));
         const ids = new Set(turmas.map(t => t.id));
-        const docentes = (window.Store.dados.usuarios || []).filter(u => u.status === 'ativo' && this._norm(u.cargo) === 'docente' && Array.isArray(u.perfis) && u.perfis.some(p => this._norm(p) === 'docente'));
+        const docentes = [...(window.Store.dados.docentes || [])];
         return { turmas: turmas.sort((a,b)=>(a.referencia||'').localeCompare(b.referencia||'')), cursos, encontros: (window.Store.dados.encontros||[]).filter(e=>ids.has(e.id_turma)), excecoes: [...(window.Store.dados.excecoes||[])], docentes, salas: [...(window.Store.dados.salas||[])] };
     },
     _dataValida(data) {

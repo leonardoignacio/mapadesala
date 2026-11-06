@@ -72,6 +72,12 @@ window.auth.onAuthStateChanged(async (user) => {
             areas: dadosUsuario?.areas || []
         };
 
+        // Root/Admin: mantém o diretório público de docentes em dia (segundo plano; só grava quando há diferença).
+        if (['root', 'admin'].includes(cargo) && window.ControllerAdminCredenciamento?.sincronizarDiretorio) {
+            setTimeout(() => window.ControllerAdminCredenciamento.sincronizarDiretorio()
+                .catch(err => console.warn('[Diretório] Sincronização não concluída:', err)), 1500);
+        }
+
         UI.load.classList.add('hidden');
         UI.root.classList.remove('hidden');
         roteador(); 
@@ -194,7 +200,7 @@ async function roteador() {
         return;
     }
 
-    if (hash === '#/admin' && !['root', 'admin', 'tecnico'].includes(cargoAtual)) { 
+    if (hash === '#/admin' && !['root', 'admin'].includes(cargoAtual)) { 
         window.location.hash = '#/dashboard'; 
         return; 
     }
