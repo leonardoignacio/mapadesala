@@ -79,23 +79,46 @@ Object.assign(window.AppEspelho, {
         if(err?.code==='permission-denied')return `O Firebase recusou a gravação para o seu usuário (cargo: ${window.usuarioAtual?.cargo||'desconhecido'}). Peça ao administrador para conferir se as regras mais recentes do Firestore (arquivo RegrasFirebase) estão publicadas e se o cadastro do usuário está com o cargo correto e status ativo.`;
         return err?.message||'Não foi possível concluir a gravação.';
     },
-    // Atalho do cabeçalho: ativa SS e SGO nos encontros selecionados da turma (Admin e Apoio).
-    async ativarSsSgoSelecionados(idTurma) {
+    // Botão do cabeçalho (Admin e Apoio): ativa SS e SGO nos encontros selecionados da turma e SALVA NA HORA.
+    // Se todos os selecionados já estiverem com SS e SGO ativos, o mesmo botão desativa os dois.
+    // Resposta imediata: aviso de sucesso (com "Desfazer") ou caixa de erro.
+    async alternarSsSgoSelecionados(idTurma) {
         if(!this._podeGerenciarFlagsLote()){this._mostrarStatus('Somente Apoio Técnico ou Admin pode aplicar SS/SGO em lote.',true);return false;}
+        if(this._salvandoFlagsLote)return false;
         const turma=this.turmas.find(t=>t.id===idTurma);if(!turma)return false;
-        if([...this.pendenciasArraste.values()].some(m=>m.id_turma===idTurma)){this._mostrarStatus('Salve ou descarte as alterações pendentes desta turma antes de aplicar SS/SGO.',true);return false;}
+        if([...this.pendenciasArraste.values()].some(m=>m.id_turma===idTurma)){await window.Dialog.aviso('Há alterações de data pendentes nesta turma. Salve ou descarte essas alterações antes de aplicar SS/SGO.','Alterações pendentes');return false;}
         const ids=new Set([...this.alvosEdicaoLote.values()].filter(a=>a.id_turma===idTurma&&a.id).map(a=>a.id));
         const alvos=this.encontros.filter(e=>ids.has(e.id)&&e.id_turma===idTurma&&e.tipo!=='cancelamento');
-        if(!alvos.length){this._mostrarStatus('Selecione ao menos um encontro desta turma.',true);return false;}
-        const faltantes=alvos.filter(e=>!(e.SS===true&&e.SGO===true));
-        if(!faltantes.length){this._mostrarStatus(`Os ${alvos.length} encontro(s) selecionado(s) já estão com SS e SGO ativos.`);return false;}
-        if(!(await window.Dialog.confirmar(`Ativar SS e SGO em ${faltantes.length} encontro(s) selecionado(s) da turma ${turma.referencia}?`,{titulo:'Ativar SS e SGO',textoConfirmar:'Ativar'})))return false;
+        if(!alvos.length){window.Util.toast('Selecione ao menos um encontro desta turma.',{tipo:'aviso'});return false;}
+        const ativar=!alvos.every(e=>e.SS===true&&e.SGO===true);
+        const alterar=alvos.filter(e=>ativar?!(e.SS===true&&e.SGO===true):(e.SS===true||e.SGO===true));
+        const anteriores=alterar.map(e=>({id:e.id,SS:e.SS===true,SGO:e.SGO===true}));
+        const btn=document.querySelector(`.btn-ativar-ss-sgo-lote[data-id-turma="${CSS.escape(idTurma)}"]`);
+        if(btn){btn.disabled=true;btn.textContent='Salvando…';}
+        this._salvandoFlagsLote=true;
         try{
-            const atualizados=await window.ControllerEspelho.atualizarFlagsEncontrosLote(idTurma,faltantes.map(e=>e.id),{SS:true,SGO:true}),porId=new Map(atualizados.map(e=>[e.id,e]));
+            const atualizados=await window.ControllerEspelho.atualizarFlagsEncontrosLote(idTurma,alterar.map(e=>e.id),{SS:ativar,SGO:ativar}),porId=new Map(atualizados.map(e=>[e.id,e]));
             this.encontros=this.encontros.map(e=>porId.get(e.id)||e);
             for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma&&a.id&&ids.has(a.id))this.alvosEdicaoLote.delete(key);
-            this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus(`SS e SGO ativados em ${atualizados.length} encontro(s).`);return true;
-        }catch(err){await window.Dialog.erro(this._mensagemErroGravacao(err),'Não foi possível ativar SS e SGO');return false;}
+            this._ancoraSelecao=null;
+            this.renderizarMapa();this._registrarDragDrop();
+            window.Util.toast(`SS e SGO ${ativar?'ativados':'desativados'} em ${atualizados.length} encontro(s) da turma ${turma.referencia}.`,{grupo:'flags',acao:{texto:'Desfazer',fn:()=>this._desfazerFlagsLote(idTurma,anteriores)}});
+            return true;
+        }catch(err){
+            this.renderizarMapa();this._registrarDragDrop();
+            await window.Dialog.erro(this._mensagemErroGravacao(err),`Não foi possível ${ativar?'ativar':'desativar'} SS e SGO`);return false;
+        }finally{this._salvandoFlagsLote=false;}
+    },
+    async _desfazerFlagsLote(idTurma,anteriores) {
+        try{
+            const grupos=new Map();
+            anteriores.forEach(a=>{const k=`${a.SS}|${a.SGO}`;if(!grupos.has(k))grupos.set(k,{SS:a.SS,SGO:a.SGO,ids:[]});grupos.get(k).ids.push(a.id);});
+            for(const g of grupos.values()){
+                const atualizados=await window.ControllerEspelho.atualizarFlagsEncontrosLote(idTurma,g.ids,{SS:g.SS,SGO:g.SGO}),porId=new Map(atualizados.map(e=>[e.id,e]));
+                this.encontros=this.encontros.map(e=>porId.get(e.id)||e);
+            }
+            this.renderizarMapa();this._registrarDragDrop();window.Util.toast('Alteração desfeita.',{grupo:'flags'});
+        }catch(err){await window.Dialog.erro(this._mensagemErroGravacao(err),'Não foi possível desfazer');}
     },
     limparSelecaoTurma(idTurma) {for(const [key,a] of this.alvosEdicaoLote)if(a.id_turma===idTurma)this.alvosEdicaoLote.delete(key);if(this._ancoraSelecao?.idTurma===idTurma)this._ancoraSelecao=null;this.renderizarMapa();this._registrarDragDrop();},
     _atualizarResumoRemocaoUC() {

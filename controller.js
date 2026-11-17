@@ -27,7 +27,8 @@ window.Store = {
     definirCargo(cargo) { this.cargo = cargo || null; },
 
     _identificarUsuario(usuario) {
-        const valor = usuario || window.usuarioAtual?.email || window.auth?.currentUser?.email || "";
+        // O cache é identificado pela conta de login (uid), que não muda quando o e-mail é trocado.
+        const valor = usuario || window.auth?.currentUser?.uid || window.usuarioAtual?.email || window.auth?.currentUser?.email || "";
         return String(valor).trim().toLowerCase();
     },
 
@@ -194,89 +195,62 @@ window.Store = {
 
 window.Controller = {
 
-    async obterPerfil(email, isSuperUser = false) {
-        const emailId = (email || "").trim().toLowerCase();
-        if (!emailId) return "sem_acesso";
+    // authUser: usuário do Firebase Auth (uid + e-mail). O documento em "usuarios" é localizado pelo vínculo com a conta
+    // (acessos/{uid}); cadastros antigos, cujo id era o e-mail, são vinculados automaticamente no primeiro acesso.
+    async obterPerfil(authUser, isSuperUser = false) {
+        const email = (authUser?.email || "").trim().toLowerCase();
+        const uid = authUser?.uid || email;
+        if (!email) return "sem_acesso";
+        const todosPerfis = ["root", "admin", "tecnico", "docente", "apoio"];
 
         if (isSuperUser) {
             window.Store.definirCargo("root");
-            const todosPerfis = ["root", "admin", "tecnico", "docente", "apoio"];
-            const refRoot = window.db.collection("usuarios").doc(emailId);
-            const snapRoot = await refRoot.get();
-            const existente = snapRoot.exists ? { id: snapRoot.id, ...snapRoot.data() } : null;
+            let existente = await window.ControllerUsuarios.localizarUsuario(authUser);
 
             if (!existente) {
+                const ref = window.db.collection("usuarios").doc();
                 const novoRoot = {
-                    id: emailId,
-                    nome: "Leonardo",
-                    sobrenome: "Ignacio",
-                    nome_completo: "Leonardo Ignacio",
-                    email: emailId,
-                    cargo_solicitado: "root",
-                    solicitacao_credenciamento: "Superusuário (ROOT) do Sistema",
-                    cargo: "root",
-                    perfis: todosPerfis,
-                    areas: ["Todas"],
-                    status: "ativo",
-                    criado_em: new Date().toISOString()
+                    uid: authUser.uid, nome: "Leonardo", sobrenome: "Ignacio", nome_completo: "Leonardo Ignacio", email,
+                    cargo_solicitado: "root", solicitacao_credenciamento: "Superusuário (ROOT) do Sistema",
+                    cargo: "root", perfis: todosPerfis, areas: ["Todas"], status: "ativo", criado_em: new Date().toISOString()
                 };
-                await refRoot.set(novoRoot);
-                await window.Store.garantirPronto(emailId);
-                window.Store.upsertLocal("usuarios", novoRoot);
+                await ref.set(novoRoot);
+                await window.db.collection("acessos").doc(authUser.uid).set({ usuario_id: ref.id, criado_em: novoRoot.criado_em });
+                existente = { id: ref.id, ...novoRoot };
             } else if (existente.cargo !== "root" || existente.status !== "ativo") {
-                await refRoot.update({
-                    cargo: "root",
-                    perfis: todosPerfis,
-                    status: "ativo"
-                });
-                await window.Store.garantirPronto(emailId);
-                window.Store.upsertLocal("usuarios", { ...existente, id: emailId, cargo: "root", perfis: todosPerfis, status: "ativo" });
-            } else await window.Store.garantirPronto(emailId);
+                const patch = { cargo: "root", perfis: todosPerfis, status: "ativo" };
+                await window.db.collection("usuarios").doc(existente.id).update(patch);
+                existente = { ...existente, ...patch };
+            }
+            window.Store.meuUsuario = existente;
+            await window.Store.garantirPronto(uid);
             return "root";
         }
 
         // Autoriza pelo documento individual antes de ativar listeners de coleções globais.
-        const docUsuario = await window.db.collection("usuarios").doc(emailId).get();
-        const dados = docUsuario.exists ? { id: docUsuario.id, ...docUsuario.data() } : null;
+        const dados = await window.ControllerUsuarios.localizarUsuario(authUser);
 
         if (dados) {
-            if (dados.status === "pendente" || dados.cargo === "pendente") {
-                window.Store.meuUsuario = dados;   // em memória: evita nova leitura ao montar o dashboard pendente
-                return "pendente";
-            }
-            if (dados.status === "inativo" || dados.status === "bloqueado") {
-                return "sem_acesso";
-            }
+            window.Store.meuUsuario = dados;   // em memória (nunca em cache)
+            if (dados.status === "pendente" || dados.cargo === "pendente") return "pendente";
+            if (dados.status === "inativo" || dados.status === "bloqueado") return "sem_acesso";
             window.Store.definirCargo(dados.cargo || "apoio");
-            window.Store.meuUsuario = dados;
-            await window.Store.garantirPronto(emailId);
+            await window.Store.garantirPronto(uid);
             return dados.cargo || "apoio";
         }
 
-        // 2. Retrocompatibilidade com coleção antiga "permissoes"
+        // Retrocompatibilidade com coleção antiga "permissoes" (chave = e-mail)
         try {
-            const docPerm = await window.db.collection("permissoes").doc(emailId).get();
+            const docPerm = await window.db.collection("permissoes").doc(email).get();
             if (docPerm.exists) {
                 const cargoLegado = docPerm.data().cargo || "apoio";
                 window.Store.definirCargo(cargoLegado);
-                await window.Store.garantirPronto(emailId);
+                await window.Store.garantirPronto(uid);
                 return cargoLegado;
             }
         } catch (_) {}
 
         return "nao_cadastrado";
-    },
-
-    async salvarPermissao(email, cargo) {
-        const emailId = (email || "").trim().toLowerCase();
-        const payload = {
-            email: emailId,
-            cargo: cargo,
-            status: "ativo",
-            atualizado_em: new Date().toISOString()
-        };
-        await window.db.collection("usuarios").doc(emailId).set(payload, { merge: true });
-        window.Store.upsertLocal("usuarios", { id: emailId, ...payload });
     },
 
     usuarioPodeEditar() {

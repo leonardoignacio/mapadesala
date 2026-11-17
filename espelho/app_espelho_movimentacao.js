@@ -114,14 +114,26 @@ Object.assign(window.AppEspelho, {
         const encontro=this.encontros.find(x=>x.id===input.dataset.id);if(!encontro)return false;
         const flag=input.dataset.flag;if(!['SS','SGO'].includes(flag))return false;
         if(!this.podeGerenciarFlags){input.checked=!!encontro[flag];return false;}
-        const atual=this.pendenciasArraste.get(encontro.id)||{id_turma:encontro.id_turma,data:encontro.data,SS:encontro.SS===true,SGO:encontro.SGO===true};
-        if(atual.data!==encontro.data){input.checked=false;atual.SS=false;atual.SGO=false;this.pendenciasArraste.set(encontro.id,atual);this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus('Ao mover um encontro, SS e SGO são desativados.');return true;}
-        atual[flag]=!!input.checked;
-        if(atual.data===encontro.data&&atual.SS===(encontro.SS===true)&&atual.SGO===(encontro.SGO===true))this.pendenciasArraste.delete(encontro.id);
-        else this.pendenciasArraste.set(encontro.id,atual);
-        this.renderizarMapa();this._registrarDragDrop();
-        if(this.pendenciasArraste.has(encontro.id))this._mostrarStatus('Marcador alterado. Use Salvar Alterações ou descarte para reverter.');
-        return true;
+        const pend=this.pendenciasArraste.get(encontro.id);
+        // Encontro com movimentação pendente: ao mover, SS e SGO são desativados (será gravado em "Salvar Alterações").
+        if(pend&&pend.data!==encontro.data){input.checked=false;pend.SS=false;pend.SGO=false;this.pendenciasArraste.set(encontro.id,pend);this.renderizarMapa();this._registrarDragDrop();this._mostrarStatus('Ao mover um encontro, SS e SGO são desativados.');return true;}
+        // Caso comum: grava NA HORA, sem etapa extra de "Salvar Alterações", com retorno imediato de sucesso ou erro.
+        const novo=!!input.checked;
+        if(this._salvandoFlagIds?.has(encontro.id)){input.checked=!novo;return false;}
+        (this._salvandoFlagIds=this._salvandoFlagIds||new Set()).add(encontro.id);input.disabled=true;
+        try{
+            const atualizado=await window.ControllerEspelho.atualizarFlagsEncontro(encontro.id,{[flag]:novo});
+            this.encontros=this.encontros.map(x=>x.id===atualizado.id?atualizado:x);
+            window.Util.toast(`${flag} ${novo?'ativado':'desativado'} — ${atualizado.uc_referencia||'encontro'} de ${(atualizado.data||'').split('-').reverse().join('/')}.`,{grupo:'flags',acao:{texto:'Desfazer',fn:()=>this._desfazerFlagIndividual(encontro.id,flag,!novo)}});
+        }catch(err){
+            input.checked=!novo;
+            await window.Dialog.erro(this._mensagemErroGravacao(err),`Não foi possível ${novo?'ativar':'desativar'} ${flag}`);
+        }finally{this._salvandoFlagIds.delete(encontro.id);}
+        this.renderizarMapa();this._registrarDragDrop();return true;
+    },
+    async _desfazerFlagIndividual(id,flag,valor){
+        try{const atualizado=await window.ControllerEspelho.atualizarFlagsEncontro(id,{[flag]:valor});this.encontros=this.encontros.map(x=>x.id===atualizado.id?atualizado:x);this.renderizarMapa();this._registrarDragDrop();window.Util.toast(`${flag} restaurado.`,{grupo:'flags'});}
+        catch(err){await window.Dialog.erro(this._mensagemErroGravacao(err),'Não foi possível desfazer');}
     },
     async _descartarMovimentosTurma(turmaId) {
         const moves=[...this.pendenciasArraste.entries()].filter(([,m])=>m.id_turma===turmaId);

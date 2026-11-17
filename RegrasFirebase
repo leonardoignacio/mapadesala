@@ -4,9 +4,11 @@ service cloud.firestore {
 
     // =====================================================================
     // FUNÇÕES AUXILIARES
-    // O cargo e o status do usuário vêm do documento usuarios/{email}.
-    // Cada requisição faz no máximo 1 leitura desse documento (o Firestore
-    // reaproveita o resultado dentro da mesma requisição).
+    // O cargo e o status do usuário vêm do documento dele em "usuarios", encontrado pelo
+    // vínculo com a conta de login: acessos/{uid}. O documento NÃO usa mais o e-mail como
+    // chave, então o e-mail de login pode mudar sem perder cargo, áreas e vínculos.
+    // Cada requisição lê no máximo 2 documentos (vínculo + usuário); o Firestore
+    // reaproveita o resultado dentro da mesma requisição.
     // =====================================================================
     function logado() {
       return request.auth != null && request.auth.token.email != null;
@@ -20,8 +22,12 @@ service cloud.firestore {
       return logado() && meuEmail() == 'leoignacio@gmail.com';
     }
 
+    function meuId() {
+      return get(/databases/$(database)/documents/acessos/$(request.auth.uid)).data.usuario_id;
+    }
+
     function meuDoc() {
-      return get(/databases/$(database)/documents/usuarios/$(meuEmail())).data;
+      return get(/databases/$(database)/documents/usuarios/$(meuId())).data;
     }
 
     function cargo() {
@@ -69,36 +75,74 @@ service cloud.firestore {
     // =====================================================================
     // USUÁRIOS
     // =====================================================================
-    match /usuarios/{emailId} {
+    match /usuarios/{usuarioId} {
+
+      // Titular = documento já vinculado à minha conta (campo "uid").
+      function titular() {
+        return logado() && resource.data.get('uid', '') == request.auth.uid;
+      }
+      // Cadastro ANTIGO (id = e-mail, ainda sem "uid"): é meu se o e-mail da conta de login conferir.
+      // O primeiro acesso grava o "uid" e o vínculo, e a partir daí vale o campo "uid".
+      function legadoMeu() {
+        return logado() && !('uid' in resource.data)
+          && (usuarioId == meuEmail() || resource.data.get('email', '').lower() == meuEmail());
+      }
 
       // SEGURANÇA: somente Root/Admin leem a coleção inteira; cada pessoa lê apenas o PRÓPRIO documento.
       // Técnico, docente e apoio não listam usuários (a lista de docentes vem de "diretorio_docentes").
       allow read: if ehSuper()
-        || (logado() && meuEmail() == emailId)
+        || titular()
+        || legadoMeu()
         || ehAdmin();
 
-      // Pré-cadastro: exige login, somente com o PRÓPRIO e-mail e sempre como pendente.
-      // Ninguém consegue se criar já como admin/root.
+      // Pré-cadastro: exige login, com o PRÓPRIO uid e e-mail e sempre como pendente.
+      // O id do documento é livre (aleatório). Ninguém consegue se criar já como admin/root.
       allow create: if ehSuper()
-        || (logado() && meuEmail() == emailId
-            && request.resource.data.keys().hasOnly(['nome', 'sobrenome', 'nome_completo', 'email',
+        || (logado()
+            && request.resource.data.get('uid', '') == request.auth.uid
+            && request.resource.data.get('email', '').lower() == meuEmail()
+            && request.resource.data.keys().hasOnly(['uid', 'nome', 'sobrenome', 'nome_completo', 'email',
                  'cargo_solicitado', 'solicitacao_credenciamento', 'cargo', 'perfis', 'areas', 'status', 'criado_em'])
             && request.resource.data.cargo == 'pendente'
             && request.resource.data.status == 'pendente'
             && request.resource.data.perfis == []
             && request.resource.data.areas == []);
 
-      // O titular edita os dados da própria solicitação, mas NUNCA cargo/perfis/áreas/status.
+      // O titular edita os próprios dados (nome, senha não passa por aqui, e-mail de login), mas NUNCA
+      // cargo/perfis/áreas/status. O e-mail só pode ser igual ao da conta de login (comprovado pelo Firebase Auth).
       allow update: if ehSuper()
-        || (logado() && meuEmail() == emailId
+        || ((titular() || legadoMeu())
+            && request.resource.data.get('uid', '') == request.auth.uid
             && !request.resource.data.diff(resource.data).affectedKeys()
-                 .hasAny(['cargo', 'perfis', 'areas', 'status', 'email', 'tipo_vinculo_area', 'credenciado_por', 'credenciado_em']))
+                 .hasAny(['cargo', 'perfis', 'areas', 'status', 'tipo_vinculo_area', 'credenciado_por', 'credenciado_em'])
+            && (request.resource.data.get('email', '') == resource.data.get('email', '')
+                || request.resource.data.get('email', '').lower() == meuEmail()))
         || gestorPodeAlterar();
 
       // O titular só exclui o próprio pré-cadastro enquanto estiver pendente.
       allow delete: if ehSuper()
-        || (logado() && meuEmail() == emailId && resource.data.status == 'pendente')
+        || ((titular() || legadoMeu()) && resource.data.status == 'pendente')
         || gestorPodeExcluir();
+    }
+
+    // Vínculo entre a conta de login (uid) e o documento do usuário. Só o PRÓPRIO usuário cria o seu e apenas para um
+    // documento que já seja dele (campo "uid" igual, ou cadastro antigo com o mesmo e-mail). Imutável pelo usuário;
+    // ele só o remove quando o documento apontado já não existe (ex.: pré-cadastro excluído).
+    match /acessos/{uid} {
+      function docAlvo() {
+        return get(/databases/$(database)/documents/usuarios/$(request.resource.data.usuario_id)).data;
+      }
+      allow read: if ehSuper() || (logado() && request.auth.uid == uid) || ehAdmin();
+      allow create: if ehSuper()
+        || (logado() && request.auth.uid == uid
+            && request.resource.data.keys().hasOnly(['usuario_id', 'criado_em'])
+            && (docAlvo().get('uid', '') == request.auth.uid
+                || (!('uid' in docAlvo())
+                    && (request.resource.data.usuario_id == meuEmail() || docAlvo().get('email', '').lower() == meuEmail()))));
+      allow update: if ehSuper() || ehAdmin();
+      allow delete: if ehSuper() || ehAdmin()
+        || (logado() && request.auth.uid == uid
+            && !exists(/databases/$(database)/documents/usuarios/$(resource.data.usuario_id)));
     }
 
     // Diretório público de docentes (nome, áreas e status; sem dados sensíveis). Toda a equipe lê;
@@ -160,12 +204,37 @@ service cloud.firestore {
     }
 
     // =====================================================================
-    // TRILHA DE AUDITORIA ("Alterações" tem acento, por isso a comparação por texto)
-    // Só é possível CRIAR registros; ninguém edita ou apaga o histórico pelo app.
+    // SOLICITAÇÕES DE HABILITAÇÃO EM OUTRAS ÁREAS
+    // Qualquer membro ativo da equipe cria a PRÓPRIA solicitação (sempre pendente) e lê somente as suas;
+    // Root/Admin leem todas e avaliam (aprovar/recusar).
+    // =====================================================================
+    match /solicitacoes_areas/{id} {
+      allow read: if ehSuper() || ehAdmin() || (logado() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if ehSuper()
+        || (ehEquipe()
+            && request.resource.data.get('uid', '') == request.auth.uid
+            && request.resource.data.status == 'Pendente'
+            && request.resource.data.keys().hasOnly(['uid', 'usuario_id', 'email', 'nome', 'cargo', 'areas_solicitadas', 'justificativa', 'status', 'criado_em']));
+      allow update: if ehSuper() || ehAdmin();
+    }
+
+    // =====================================================================
+    // ALTERAÇÕES (lista do Apoio Técnico; "Alterações" tem acento, por isso a comparação por texto)
+    // Toda a equipe LÊ. Quem altera dados cria registros. Apenas Apoio/Técnico/Admin/Root marcam SS/SGO
+    // (campos de controle), sem poder editar o conteúdo do registro. Só é possível APAGAR registros pendentes e sem
+    // SS/SGO marcado (limpeza de alterações duplicadas ou anuladas); o histórico já lançado nunca é apagado.
     // =====================================================================
     match /{colecao}/{id} {
-      allow read: if colecao == 'Alterações' && (ehSuper() || ehGestor());
+      allow read: if colecao == 'Alterações' && leituraEquipe();
       allow create: if colecao == 'Alterações' && escritaOperacional();
+      allow delete: if colecao == 'Alterações'
+        && (ehSuper() || ehUm(['root', 'admin', 'tecnico', 'docente', 'apoio']))
+        && resource.data.get('status', '') == 'Pendente'
+        && resource.data.get('SS', false) == false
+        && resource.data.get('SGO', false) == false;
+      allow update: if colecao == 'Alterações'
+        && (ehSuper() || ehUm(['root', 'admin', 'tecnico', 'apoio']))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['SS', 'SGO', 'SS_ex', 'SGO_ex', 'status', 'realizado_em', 'realizado_por', 'realizado_por_nome']);
     }
   }
 }

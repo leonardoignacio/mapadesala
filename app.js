@@ -28,7 +28,7 @@ window.auth.onAuthStateChanged(async (user) => {
         const isSuperUser = (user.email.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
         let cargo;
         try {
-            cargo = await window.Controller.obterPerfil(user.email, isSuperUser);
+            cargo = await window.Controller.obterPerfil(user, isSuperUser);
         } catch (err) {
             // Ex.: sem internet, regras do Firestore ou limite diário do plano gratuito atingido.
             console.error('[Auth] Falha ao verificar credenciamento:', err);
@@ -56,11 +56,13 @@ window.auth.onAuthStateChanged(async (user) => {
 
         let dadosUsuario = null;
         try {
-            dadosUsuario = window.ControllerUsuarios ? await window.ControllerUsuarios.obterUsuarioPorEmail(user.email) : null;
+            dadosUsuario = window.ControllerUsuarios ? window.ControllerUsuarios.obterMeuUsuario() : null;
         } catch (err) {
             console.warn('[Auth] Não foi possível carregar os dados do usuário:', err);
         }
         window.usuarioAtual = {
+            id: dadosUsuario?.id || null,
+            uid: user.uid || null,
             email: user.email.toLowerCase(),
             cargo: cargo,
             nome: dadosUsuario?.nome || "",
@@ -247,7 +249,10 @@ async function roteador() {
         }
         case '#/area-docentes': viewContainer.innerHTML = window.Views.docentes(); break;
         case '#/coordenacao': viewContainer.innerHTML = window.Views.coordenacao(); break;
-        case '#/apoio-tecnico': viewContainer.innerHTML = window.Views.apoioTecnico(); break;
+        case '#/apoio-tecnico':
+            viewContainer.innerHTML = window.ViewsApoio.renderizar(window.usuarioAtual);
+            if (window.AppApoio) await window.AppApoio.iniciarView();
+            break;
         case '#/espelho': {
             viewContainer.innerHTML = window.ViewsEspelho.renderizar(podeEditarOperacional);
             if (window.AppEspelho) await window.AppEspelho.iniciarView();
@@ -256,6 +261,7 @@ async function roteador() {
         case '#/admin': 
             viewContainer.innerHTML = window.ViewsAdminCredenciamento.renderizar(); 
             if (window.AppAdminCredenciamento) await window.AppAdminCredenciamento.iniciarView();
+            if (window.AppAdminSolicitacoes) await window.AppAdminSolicitacoes.iniciarView();
             break;
         default: viewContainer.innerHTML = window.Views.dashboard();
     }
@@ -269,6 +275,8 @@ window.Store.onUpdateCallback = () => {
     _storeRefreshTimer = setTimeout(() => {
         if (!window.usuarioAtual?.email || document.hidden || UI.root.classList.contains('hidden')) return;
         if (document.querySelector('[role="dialog"]:not(.hidden)')) return;
+        // Apoio Técnico: reavalia a lista sem recarregar a tela (mantém filtros e rolagem).
+        if (window.location.hash === '#/apoio-tecnico' && window.AppApoio?.atualizarSuave && document.getElementById('apoio-lista')) { window.AppApoio.atualizarSuave(); return; }
         const pendentes = window.AppEspelho?.pendenciasArraste;
         if (pendentes?.size || window.AppEspelho?.alvosEdicaoLote?.size) return;
         // Espelho: atualização suave (mantém a rolagem exatamente onde está). Demais telas: re-render completo.
@@ -288,6 +296,8 @@ document.addEventListener('submit', async (e) => {
     // before the Espelho or another view reaches its own submit handler.
     if (e.target.id !== 'login-form') e.preventDefault();
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
+    // Informações pessoais do Apoio (inclui perfil Apoio: edita apenas o próprio cadastro).
+    if (window.usuarioAtual.cargo !== 'pendente' && window.AppApoio && await window.AppApoio.tratarSubmits(e)) return;
 
     if (window.usuarioAtual.cargo === 'pendente') {
         e.preventDefault();
@@ -322,6 +332,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('change', async (e) => {
+    if (window.AppApoio && await window.AppApoio.tratarMudancas(e)) return;
     if (window.AppEspelho && await window.AppEspelho.tratarMudancas(e)) return;
 });
 
@@ -355,6 +366,8 @@ document.addEventListener('click', async (e) => {
         if (window.AppCursoFrm && await window.AppCursoFrm.tratarCliques(e)) return;
         if (window.AppTurmaListar && await window.AppTurmaListar.tratarCliques(e)) return;
         if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarCliques(e)) return;
+        if (window.AppApoio && await window.AppApoio.tratarCliques(e)) return;
+        if (window.AppAdminSolicitacoes && await window.AppAdminSolicitacoes.tratarCliques(e)) return;
         if (window.AppEspelho && await window.AppEspelho.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }

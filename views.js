@@ -125,9 +125,5 @@ window.Views = {
 
     coordenacao() {
         return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Coordenação</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
-    },
-
-    apoioTecnico() {
-        return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Apoio Técnico</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
     }
 };

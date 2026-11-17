@@ -8,6 +8,15 @@ window.Util = {
         }[c]));
     },
 
+    // Aviso rápido seguro: se por qualquer motivo o componente de avisos não estiver disponível (ex.: arquivo antigo em cache),
+    // o fluxo segue normalmente. Um aviso visual NUNCA pode fazer uma gravação já concluída parecer falha.
+    toast(mensagem, opcoes) {
+        try {
+            if (window.Dialog && typeof window.Dialog.toast === 'function') window.Util.toast(mensagem, opcoes);
+            else console.info('[Aviso]', mensagem);
+        } catch (err) { console.warn('[Aviso] não exibido:', err); }
+    },
+
     // Nome do dia da semana (pt-BR) de uma data ISO (AAAA-MM-DD). Retorna '' se a data for inválida.
     diaSemana(iso) {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
@@ -33,6 +42,27 @@ window.Util = {
         const periodos = Array.isArray(excecao.periodos) ? excecao.periodos : [];
         if (!periodos.length || !turma) return true;
         return periodos.includes(window.Util.periodoDaTurma(turma));
+    },
+
+    // "2026-11-04" -> "04/11/2026"; "2026-11-04T13:05:00Z" -> data local.
+    dataBR(iso) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+    },
+    dataHoraBR(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d)) return '';
+        const p = n => String(n).padStart(2, '0');
+        return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    },
+
+    // Chave de CONTEÚDO de um encontro: dois encontros com exatamente os mesmos dados geram a mesma chave.
+    // Usada para anular "excluir + inserir" idênticos na lista de alterações do Apoio.
+    chaveEncontro(e) {
+        const docs = (e?.docentes || []).map(d => d.id || window.Util.semAcento(d.email)).sort().join('|');
+        return JSON.stringify([e?.id_turma || '', e?.id_uc || '', e?.data || '', e?.h_inicio || '', e?.h_termino || '',
+            window.Util.semAcento(e?.modalidade || ''), e?.sala_id || '', docs, e?.tipo || 'aula']);
     },
 
     // Remove acentos e caixa: útil para comparar cabeçalhos e rótulos digitados.
@@ -64,7 +94,8 @@ window.Util = {
             'auth/popup-closed-by-user': 'A janela de login foi fechada antes da conclusão.',
             'auth/cancelled-popup-request': 'A janela de login foi fechada antes da conclusão.',
             'auth/popup-blocked': 'O navegador bloqueou a janela de login. Libere pop-ups para este site.',
-            'auth/user-disabled': 'Esta conta foi desativada.'
+            'auth/user-disabled': 'Esta conta foi desativada.',
+            'auth/requires-recent-login': 'Por segurança, entre novamente no sistema e repita a operação.'
         };
         const chave = codigo.replace(/^firestore\//, '');
         if (mapa[chave]) return mapa[chave];

@@ -56,6 +56,45 @@ window.Dialog = {
         });
     },
 
+    // Aviso rápido e NÃO bloqueante (confirmações de sucesso). Aceita um botão de ação, ex.: { texto: 'Desfazer', fn }.
+    toast(mensagem, { tipo = 'sucesso', acao = null, duracao = null, grupo = null } = {}) {
+        let area = document.getElementById('app-toasts');
+        if (!area) {
+            area = document.createElement('div');
+            area.id = 'app-toasts';
+            area.setAttribute('aria-live', 'polite');
+            area.className = 'fixed bottom-4 left-1/2 z-[190] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 flex-col gap-2 sm:left-auto sm:right-4 sm:translate-x-0';
+            document.body.appendChild(area);
+        }
+        // Um aviso novo do mesmo grupo substitui o anterior (evita "Desfazer" antigo sobre um estado que já mudou).
+        if (grupo) area.querySelectorAll('[data-grupo]').forEach(n => { if (n.dataset.grupo === grupo) n.remove(); });
+        const visual = this._tipos[tipo] || this._tipos.info;
+        const el = document.createElement('div');
+        if (grupo) el.dataset.grupo = grupo;
+        el.setAttribute('role', 'status');
+        el.className = 'fade-in flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-xl';
+        el.innerHTML = `<div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${visual.icone}"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">${visual.svg}</svg></div><p class="min-w-0 flex-1 break-words text-sm font-semibold text-slate-700"></p>`;
+        el.querySelector('p').textContent = this._textoDe(mensagem);
+        const fechar = () => el.remove();
+        if (acao) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-extrabold text-indigo-700 hover:bg-indigo-50';
+            b.textContent = acao.texto;
+            b.addEventListener('click', async (ev) => { ev.stopPropagation(); fechar(); try { await acao.fn?.(); } catch (_) {} });
+            el.appendChild(b);
+        }
+        const x = document.createElement('button');
+        x.type = 'button'; x.setAttribute('aria-label', 'Fechar aviso');
+        x.className = 'shrink-0 rounded-full px-1.5 text-lg leading-none text-slate-400 hover:text-slate-600';
+        x.textContent = '×';
+        x.addEventListener('click', (ev) => { ev.stopPropagation(); fechar(); });
+        el.appendChild(x);
+        el.addEventListener('click', (ev) => ev.stopPropagation());
+        area.appendChild(el);
+        setTimeout(fechar, duracao || (acao ? 8000 : 4000));
+    },
+
     // ---- Implementação -----------------------------------------------------
     _enfileirar(cfg) {
         return new Promise(resolve => {

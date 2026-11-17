@@ -161,11 +161,11 @@ window.AppAdminCredenciamento = {
                     : `<span class="text-slate-400">Nenhuma área específica</span>`);
 
             return `
-            <tr class="${isPendente ? 'bg-amber-50/20' : ''} hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 ${podeGerenciar ? 'cursor-pointer row-cred-usuario' : 'cursor-default'} group border-b border-slate-100" data-email="${window.Util.esc(u.email)}">
+            <tr class="${isPendente ? 'bg-amber-50/20' : ''} hover:bg-blue-50/50 hover:shadow-[inset_4px_0_0_0_#3b82f6] transition-all duration-200 ${podeGerenciar ? 'cursor-pointer row-cred-usuario' : 'cursor-default'} group border-b border-slate-100" data-id="${window.Util.esc(u.id)}">
                 <td class="px-1 py-2 md:py-4 md:px-2 text-center align-middle w-[10%] md:w-[7%] relative z-10">
                     ${podeGerenciar ? `
                     <div class="flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2">
-                        <span class="btn-abrir-credenciamento transform hover:scale-110 transition-transform" data-email="${window.Util.esc(u.email)}" title="Credenciar / Editar Perfil">${svgCredenciar}</span>${u.cargo !== 'root' ? `<span class="btn-excluir-cred-usuario transform hover:scale-110 transition-transform" data-email="${window.Util.esc(u.email)}" title="Excluir Usuário">${svgLixeira}</span>` : ''}
+                        <span class="btn-abrir-credenciamento transform hover:scale-110 transition-transform" data-id="${window.Util.esc(u.id)}" title="Credenciar / Editar Perfil">${svgCredenciar}</span>${u.cargo !== 'root' ? `<span class="btn-excluir-cred-usuario transform hover:scale-110 transition-transform" data-id="${window.Util.esc(u.id)}" title="Excluir Usuário">${svgLixeira}</span>` : ''}
                     </div>` : `<span class="text-slate-300 text-xs" title="Nível hierárquico superior">🔒</span>`}
                 </td>
                 <td class="px-1 py-2 md:py-4 md:px-3 align-middle w-[16%] md:w-[13%]">
@@ -188,8 +188,8 @@ window.AppAdminCredenciamento = {
         tbody.innerHTML = html;
     },
 
-    abrirModalCredenciamento(emailAlvo) {
-        const usuarioAlvo = cacheUsuariosCred.find(u => u.email === emailAlvo);
+    abrirModalCredenciamento(idAlvo) {
+        const usuarioAlvo = cacheUsuariosCred.find(u => u.id === idAlvo);
         if (!usuarioAlvo) return;
 
         const cargoLogado = window.usuarioAtual?.cargo || 'sem_acesso';
@@ -198,7 +198,7 @@ window.AppAdminCredenciamento = {
             return;
         }
 
-        document.getElementById('cred-user-email-hidden').value = usuarioAlvo.email;
+        document.getElementById('cred-user-email-hidden').value = usuarioAlvo.id;   // guarda o ID do usuário (o campo visível mostra o e-mail)
         document.getElementById('cred-user-nome').value = usuarioAlvo.nome || "";
         document.getElementById('cred-user-sobrenome').value = usuarioAlvo.sobrenome || "";
         document.getElementById('cred-user-email').value = usuarioAlvo.email || "";
@@ -374,10 +374,12 @@ window.AppAdminCredenciamento = {
 
         // Excluir Usuário
         if (e.target.closest('.btn-excluir-cred-usuario')) {
-            const email = e.target.closest('.btn-excluir-cred-usuario').getAttribute('data-email');
+            const idUsuario = e.target.closest('.btn-excluir-cred-usuario').getAttribute('data-id');
+            const alvoExcluir = cacheUsuariosCred.find(u => u.id === idUsuario);
+            const email = alvoExcluir?.email || alvoExcluir?.nome_completo || idUsuario;
             if (await window.Dialog.confirmar(`Confirma a exclusão do registro e credenciamento de "${email}"?\nEsta ação não pode ser desfeita.`, { perigo: true, titulo: "Excluir usuário", textoConfirmar: "Excluir usuário" })) {
                 try {
-                    await window.ControllerAdminCredenciamento.excluirUsuario(email, window.usuarioAtual);
+                    await window.ControllerAdminCredenciamento.excluirUsuario(idUsuario, window.usuarioAtual);
                     await this.carregarDadosBase();
                     this.renderizarResumoBadges();
                     this.renderizarTabelaCredenciamento();
@@ -390,15 +392,13 @@ window.AppAdminCredenciamento = {
 
         // Abrir Modal de Credenciamento ao clicar no ícone ou na linha do usuário
         if (e.target.closest('.btn-abrir-credenciamento')) {
-            const email = e.target.closest('.btn-abrir-credenciamento').getAttribute('data-email');
-            this.abrirModalCredenciamento(email);
+            this.abrirModalCredenciamento(e.target.closest('.btn-abrir-credenciamento').getAttribute('data-id'));
             return true;
         }
 
         const rowUsuario = e.target.closest('.row-cred-usuario');
         if (rowUsuario && !e.target.closest('.btn-excluir-cred-usuario')) {
-            const email = rowUsuario.getAttribute('data-email');
-            this.abrirModalCredenciamento(email);
+            this.abrirModalCredenciamento(rowUsuario.getAttribute('data-id'));
             return true;
         }
 

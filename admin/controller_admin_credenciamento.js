@@ -17,8 +17,8 @@ window.ControllerAdminCredenciamento = {
         if (!u) return null;
         const perfis = Array.isArray(u.perfis) ? u.perfis : [];
         if (u.status !== 'ativo' || this._norm(u.cargo) !== 'docente' || !perfis.some(p => this._norm(p) === 'docente')) return null;
-        const email = (u.id || u.email || '').toLowerCase();
-        if (!email) return null;
+        const email = (u.email || '').toLowerCase();
+        if (!u.id || !email) return null;   // o registro do diretório usa o MESMO id do usuário (não o e-mail)
         return { email, nome: u.nome || '', sobrenome: u.sobrenome || '', nome_completo: u.nome_completo || `${u.nome || ''} ${u.sobrenome || ''}`.trim(),
                  cargo: 'docente', perfis, areas: Array.isArray(u.areas) ? u.areas : [], status: 'ativo' };
     },
@@ -30,12 +30,13 @@ window.ControllerAdminCredenciamento = {
     },
 
     // Grava o usuário e o respectivo registro do diretório no mesmo lote (ambos ou nenhum).
-    async _gravarUsuarioEDiretorio(emailId, patch, usuarioAtualizado) {
+    async _gravarUsuarioEDiretorio(emailId, patch, usuarioAtualizado, opsExtras = []) {
         const entrada = this._entradaDiretorio(usuarioAtualizado);
         const refDir = window.db.collection(this.COLECAO_DIRETORIO).doc(emailId);
         const batch = window.db.batch();
         batch.update(window.db.collection("usuarios").doc(emailId), patch);
         if (entrada) batch.set(refDir, entrada); else batch.delete(refDir);
+        opsExtras.forEach(op => op(batch));   // ex.: fechar uma solicitação no mesmo lote
         await batch.commit();
         window.Store.upsertLocal("usuarios", usuarioAtualizado);
         if (entrada) window.Store.upsertLocal("diretorio", { id: emailId, ...entrada });
@@ -48,7 +49,7 @@ window.ControllerAdminCredenciamento = {
         await window.Store.garantirPronto();
         if (!window.Store._carregaUsuarios()) return { gravados: 0, removidos: 0 };
         const esperado = new Map();
-        (window.Store.dados.usuarios || []).forEach(u => { const e = this._entradaDiretorio(u); if (e) esperado.set(e.email, e); });
+        (window.Store.dados.usuarios || []).forEach(u => { const e = this._entradaDiretorio(u); if (e) esperado.set(u.id, e); });
         const atual = new Map((window.Store.dados.diretorio || []).map(d => [d.id, d]));
 
         const ops = [];
@@ -127,13 +128,14 @@ window.ControllerAdminCredenciamento = {
         }
     },
 
-    async salvarCredenciamentoUsuario(emailAlvo, dadosCredenciamento, usuarioLogado) {
+    // idAlvo: id do documento do usuário (cadastros antigos: o e-mail; novos: código aleatório). Não é alterado nem normalizado.
+    async salvarCredenciamentoUsuario(idAlvo, dadosCredenciamento, usuarioLogado) {
         await window.Store.garantirPronto();
-        const emailId = (emailAlvo || "").trim().toLowerCase();
-        if (!emailId) throw new Error("E-mail do usuário inválido.");
+        const emailId = (idAlvo || "").trim();
+        if (!emailId) throw new Error("Usuário inválido.");
 
         const docRef = window.db.collection("usuarios").doc(emailId);
-        let usuarioAlvo = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
+        let usuarioAlvo = (window.Store.dados.usuarios || []).find(u => u.id === emailId);
 
         if (!usuarioAlvo) {
             const docSnap = await docRef.get();
@@ -196,11 +198,11 @@ window.ControllerAdminCredenciamento = {
         await this._gravarUsuarioEDiretorio(emailId, payload, { ...usuarioAlvo, id: emailId, ...payload });
     },
 
-    async excluirUsuario(emailAlvo, usuarioLogado) {
+    async excluirUsuario(idAlvo, usuarioLogado) {
         await window.Store.garantirPronto();
-        const emailId = (emailAlvo || "").trim().toLowerCase();
+        const emailId = (idAlvo || "").trim();
         const docRef = window.db.collection("usuarios").doc(emailId);
-        const usuarioAlvo = (window.Store.dados.usuarios || []).find(u => (u.id || u.email || "").toLowerCase() === emailId);
+        const usuarioAlvo = (window.Store.dados.usuarios || []).find(u => u.id === emailId);
         if (!usuarioAlvo) return;
 
         if (usuarioAlvo.cargo === 'root') {

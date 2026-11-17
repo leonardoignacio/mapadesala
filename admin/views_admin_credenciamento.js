@@ -10,6 +10,7 @@ window.ViewsAdminCredenciamento = {
             <!-- Navegação de Abas do Painel Admin -->
             <div class="flex border-b border-slate-200 mb-3 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-admin-credenciamento">Credenciamento</button>
+                ${window.ViewsAdminSolicitacoes ? window.ViewsAdminSolicitacoes.botaoAba() : ''}
             </div>
 
             <!-- CONTEÚDO: ABA CREDENCIAMENTO -->
@@ -111,6 +112,7 @@ window.ViewsAdminCredenciamento = {
                     </div>
                 </div>
             </div>
+            ${window.ViewsAdminSolicitacoes ? window.ViewsAdminSolicitacoes.conteudoAba() : ''}
         </div>
 
         <!-- MODAL DE CREDENCIAMENTO E HABILITAÇÃO DE PERFIL (Fecha apenas no 'X' ou em 'Cancelar') -->

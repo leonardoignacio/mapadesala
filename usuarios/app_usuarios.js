@@ -91,7 +91,7 @@ window.AppUsuarios = {
             btn.disabled = true;
 
             try {
-                await window.ControllerUsuarios.excluirCadastroProprio(window.usuarioAtual.email);
+                await window.ControllerUsuarios.excluirCadastroProprio(window.usuarioAtual.id);
                 await window.Dialog.sucesso("Seu cadastro e sua solicitação de credenciamento foram excluídos com sucesso.");
             } catch (err) {
                 await window.Dialog.erro(err, "Erro ao excluir cadastro");
@@ -135,6 +135,8 @@ window.AppUsuarios = {
 
                 // Atualiza o estado atual e direciona imediatamente para o Dashboard restrito (aba Home)
                 window.usuarioAtual = {
+                    id: window.Store.meuUsuario?.id || null,
+                    uid: novoUsuario.uid,
                     email: novoUsuario.email,
                     cargo: "pendente",
                     nome: novoUsuario.nome,
@@ -181,7 +183,7 @@ window.AppUsuarios = {
                     solicitacao_credenciamento: document.getElementById('reenviar-solicitacao').value
                 };
 
-                const atualizados = await window.ControllerUsuarios.reenviarSolicitacao(window.usuarioAtual.email, dados);
+                const atualizados = await window.ControllerUsuarios.reenviarSolicitacao(window.usuarioAtual.id, dados);
 
                 window.usuarioAtual.nome = atualizados.nome;
                 window.usuarioAtual.sobrenome = atualizados.sobrenome;
