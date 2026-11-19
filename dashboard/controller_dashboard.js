@@ -41,11 +41,11 @@ window.ControllerDashboard = {
     },
     listarSemanaDocente(deslocamento=0) {
         const inicio=this._addDays(this._segunda(this._dataLocal()),Number(deslocamento||0)*7);
-        return {inicio,fim:this._addDays(inicio,6),encontros:this.listarEncontros({inicio,fim:this._addDays(inicio,6),docente:true})};
+        return {inicio,fim:this._addDays(inicio,5),encontros:this.listarEncontros({inicio,fim:this._addDays(inicio,5),docente:true})};
     },
     listarAgendaDocentes(deslocamento=0,modoAreas='minhas') {
         const inicio=this._addDays(this._segunda(this._dataLocal()),Number(deslocamento||0)*7),areas=modoAreas==='todas'?null:this._areasUsuario();
-        return {inicio,fim:this._addDays(inicio,6),encontros:this.listarEncontros({inicio,fim:this._addDays(inicio,6),areas})};
+        return {inicio,fim:this._addDays(inicio,5),encontros:this.listarEncontros({inicio,fim:this._addDays(inicio,5),areas})};
     },
     async listarAlteracoes({modoAreas='minhas',pendentes=false,limite=8}={}) {
         const C=window.ControllerApoioAlteracoes;
@@ -62,5 +62,9 @@ window.ControllerDashboard = {
         return [...grupos.entries()].sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));
     },
     obterAreasDisponiveis() { return this._areasDisponiveis(); },
-    formatarSemana(inicio,fim) { return `${window.Util.dataBR(inicio)} – ${window.Util.dataBR(fim)}`; }
+    formatarSemana(inicio,fim) {
+        const partes=iso=>iso.split('-').map(Number),a=partes(inicio),b=partes(fim),meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        if(a[0]===b[0]&&a[1]===b[1])return `${a[2]}–${b[2]} de ${meses[a[1]-1]} de ${a[0]}`;
+        return `${window.Util.dataBR(inicio)} – ${window.Util.dataBR(fim)}`;
+    }
 };

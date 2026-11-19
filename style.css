@@ -9,3 +9,72 @@
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+/* Calendário semanal da Dashboard — mesma paleta azul/teal/violeta/verde do Espelho. */
+.dash-cal-desktop { display:block; }
+.dash-cal-mobile { display:none; }
+.dash-cal-scroll { max-height:min(70vh,760px); overflow:auto; overscroll-behavior:contain; }
+.dash-cal-grid { display:grid; grid-template-columns:56px repeat(6,minmax(116px,1fr)); grid-template-rows:52px minmax(40px,auto) repeat(3,minmax(118px,auto)); min-width:752px; }
+.dash-cal-corner,.dash-cal-header { position:sticky; top:0; z-index:4; display:flex; align-items:center; gap:6px; border-bottom:1px solid #cbd5e1; background:#fff; }
+.dash-cal-corner { left:0; z-index:6; padding:0 8px; color:#94a3b8; font-size:10px; }
+.dash-cal-header { padding:7px 9px; border-left:1px solid #e2e8f0; color:#64748b; }
+.dash-cal-header.dash-cal-dia-atual { z-index:5; border:2px solid #2563eb; border-top:4px solid #1d4ed8; background:#dbeafe; color:#1d4ed8; box-shadow:inset 0 0 0 1px #bfdbfe; }
+.dash-cal-dia-nome { font-size:11px; font-weight:600; }
+.dash-cal-dia-numero { font-size:19px; font-weight:700; line-height:1; color:#334155; }
+.dash-cal-mes { align-self:center; font-size:10px; color:#94a3b8; }
+.dash-cal-period-label { position:sticky; left:0; z-index:2; display:flex; align-items:flex-start; justify-content:center; border-right:1px solid #cbd5e1; border-bottom:1px solid #e2e8f0; background:#f8fafc; padding:12px 3px; color:#64748b; font-size:9px; font-weight:800; letter-spacing:.03em; }
+.dash-cal-exception-label { align-items:center; padding:5px 2px; color:#64748b; background:#f8fafc; }
+.dash-cal-period-label.dash-cal-period-manha { color:#1d4ed8; background:#eff6ff; }
+.dash-cal-period-label.dash-cal-period-tarde { color:#0f766e; background:#f0fdfa; }
+.dash-cal-period-label.dash-cal-period-noite { color:#6d28d9; background:#f5f3ff; }
+.dash-cal-period-cell { display:flex; min-width:0; flex-direction:column; gap:7px; border-left:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; background:#fff; padding:7px; }
+.dash-cal-period-cell.dash-cal-period-manha:not(.dash-cal-dia-atual) { background:#f8fbff; }
+.dash-cal-period-cell.dash-cal-period-tarde:not(.dash-cal-dia-atual) { background:#f4fbfa; }
+.dash-cal-period-cell.dash-cal-period-noite:not(.dash-cal-dia-atual) { background:#faf8ff; }
+.dash-cal-exception-cell { display:flex; min-width:0; min-height:40px; flex-direction:column; justify-content:center; gap:3px; overflow:hidden; border-left:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; background:#fff; padding:4px; }
+.dash-cal-exception-cell.dash-cal-dia-atual { border-left:3px solid #2563eb; border-right:3px solid #2563eb; background:#eaf2ff; box-shadow:inset 0 0 0 1px #bfdbfe; }
+.dash-cal-exception-card { min-width:0; overflow:hidden; border:1px solid color-mix(in srgb,var(--exception-border) 40%,white); border-left:3px solid var(--exception-border); border-radius:5px; background:var(--exception-bg); padding:4px 5px; color:var(--exception-text); font-size:9px; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
+.dash-cal-exception-card b { font-weight:800; }
+.dash-cal-period-cell.dash-cal-dia-atual { border-left:3px solid #2563eb; border-right:3px solid #2563eb; background:#eff6ff; box-shadow:inset 0 0 0 1px #bfdbfe; }
+.dash-cal-period-cell.dash-cal-dia-atual.dash-cal-final { border-bottom:3px solid #2563eb; border-radius:0 0 8px 8px; }
+.dash-cal-event { display:flex; min-width:0; flex-direction:column; gap:3px; overflow:hidden; box-sizing:border-box; border:1px solid color-mix(in srgb,var(--event-border) 38%,white); border-left:3px solid var(--event-border); border-radius:7px; background:var(--event-bg); padding:7px 8px; color:var(--event-text); font-size:10px; line-height:1.3; box-shadow:0 1px 2px #0f172a10; }
+.dash-cal-event-time { font-size:9px; font-weight:800; font-variant-numeric:tabular-nums; }
+.dash-cal-event-uc { overflow-wrap:anywhere; font-size:10px; font-weight:800; }
+.dash-cal-event-meta { overflow-wrap:anywhere; color:#475569; font-size:9px; }
+@media (max-width:360px) {
+  .dash-docente-toolbar { flex-wrap:wrap; }
+  .dash-docente-range { flex:1 1 100% !important; width:100%; text-align:center; }
+  .dash-docente-range-label { white-space:normal; }
+}
+@media (max-width:1023px) {
+  .dash-cal-desktop { display:none; }
+  .dash-cal-mobile { display:flex; flex-direction:column; gap:7px; padding:10px; }
+  .dash-mobile-day { overflow:hidden; border:1px solid #e2e8f0; border-radius:12px; background:#fff; }
+  .dash-mobile-day.dash-mobile-today { border:2px solid #2563eb; background:#eff6ff; box-shadow:0 0 0 2px #dbeafe; }
+  .dash-mobile-day > summary { display:flex; min-height:48px; cursor:pointer; list-style:none; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; }
+  .dash-mobile-day > summary::-webkit-details-marker { display:none; }
+  .dash-mobile-day > summary > span:first-child { display:flex; align-items:center; gap:8px; min-width:0; }
+  .dash-mobile-day > summary b { min-width:33px; color:#334155; font-size:12px; }
+  .dash-mobile-day > summary span span { color:#64748b; font-size:12px; }
+  .dash-mobile-today > summary { background:#dbeafe; }
+  .dash-mobile-today > summary b { color:#1d4ed8; }
+  .dash-mobile-count { display:grid; min-width:24px; height:24px; place-items:center; border-radius:999px; background:#f1f5f9; color:#475569; font-size:10px; font-weight:700; }
+  .dash-mobile-day-content { display:flex; flex-direction:column; gap:7px; border-top:1px solid #e2e8f0; padding:9px; }
+  .dash-mobile-event { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:9px; border:1px solid color-mix(in srgb,var(--event-border) 30%,white); border-left:3px solid var(--event-border); border-radius:8px; background:var(--event-bg); padding:9px; color:var(--event-text); }
+  .dash-mobile-event-time { white-space:nowrap; padding-top:1px; font-size:10px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .dash-mobile-event-uc { overflow-wrap:anywhere; font-size:12px; font-weight:800; line-height:1.35; }
+  .dash-mobile-event-meta { margin-top:3px; overflow-wrap:anywhere; color:#475569; font-size:10px; line-height:1.35; }
+  .dash-mobile-period { display:flex; flex-direction:column; gap:6px; border:1px solid #e2e8f0; border-radius:9px; padding:6px; }
+  .dash-mobile-period.dash-cal-period-manha { border-color:#dbeafe; background:#f8fbff; }
+  .dash-mobile-period.dash-cal-period-tarde { border-color:#ccfbf1; background:#f4fbfa; }
+  .dash-mobile-period.dash-cal-period-noite { border-color:#ede9fe; background:#faf8ff; }
+  .dash-mobile-period-label { border-bottom:1px solid #e2e8f0; padding:2px 1px 4px; color:#64748b; font-size:9px; font-weight:800; letter-spacing:.05em; }
+  .dash-cal-period-manha .dash-mobile-period-label { color:#1d4ed8; }
+  .dash-cal-period-tarde .dash-mobile-period-label { color:#0f766e; }
+  .dash-cal-period-noite .dash-mobile-period-label { color:#6d28d9; }
+  .dash-mobile-day-alert { max-width:108px; overflow:hidden; border:1px solid var(--exception-border); border-radius:999px; background:var(--exception-bg); padding:4px 7px; color:var(--exception-text); font-size:9px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+  .dash-mobile-exception { display:flex; flex-direction:column; gap:2px; border:1px solid color-mix(in srgb,var(--exception-border) 40%,white); border-left:3px solid var(--exception-border); border-radius:7px; background:var(--exception-bg); padding:7px 8px; color:var(--exception-text); font-size:10px; line-height:1.3; }
+  .dash-mobile-exception b { font-weight:800; }
+  .dash-mobile-exception span { overflow-wrap:anywhere; }
+  .dash-mobile-period-events { display:flex; flex-direction:column; gap:7px; }
+  .dash-mobile-empty { color:#94a3b8; font-size:11px; }
+}
