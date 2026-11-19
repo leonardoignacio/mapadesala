@@ -1,11 +1,13 @@
 // ./dashboard/app_dashboard.js - Orquestração das abas e ações do Dashboard
 window.AppDashboard = {
-    semanaDocente:0,semanaTecnica:0,semanaAdmin:0,modoAreas:'minhas',filtrosAgendaTecnica:{docentes:null,turmas:null},agendaTecnicaCache:null,alteracoesCache:null,solicitacoesCache:[],
+    semanaDocente:0,semanaTecnica:0,semanaAdmin:0,modoAreas:'minhas',filtrosAgendaTecnica:{docentes:null,turmas:null},agendaTecnicaCache:null,alteracoesCache:null,alteracoesLimite:60,solicitacoesCache:[],
     async iniciarView() {
         if(window.usuarioAtual?.cargo==='pendente')return;
-        this.semanaDocente=0;this.semanaTecnica=0;this.semanaAdmin=0;this.modoAreas=['root','admin'].includes(window.usuarioAtual?.cargo)?'todas':'minhas';this.filtrosAgendaTecnica={docentes:null,turmas:null};this.agendaTecnicaCache=null;this.alteracoesCache=null;
+        this.semanaDocente=0;this.semanaTecnica=0;this.semanaAdmin=0;this.modoAreas=['root','admin'].includes(window.usuarioAtual?.cargo)?'todas':'minhas';this.filtrosAgendaTecnica={docentes:null,turmas:null};this.agendaTecnicaCache=null;this.alteracoesCache=null;this.alteracoesLimite=60;
+        const raiz=document.getElementById('dashboard-root');raiz?.querySelectorAll('.tab-btn').forEach(b=>{const ativa=b.dataset.target==='tab-dashboard-principal';b.classList.toggle('active',ativa);b.classList.toggle('font-bold',ativa);b.classList.toggle('text-blue-600',ativa);b.classList.toggle('border-blue-600',ativa);b.classList.toggle('font-medium',!ativa);b.classList.toggle('text-slate-500',!ativa);b.classList.toggle('border-transparent',!ativa);});raiz?.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!=='tab-dashboard-principal'));
         await window.Store.garantirPronto();
         await this._renderizarPrincipal();
+        if(['tecnico','root','admin'].includes(window.usuarioAtual?.cargo))await this._renderizarAlteracoesTecnicas();
     },
     _esc(v) { return window.Util.esc(v); },
     _mostrarStatus(msg,erro=false) { return erro?window.Dialog.erro(msg):window.Util.toast(msg,{tipo:'sucesso'}); },
@@ -23,25 +25,51 @@ window.AppDashboard = {
     },
     async _carregarAlteracoes() {
         if(this.alteracoesCache)return this.alteracoesCache;
-        const C=window.ControllerApoioAlteracoes,cargo=window.usuarioAtual?.cargo;
-        let itens;
-        if(cargo==='apoio'||cargo==='tecnico'){
-            const col=window.db.collection(C.COLECAO),consulta=cargo==='tecnico'?col.where('status','==','Pendente').get():col.where('criado_em','>=',C.desdePadraoISO()).get();
-            const snap=await consulta;itens=[];snap.forEach(d=>itens.push(...C._normalizarDoc(d)));
-        }else itens=await C.carregar();
-        // Apoio lê apenas a janela recente; Técnico lê apenas pendências; Admin precisa dos dois conjuntos.
-        // O cartão Dashboard não precisa do número de encontro; evita o _posicao do módulo Apoio,
-        // que varre os encontros novamente para cada alteração exibida.
-        const turmas=new Map((window.Store.dados.turmas||[]).map(t=>[t.id,t])),encontros=new Map((window.Store.dados.encontros||[]).map(x=>[x.id,x]));
+        const C=window.ControllerApoioAlteracoes;
+        // Reutiliza a mesma consulta econômica da tela Apoio: alterações pendentes de qualquer idade + janela recente.
+        const itens=await C.carregar(C.desdePadraoISO());
+        const turmas=new Map((window.Store.dados.turmas||[]).map(t=>[t.id,t])),encontros=window.Store.dados.encontros||[],encontrosPorId=new Map(encontros.map(x=>[x.id,x])),posicoes=new Map(),porTurmaUC=new Map();
+        // Índice de posição calculado numa passagem, evitando _posicao() (varredura repetida por cartão).
+        encontros.filter(x=>x.tipo!=='cancelamento').forEach(enc=>{const k=`${enc.id_turma||''}|${enc.id_uc||''}`;if(!porTurmaUC.has(k))porTurmaUC.set(k,[]);porTurmaUC.get(k).push(enc);});
+        porTurmaUC.forEach(lista=>{lista.sort((a,b)=>(a.data||'').localeCompare(b.data||''));lista.forEach((enc,i)=>posicoes.set(enc.id,{numero:i+1,total:lista.length}));});
         for(const i of itens){
-            const d=i.dados||{},turma=turmas.get(d.id_turma)||{};i.chave=window.Util.chaveEncontro(d);i.turmaRef=turma.referencia||i.snapshot?.turmaRef||'—';i.oferta=turma.oferta||i.snapshot?.oferta||'';i.area=turma.area||turma.curso_area||i.snapshot?.area||'';
+            const d=i.dados||{},turma=turmas.get(d.id_turma)||{};i.chave=window.Util.chaveEncontro(d);i.turmaRef=turma.referencia||i.snapshot?.turmaRef||'—';i.oferta=turma.oferta||i.snapshot?.oferta||'';i.area=turma.area||turma.curso_area||i.snapshot?.area||'';i.encontro=null;
             let SS=i.SSreg===true,SGO=i.SGOreg===true;
-            if(i.acao==='Inserir'){const enc=encontros.get(d.id);if(enc&&window.Util.chaveEncontro(enc)===i.chave){SS=enc.SS===true;SGO=enc.SGO===true;}}
+            if(i.acao==='Inserir'){const enc=encontrosPorId.get(d.id);if(enc&&window.Util.chaveEncontro(enc)===i.chave){i.encontro=enc;SS=enc.SS===true;SGO=enc.SGO===true;}}
             i.SS=SS;i.SGO=SGO;i.situacao=SS&&SGO?'Realizada':'Pendente';
+            const pos=i.encontro?posicoes.get(i.encontro.id):null;i.numero=pos?.numero??i.snapshot?.numero??null;i.total=pos?.total??i.snapshot?.total??null;
         }
-        this.alteracoesCache=C.classificar(itens).ativos.sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+        this.alteracoesCache=window.ControllerApoioAlteracoes.ordenar(C.classificar(itens).ativos);
         return this.alteracoesCache;
     },
+    async _renderizarListaAlteracoesPendentes(idBox) {
+        const box=document.getElementById(idBox);if(!box)return;
+        try{
+            const todos=await this._carregarAlteracoes(),pend=window.ControllerApoioAlteracoes.ordenar(this._alteracoesPorArea(todos.filter(i=>i.situacao==='Pendente'),this.modoAreas));
+            const mostrar=pend.slice(0,this.alteracoesLimite),cards=mostrar.map(i=>window.ViewsApoio.cartaoAlteracao(i,{podeAlterar:window.ControllerApoioAlteracoes.podeAlterarFlags()})).join('');
+            const mais=pend.length>this.alteracoesLimite?`<div class="col-span-full text-center"><button type="button" id="dash-btn-mais-alteracoes" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Mostrar mais (${pend.length-this.alteracoesLimite} restantes)</button></div>`:'';
+            box.innerHTML=pend.length?`<div class="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">${cards}${mais}</div>`:'<div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma alteração pendente nas suas áreas.</div>';
+            const total=document.getElementById('dash-alteracoes-total');if(total)total.textContent=`${pend.length} pendente(s)`;
+        }catch(err){box.innerHTML=`<p class="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar as alterações.')}</p>`;}
+    },
+    async _alternarFlagDashboard(input) {
+        const C=window.ControllerApoioAlteracoes,item=this.alteracoesCache?.find(i=>i.id===input.dataset.id);if(!item)return;
+        const flag=input.dataset.flag,valor=input.checked;if(!C.podeAlterarFlags()){input.checked=!valor;return;}
+        if(this._salvandoFlagDashboard){input.checked=!valor;return;}this._salvandoFlagDashboard=true;input.disabled=true;
+        try{
+            await C.alternarFlag(item,flag,valor);
+            const rotulo=`${item.dados?.uc_referencia||'encontro'} de ${window.Util.dataBR(item.dados?.data)}`;
+            window.Util.toast(`${flag} ${valor?'marcado':'desmarcado'} — ${rotulo}.`,{grupo:'apoio-flag',acao:{texto:'Desfazer',fn:()=>this._desfazerFlagDashboard(item.id,flag,!valor)}});
+        }catch(err){input.checked=!valor;await window.Dialog.erro(err?.code==='permission-denied'?'O Firebase recusou a gravação para este perfil. Confirme se as regras permitem marcar SS/SGO.':err,`Não foi possível ${valor?'marcar':'desmarcar'} ${flag}`);}
+        finally{this._salvandoFlagDashboard=false;}
+        await this._renderizarListaAlteracoesPendentes(this._idListaAlteracoesAtual());
+    },
+    async _desfazerFlagDashboard(id,flag,valor) {
+        const item=this.alteracoesCache?.find(i=>i.id===id);if(!item)return;
+        try{await window.ControllerApoioAlteracoes.alternarFlag(item,flag,valor);await this._renderizarListaAlteracoesPendentes(this._idListaAlteracoesAtual());window.Util.toast(`${flag} restaurado.`,{grupo:'apoio-flag'});}
+        catch(err){await window.Dialog.erro(err,'Não foi possível desfazer');}
+    },
+    _idListaAlteracoesAtual() { return document.getElementById('dash-alteracoes-pendentes')?'dash-alteracoes-pendentes':'dash-apoio-recentes'; },
     _alteracoesPorArea(itens,modo) {
         if(modo==='todas')return itens;
         const areas=window.ControllerDashboard._areasUsuario();
@@ -61,11 +89,7 @@ window.AppDashboard = {
             const main=document.getElementById('tab-dashboard-principal');if(main&&!main.querySelector('[data-tecnico-principal]'))main.querySelector('section')?.setAttribute('data-tecnico-principal','true');
         }
     },
-    async _renderizarApoio() {
-        const itens=await this._carregarAlteracoes(),el=document.getElementById('dash-apoio-recentes');
-        if(el)el.innerHTML=window.ViewsDashboard.blocoAlteracoes(this._alteracoesPorArea(itens,this.modoAreas).slice(0,8));
-        const sel=document.getElementById('dash-apoio-areas');if(sel)sel.value=this.modoAreas;
-    },
+    async _renderizarApoio() { await this._renderizarListaAlteracoesPendentes('dash-apoio-recentes'); },
     _renderizarSemanaAdmin() {
         const data=window.ControllerDashboard.listarAgendaDocentes(this.semanaAdmin,'todas'),label=document.getElementById('dash-admin-semana-label'),box=document.getElementById('dash-admin-agenda-semanal');
         if(label)label.textContent=window.ControllerDashboard.formatarSemana(data.inicio,data.fim);if(box)box.innerHTML=this._agruparSemana(data.encontros,data.inicio);
@@ -180,14 +204,7 @@ window.AppDashboard = {
         if(box){const scroll=box.querySelector('.dash-cal-scroll')?.scrollTop||0,abertas=[...box.querySelectorAll('.dash-mobile-day[open]')].map(x=>x.dataset.date);box.innerHTML=this._calendarioDocente(this._filtrarAgendaTecnica(data.encontros),data.inicio,{mostrarDocentes:true,mostrarCancelamentos:false});const novoScroll=box.querySelector('.dash-cal-scroll');if(novoScroll)novoScroll.scrollTop=scroll;box.querySelectorAll('.dash-mobile-day').forEach(x=>{if(abertas.includes(x.dataset.date))x.open=true;});}
         if(!reconstruirFiltros)this._atualizarResumoFiltrosAgendaTecnica();
     },
-    async _renderizarAlteracoesTecnicas() {
-        const box=document.getElementById('dash-alteracoes-pendentes');if(!box)return;
-        try{
-            const itens=await this._carregarAlteracoes(),pend=this._alteracoesPorArea(itens.filter(i=>i.situacao==='Pendente'),this.modoAreas),grupos=window.ControllerDashboard.agruparAlteracoesTurma(pend);
-            box.innerHTML=grupos.length?grupos.map(([turma,lista])=>`<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex items-center justify-between"><h3 class="text-sm font-extrabold text-slate-800">${this._esc(turma)}</h3><span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">${lista.length} pendente(s)</span></div>${window.ViewsDashboard.blocoAlteracoes(lista)}</section>`).join(''):'<p class="rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">Nenhuma alteração pendente nas áreas selecionadas.</p>';
-            const sel=document.getElementById('dash-alteracoes-areas');if(sel)sel.value=this.modoAreas;
-        }catch(err){box.innerHTML=`<p class="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar as alterações.')}</p>`;}
-    },
+    async _renderizarAlteracoesTecnicas() { return this._renderizarListaAlteracoesPendentes('dash-alteracoes-pendentes'); },
     async _renderizarMeusDados() {
         const u=window.usuarioAtual||{};try{await window.ControllerApoioPerfil.recarregarMeuUsuario();}catch(err){console.warn('[Dashboard] Dados do usuário não atualizados:',err);}
         const atual=window.usuarioAtual||{},e=this._esc,linha=(n,v)=>`<div><dt class="text-[11px] font-bold uppercase text-slate-400">${n}</dt><dd class="font-semibold text-slate-800">${e(v||'—')}</dd></div>`;
@@ -229,7 +246,8 @@ window.AppDashboard = {
         if(t.closest('.dash-fechar-modal-dados')||t.id==='dash-modal-dados'){this._fecharModal('dash-modal-dados');return true;}
         if(t.closest('#dash-btn-nova-solicitacao')){this._abrirModalSolicitacao();return true;}
         if(t.closest('.dash-fechar-modal-solicitacao')||t.id==='dash-modal-solicitacao'){this._fecharModal('dash-modal-solicitacao');return true;}
-        if(t.closest('#dash-btn-atualizar')){this.alteracoesCache=null;await this._renderizarPrincipal();await this._renderizarAlteracoesTecnicas();return true;}
+        if(t.closest('#dash-btn-atualizar')){this.alteracoesCache=null;this.alteracoesLimite=60;await this._renderizarListaAlteracoesPendentes(this._idListaAlteracoesAtual());return true;}
+        if(t.closest('#dash-btn-mais-alteracoes')){this.alteracoesLimite+=60;await this._renderizarListaAlteracoesPendentes(this._idListaAlteracoesAtual());return true;}
         if(t.closest('.dash-sol-processar')||t.closest('.dash-sol-reabrir')){
             const btn=t.closest('.dash-sol-processar,.dash-sol-reabrir'),id=btn.dataset.id,novo=btn.classList.contains('dash-sol-processar')?'Processada':'Pendente';
             const ok=await window.Dialog.confirmar(novo==='Processada'?'Confirmar que esta solicitação foi processada?':'Voltar esta solicitação para pendente?',{titulo:novo==='Processada'?'Confirmar processamento':'Reabrir solicitação',textoConfirmar:novo==='Processada'?'Processada':'Voltar a pendente'});if(!ok)return true;
@@ -243,6 +261,7 @@ window.AppDashboard = {
         return false;
     },
     async tratarMudancas(e) {
+        if(e.target?.classList?.contains('apoio-flag')){await this._alternarFlagDashboard(e.target);return true;}
         const id=e.target?.id;
         if(id==='dash-apoio-areas'){this.modoAreas=e.target.value;await this._renderizarApoio();return true;}
         if(id==='dash-agenda-areas'){this.modoAreas=e.target.value;this.filtrosAgendaTecnica={docentes:null,turmas:null};this.agendaTecnicaCache=null;this._renderizarAgendaTecnica(true);return true;}

@@ -83,7 +83,9 @@ window.auth.onAuthStateChanged(async (user) => {
 
         UI.load.classList.add('hidden');
         UI.root.classList.remove('hidden');
-        roteador(); 
+        // Cada autenticação começa no Dashboard; a view seleciona Principal como guia padrão.
+        if (window.location.hash && window.location.hash !== '#/dashboard') window.location.hash = '#/dashboard';
+        else roteador();
     } else {
         if (window.Store) window.Store.limpar();
         window.usuarioAtual = { email: null, cargo: null, nome: null, sobrenome: null, perfis: [], areas: [] };
