@@ -46,9 +46,14 @@ Object.assign(window.ControllerEspelho, {
         const existentes=[];
         try{
             const turmas=[...new Set(novos.map(o=>o.__log.doc.id_turma).filter(Boolean))];
-            for(const t of turmas){
-                const snap=await window.db.collection('Alterações').where('id_turma','==',t).where('status','==','Pendente').get();
-                snap.forEach(d=>existentes.push({id:d.id,...d.data()}));
+            // Mantém uma consulta específica por turma (mesmo volume de documentos lidos),
+            // mas limita o paralelismo para não disparar centenas de requisições simultâneas.
+            for(let i=0;i<turmas.length;i+=8){
+                const grupo=await Promise.all(turmas.slice(i,i+8).map(async t=>{
+                    const snap=await window.db.collection('Alterações').where('id_turma','==',t).where('status','==','Pendente').get();
+                    return snap.docs.map(d=>({id:d.id,...d.data()}));
+                }));
+                grupo.forEach(docs=>existentes.push(...docs));
             }
         }catch(err){console.warn('[Alterações] Verificação de duplicidade não concluída; gravando normalmente:',err);return grupos;}
 
@@ -227,6 +232,6 @@ Object.assign(window.ControllerEspelho, {
         const patchesHoras=this._anexarPatchesHoras(grupos,docs.map(antes=>({antes,depois:null})));await this._commitGrupos(grupos);this._sincronizarPatchesHoras(patchesHoras);docs.forEach(encontro=>window.Store.removerLocal('encontros',encontro.id));return docs.length;
     },
     async excluirEncontrosDaUC(idTurma,idUC,cacheTurmas){
-        await window.Store.garantirPronto();const turma=this._buscarTurma(cacheTurmas,idTurma);if(!idUC)throw new Error('Selecione uma UC antes de remover encontros.');const todas=idUC==='TODAS',uc=(turma.ucs||[]).find(x=>(x.id_uc_base||x.id)===idUC);if(!todas&&!uc)throw new Error('A UC selecionada não pertence a esta turma.');const docs=(window.Store.dados.encontros||[]).filter(e=>e.id_turma===turma.id&&e.tipo!=='cancelamento'&&e.data>this._hojeISO()&&(todas||e.id_uc===idUC));const grupos=docs.map(d=>[this._opLog(this._logAlteracao(d,'Excluir',d)),b=>b.delete(this._docRefEncontro(d.id))]);const patchesHoras=this._anexarPatchesHoras(grupos,docs.map(antes=>({antes,depois:null})));await this._commitGrupos(grupos);this._sincronizarPatchesHoras(patchesHoras);docs.forEach(d=>window.Store.removerLocal('encontros',d.id));return docs.length;
+        await window.Store.garantirPronto();const turma=this._buscarTurma(cacheTurmas,idTurma);if(!idUC)throw new Error('Selecione uma UC antes de remover encontros.');const todas=idUC==='TODAS',uc=this._ucsDaTurma(turma).find(x=>(x.id_uc_base||x.id)===idUC);if(!todas&&!uc)throw new Error('A UC selecionada não pertence a esta turma.');const docs=(window.Store.dados.encontros||[]).filter(e=>e.id_turma===turma.id&&e.tipo!=='cancelamento'&&e.data>this._hojeISO()&&(todas||e.id_uc===idUC));const grupos=docs.map(d=>[this._opLog(this._logAlteracao(d,'Excluir',d)),b=>b.delete(this._docRefEncontro(d.id))]);const patchesHoras=this._anexarPatchesHoras(grupos,docs.map(antes=>({antes,depois:null})));await this._commitGrupos(grupos);this._sincronizarPatchesHoras(patchesHoras);docs.forEach(d=>window.Store.removerLocal('encontros',d.id));return docs.length;
     },
 });

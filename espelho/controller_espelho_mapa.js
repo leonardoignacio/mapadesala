@@ -28,6 +28,21 @@ Object.assign(window.ControllerEspelho, {
         this._validarEdicao(turma);
         return turma;
     },
+    _cursoLivreCurtaDuracao(turma) {
+        if(!turma || (Array.isArray(turma.ucs) && turma.ucs.length)) return false;
+        const curso=(window.Store?.dados?.cursos||[]).find(c=>c.id===turma.id_curso)||{};
+        const tipo=this._norm(turma.curso_tipo||curso.tipo||'');
+        const cargaTurma=Number(String(turma.ch_total_curso??'').replace(',','.'))||0,carga= cargaTurma>0?cargaTurma:(Number(String(curso.carga_horaria??curso.ch_total_curso??'').replace(',','.'))||0);
+        return tipo==='livre' && carga>0 && carga<40;
+    },
+    _ucsDaTurma(turma) {
+        const ucs=Array.isArray(turma?.ucs)?[...turma.ucs]:[];
+        if(ucs.length || !this._cursoLivreCurtaDuracao(turma)) return ucs;
+        const curso=(window.Store?.dados?.cursos||[]).find(c=>c.id===turma.id_curso)||{};
+        const id=`CURSO_LIVRE:${turma.id}`;
+        const cargaTurma=Number(String(turma.ch_total_curso??'').replace(',','.'))||0,carga= cargaTurma>0?cargaTurma:(Number(String(curso.carga_horaria??curso.ch_total_curso??'').replace(',','.'))||0);
+        return [{id,id_uc_base:id,referencia:turma.curso_sigla||curso.sigla||'CURSO LIVRE',titulo:turma.curso_titulo||curso.titulo||'Curso Livre',carga_horaria:carga,curso_livre_virtual:true}];
+    },
     async carregarBase() {
         await window.Store.garantirPronto();
         const cursos = [...(window.Store.dados.cursos || [])].sort((a,b)=>(a.titulo||'').localeCompare(b.titulo||''));
@@ -48,8 +63,10 @@ Object.assign(window.ControllerEspelho, {
         return !ignoradas.includes(data) && (window.Store.dados.excecoes || []).some(x => (x.data === data || x.id === data) && window.Util.excecaoAplica(x, turma));
     },
     _normalizarEncontro(dados, turma) {
-        const uc = (turma.ucs || []).find(u => u.id_uc_base === dados.id_uc || u.id === dados.id_uc || u.referencia === dados.uc_referencia);
+        const ucs=this._ucsDaTurma(turma);
+        let uc = ucs.find(u => u.id_uc_base === dados.id_uc || u.id === dados.id_uc || u.referencia === dados.uc_referencia);
         const tipo = dados.tipo === 'cancelamento' ? 'cancelamento' : 'aula';
+        if(tipo==='aula' && !uc && this._cursoLivreCurtaDuracao(turma)) uc=ucs[0]||null;
         if (tipo === 'aula' && !uc) throw new Error('Selecione uma UC vinculada à turma.');
         if (!this._dataValida(dados.data)) throw new Error('Data inválida.');
         const h_inicio = dados.h_inicio || turma.h_inicio || '';

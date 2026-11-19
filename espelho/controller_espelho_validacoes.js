@@ -56,7 +56,7 @@ Object.assign(window.ControllerEspelho, {
         }
         for (const [key,n] of adicionados) {
             const [idTurma,idUC]=key.split('|'), turma=(window.Store.dados.turmas||[]).find(t=>t.id===idTurma);
-            const uc=(turma?.ucs||[]).find(u=>(u.id_uc_base||u.id)===idUC), ch=Number(registros.find(r=>r.id_turma===idTurma&&r.id_uc===idUC)?.ch_encontro)||Number(turma?.ch_encontro)||0;
+            const uc=this._ucsDaTurma(turma).find(u=>(u.id_uc_base||u.id)===idUC), ch=Number(registros.find(r=>r.id_turma===idTurma&&r.id_uc===idUC)?.ch_encontro)||Number(turma?.ch_encontro)||0;
             const total=uc && ch>0 ? Math.ceil((Number(uc.carga_horaria)||0)/ch) : 0;
             const count=existentes.filter(e=>e.id_turma===idTurma&&e.id_uc===idUC).length;
             if(total && count+n>total) throw new Error(`A UC ${uc.referencia || ''} ultrapassaria o total previsto de ${total} encontro(s).`);
