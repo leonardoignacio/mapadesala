@@ -25,7 +25,8 @@ window.auth.onAuthStateChanged(async (user) => {
         UI.load.classList.remove('hidden');
         document.getElementById('loading-text').innerText = "Verificando credenciamento...";
         
-        const isSuperUser = (user.email.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
+        const emailAuth = typeof user.email === 'string' ? user.email : '';
+        const isSuperUser = (emailAuth.toLowerCase() === EMAIL_SUPERUSUARIO.toLowerCase());
         let cargo;
         try {
             cargo = await window.Controller.obterPerfil(user, isSuperUser);
@@ -231,6 +232,10 @@ async function roteador() {
     const podeEditarOperacional = ['root', 'admin', 'tecnico', 'docente'].includes(cargoAtual);
 
     switch(hash) {
+        case '#/dashboard':
+            viewContainer.innerHTML = window.ViewsDashboard ? window.ViewsDashboard.renderizar() : window.Views.dashboard();
+            if (window.AppDashboard) await window.AppDashboard.iniciarView();
+            break;
         case '#/excecoes': {
             const podeEditarCalendario = ['root', 'admin'].includes(cargoAtual);
             viewContainer.innerHTML = window.ViewsCalendarioListar.renderizar(podeEditarCalendario); 
@@ -280,6 +285,7 @@ window.Store.onUpdateCallback = () => {
         const pendentes = window.AppEspelho?.pendenciasArraste;
         if (pendentes?.size || window.AppEspelho?.alvosEdicaoLote?.size) return;
         // Espelho: atualização suave (mantém a rolagem exatamente onde está). Demais telas: re-render completo.
+        if (window.location.hash === '#/dashboard' && window.AppDashboard?.atualizarSuave) { window.AppDashboard.atualizarSuave(); return; }
         if (window.location.hash === '#/espelho' && window.AppEspelho?.atualizarSuave && document.getElementById('espelho-painel')) {
             window.AppEspelho.atualizarSuave().catch(() => roteador());
             return;
@@ -296,6 +302,7 @@ document.addEventListener('submit', async (e) => {
     // before the Espelho or another view reaches its own submit handler.
     if (e.target.id !== 'login-form') e.preventDefault();
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
+    if (window.AppDashboard && await window.AppDashboard.tratarSubmits(e)) return;
     // Informações pessoais do Apoio (inclui perfil Apoio: edita apenas o próprio cadastro).
     if (window.usuarioAtual.cargo !== 'pendente' && window.AppApoio && await window.AppApoio.tratarSubmits(e)) return;
 
@@ -332,6 +339,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('change', async (e) => {
+    if (window.AppDashboard && await window.AppDashboard.tratarMudancas(e)) return;
     if (window.AppApoio && await window.AppApoio.tratarMudancas(e)) return;
     if (window.AppEspelho && await window.AppEspelho.tratarMudancas(e)) return;
 });
@@ -339,6 +347,7 @@ document.addEventListener('change', async (e) => {
 document.addEventListener('click', async (e) => {
     
     if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
+    if (window.AppDashboard && await window.AppDashboard.tratarCliques(e)) return;
 
     if (e.target.closest('#btn-mobile-menu') || e.target.closest('#sidebar-backdrop')) {
         isSidebarCollapsed = !isSidebarCollapsed;

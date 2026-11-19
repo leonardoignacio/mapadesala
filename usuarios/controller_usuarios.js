@@ -12,8 +12,15 @@ window.ControllerUsuarios = {
     // Localiza o documento do usuário logado: 1) pelo vínculo "acessos/{uid}"; 2) cadastro antigo, cujo id é o e-mail
     // (vincula automaticamente no primeiro acesso); 3) por "uid" (caso o vínculo ainda não tenha sido gravado).
     // Também mantém o campo "email" sincronizado quando a pessoa troca o e-mail de login.
-    async localizarUsuario(authUser) {
-        const uid = authUser?.uid || '', email = (authUser?.email || '').trim().toLowerCase();
+    async localizarUsuario(authUserInput) {
+        const authAtual = window.auth?.currentUser || {};
+        const fonte = authUserInput && typeof authUserInput === 'object' ? authUserInput : authAtual;
+        const uid = (typeof fonte?.uid === 'string' && fonte.uid) || (typeof authAtual.uid === 'string' && authAtual.uid) || '';
+        const candidato = typeof authUserInput === 'string' ? authUserInput
+            : (typeof authUserInput?.email === 'string' ? authUserInput.email
+                : (Array.isArray(authUserInput?.providerData) ? authUserInput.providerData.find(p => typeof p?.email === 'string')?.email : ''))
+                || (typeof authAtual.email === 'string' ? authAtual.email : '');
+        const email = typeof candidato === 'string' ? candidato.trim().toLowerCase() : '';
         if (!uid && !email) return null;
         const col = window.db.collection('usuarios');
         let dados = null;

@@ -219,6 +219,63 @@ service cloud.firestore {
     }
 
     // =====================================================================
+    // SOLICITAÇÕES ENTRE PERFIS (Dashboard)
+    // O remetente acompanha apenas as próprias solicitações. Os perfis destinatários
+    // podem ler e confirmar o processamento, ou devolver o estado para Pendente.
+    // =====================================================================
+    function solicitacaoDestinadaAoUsuario(dados) {
+      return ehEquipe()
+        && dados.get('perfis_destino', []).hasAny([cargo()]);
+    }
+
+    match /solicitacoes/{id} {
+      allow read: if ehSuper() || ehAdmin()
+        || (logado() && resource.data.get('uid_solicitante', '') == request.auth.uid)
+        || solicitacaoDestinadaAoUsuario(resource.data);
+
+      allow create: if ehSuper()
+        || (ehEquipe()
+            && request.resource.data.keys().hasAll(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'tipo', 'area', 'assunto', 'mensagem', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+            && request.resource.data.keys().hasOnly(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'tipo', 'area', 'assunto', 'mensagem', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+            && request.resource.data.uid_solicitante == request.auth.uid
+            && request.resource.data.id_solicitante == meuId()
+            && request.resource.data.email_solicitante == meuEmail()
+            && request.resource.data.cargo_solicitante == cargo()
+            && request.resource.data.perfis_destino is list
+            && request.resource.data.perfis_destino.size() > 0
+            && request.resource.data.perfis_destino.size() <= 5
+            && request.resource.data.perfis_destino.hasOnly(['root', 'admin', 'tecnico', 'docente', 'apoio'])
+            && request.resource.data.tipo in ['area', 'problema', 'geral']
+            && request.resource.data.status == 'Pendente'
+            && request.resource.data.assunto is string
+            && request.resource.data.assunto.size() > 0
+            && request.resource.data.assunto.size() <= 120
+            && request.resource.data.mensagem is string
+            && request.resource.data.mensagem.size() > 0
+            && request.resource.data.mensagem.size() <= 4000
+            && request.resource.data.area is string
+            && request.resource.data.area.size() <= 100
+            && request.resource.data.processada_em == ''
+            && request.resource.data.processada_por_uid == ''
+            && request.resource.data.processada_por_email == ''
+            && request.resource.data.processada_por_nome == '');
+
+      allow update: if (ehAdmin() || solicitacaoDestinadaAoUsuario(resource.data))
+        && resource.data.get('uid_solicitante', '') != request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+        && ((resource.data.get('status', '') == 'Pendente'
+              && request.resource.data.get('status', '') == 'Processada'
+              && request.resource.data.get('processada_em', '') is string
+              && request.resource.data.get('processada_por_uid', '') == request.auth.uid
+              && request.resource.data.get('processada_por_email', '') == meuEmail()
+              && request.resource.data.get('processada_por_nome', '') is string)
+            || (resource.data.get('status', '') == 'Processada'
+              && request.resource.data.get('status', '') == 'Pendente'));
+
+      allow delete: if false;
+    }
+
+    // =====================================================================
     // ALTERAÇÕES (lista do Apoio Técnico; "Alterações" tem acento, por isso a comparação por texto)
     // Toda a equipe LÊ. Quem altera dados cria registros. Apenas Apoio/Técnico/Admin/Root marcam SS/SGO
     // (campos de controle), sem poder editar o conteúdo do registro. Só é possível APAGAR registros pendentes e sem

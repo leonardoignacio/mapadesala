@@ -197,10 +197,19 @@ window.Controller = {
 
     // authUser: usuário do Firebase Auth (uid + e-mail). O documento em "usuarios" é localizado pelo vínculo com a conta
     // (acessos/{uid}); cadastros antigos, cujo id era o e-mail, são vinculados automaticamente no primeiro acesso.
-    async obterPerfil(authUser, isSuperUser = false) {
-        const email = (authUser?.email || "").trim().toLowerCase();
-        const uid = authUser?.uid || email;
-        if (!email) return "sem_acesso";
+    async obterPerfil(authUserInput, isSuperUser = false) {
+        // Aceita o objeto Firebase User e também chamadas legadas que enviam apenas o e-mail.
+        // O valor pode estar ausente/não textual; nunca execute trim() em um objeto.
+        const authAtual = window.auth?.currentUser || {};
+        const fonte = authUserInput && typeof authUserInput === "object" ? authUserInput : authAtual;
+        const emailCandidato = typeof authUserInput === "string" ? authUserInput
+            : (typeof authUserInput?.email === "string" ? authUserInput.email
+                : (Array.isArray(authUserInput?.providerData) ? authUserInput.providerData.find(p => typeof p?.email === "string")?.email : ""))
+                || (typeof authAtual.email === "string" ? authAtual.email : "");
+        const email = typeof emailCandidato === "string" ? emailCandidato.trim().toLowerCase() : "";
+        const uid = (typeof fonte?.uid === "string" && fonte.uid) || (typeof authAtual.uid === "string" && authAtual.uid) || email;
+        const authUser = { uid, email };
+        if (!email && !uid) return "sem_acesso";
         const todosPerfis = ["root", "admin", "tecnico", "docente", "apoio"];
 
         if (isSuperUser) {
