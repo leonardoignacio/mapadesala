@@ -49,6 +49,8 @@ Object.assign(window.ViewsApoio, {
         const dis = podeAlterar ? '' : 'disabled';
         const flag = (nome) => `<label class="flex items-center gap-1.5 rounded-lg border ${it[nome] ? 'border-emerald-300 bg-emerald-50' : 'border-slate-300 bg-white'} px-2.5 py-1.5 text-xs font-extrabold ${dis ? 'opacity-70' : 'cursor-pointer hover:bg-slate-50'}"><input type="checkbox" class="apoio-flag h-4 w-4 rounded border-slate-300" data-id="${e(it.id)}" data-flag="${nome}" ${it[nome] ? 'checked' : ''} ${dis}>${nome}</label>`;
         const realizado = it.realizadoEm ? `<span>Lançado por <b>${e(it.realizadoPorNome || it.realizadoPor || '—')}</b> em ${e(window.Util.dataHoraBR(it.realizadoEm))}</span>` : '<span>Ainda não lançado</span>';
+        const motivos={'Alterar Docente':'Mudança de docente','Alterar Sala':'Mudança de sala','Alterar Docente e Sala':'Mudança de docente e sala','Redistribuir':'Redistribuição','Inserir':'Nova inserção','Excluir':'Exclusão'};
+        const motivo=motivos[it.tipo]||'';
         return `
         <article class="apoio-cartao rounded-xl border-l-4 ${cor.faixa} border border-slate-200 bg-white p-3 shadow-sm" data-id="${e(it.id)}">
             <header class="flex flex-wrap items-center justify-between gap-2">
@@ -56,6 +58,7 @@ Object.assign(window.ViewsApoio, {
                 <span class="rounded-md px-2 py-0.5 text-[11px] font-extrabold ${situacaoCls}">${e(it.situacao)}</span>
             </header>
             <h3 class="mt-2 text-sm font-extrabold leading-snug text-slate-800">${e(d.uc_referencia || '')}${d.uc_titulo ? ` · ${e(d.uc_titulo)}` : ''}</h3>
+            ${motivo?`<p class="mt-1 text-xs font-bold text-indigo-700">Motivo: ${e(motivo)}</p>`:''}
             <dl class="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
                 <div><dt class="font-bold text-slate-400">Turma</dt><dd class="font-semibold text-slate-700">${e(it.turmaRef)}</dd></div>
                 <div><dt class="font-bold text-slate-400">Oferta</dt><dd class="font-semibold text-slate-700">${e(it.oferta || '—')}</dd></div>

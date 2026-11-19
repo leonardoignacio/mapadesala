@@ -56,6 +56,7 @@ window.ControllerApoioAlteracoes = {
         const base = {
             docId: doc.id, criadoEm: d.criado_em || '', criadoPor: d.criado_por || '', criadoPorNome: d.criado_por_nome || '',
             realizadoEm: d.realizado_em || '', realizadoPor: d.realizado_por || '', realizadoPorNome: d.realizado_por_nome || '',
+            tipo: d.tipo_evento || d.tipo || (d.acao || (d.tipo === 'Excluir' ? 'Excluir' : 'Inserir')),
             snapshot: { turmaRef: d.turma_referencia || '', oferta: d.oferta || '', area: d.area || '', numero: d.numero_aula ?? null, total: d.total_aulas ?? null }
         };
         const acao = d.acao || (d.tipo === 'Excluir' ? 'Excluir' : 'Inserir'), itens = [];

@@ -12,7 +12,7 @@ window.Util = {
     // o fluxo segue normalmente. Um aviso visual NUNCA pode fazer uma gravação já concluída parecer falha.
     toast(mensagem, opcoes) {
         try {
-            if (window.Dialog && typeof window.Dialog.toast === 'function') window.Util.toast(mensagem, opcoes);
+            if (window.Dialog && typeof window.Dialog.toast === 'function') window.Dialog.toast(mensagem, opcoes);
             else console.info('[Aviso]', mensagem);
         } catch (err) { console.warn('[Aviso] não exibido:', err); }
     },
@@ -61,8 +61,9 @@ window.Util = {
     // Usada para anular "excluir + inserir" idênticos na lista de alterações do Apoio.
     chaveEncontro(e) {
         const docs = (e?.docentes || []).map(d => d.id || window.Util.semAcento(d.email)).sort().join('|');
-        return JSON.stringify([e?.id_turma || '', e?.id_uc || '', e?.data || '', e?.h_inicio || '', e?.h_termino || '',
-            window.Util.semAcento(e?.modalidade || ''), e?.sala_id || '', docs, e?.tipo || 'aula']);
+        return JSON.stringify([e?.id_turma || '', e?.id_uc || '', e?.uc_referencia || '', e?.uc_titulo || '', e?.data || '', e?.h_inicio || '', e?.h_termino || '',
+            Number(e?.ch_encontro) || 0, window.Util.semAcento(e?.modalidade || ''), e?.sala_id || '',
+            window.Util.semAcento(e?.sala_referencia || e?.sala_nome || ''), docs, e?.tipo || 'aula', e?.descricao || '']);
     },
 
     // Remove acentos e caixa: útil para comparar cabeçalhos e rótulos digitados.

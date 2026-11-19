@@ -30,7 +30,7 @@ Object.assign(window.AppEspelho, {
     // Mantém as turmas que o usuário filtrou; turmas novas entram selecionadas. (Antes toda atualização selecionava todas de novo.)
     _sincronizarSelecaoTurmas() {
         const ids=new Set(this.turmas.map(t=>t.id)),conhecidas=this._turmasConhecidas||new Set();
-        this.selecionadas=new Set([...this.turmas.map(t=>t.id)].filter(id=>this._turmasConhecidas?(this.selecionadas.has(id)||!conhecidas.has(id)):true));
+        this.selecionadas=new Set(this.turmas.filter(t=>this._turmasConhecidas?(this.selecionadas.has(t.id)||(!conhecidas.has(t.id)&&this._statusTurmaFiltro(t)==='ativas')):this._statusTurmaFiltro(t)==='ativas').map(t=>t.id));
         this._turmasConhecidas=ids;
     },
     // Atualização vinda do Store (ex.: depois de salvar): refaz o mapa SEM reconstruir a tela, preservando rolagem, filtros e abas.
@@ -203,7 +203,8 @@ Object.assign(window.AppEspelho, {
         if(e.target.id==='lote-modalidade'){const remoto=e.target.value==='Remoto',wrap=document.getElementById('lote-sala-wrap'),sala=document.getElementById('lote-sala');wrap?.classList.toggle('hidden',remoto);if(remoto&&sala)sala.value='';return true;}
         if(e.target.id==='input-csv-mapa'&&e.target.files?.[0]){try{await this._lerCSV(e.target.files[0]);}catch(err){this._mostrarStatus(err.message,true);}return true;}
         if(e.target.matches('.espelho-turma-chk')){e.target.checked?this.selecionadas.add(e.target.value):this.selecionadas.delete(e.target.value);this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
-        if(e.target.matches('.espelho-course-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)],c=g?.cursos[Number(e.target.dataset.courseIndex)];(c?.turmas||[]).flatMap(c=>c.turmas).forEach(x=>this.selecionadas.add(x.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
+        if(e.target.matches('.espelho-status-chk')){this.turmas.filter(t=>this._statusTurmaFiltro(t)===e.target.dataset.status).forEach(t=>e.target.checked?this.selecionadas.add(t.id):this.selecionadas.delete(t.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
+        if(e.target.matches('.espelho-course-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)],c=g?.cursos[Number(e.target.dataset.courseIndex)];(c?.turmas||[]).forEach(t=>e.target.checked?this.selecionadas.add(t.id):this.selecionadas.delete(t.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.matches('.espelho-area-chk')){const g=this.gruposFiltro[Number(e.target.dataset.areaIndex)];(g?.cursos||[]).flatMap(c=>c.turmas).forEach(t=>e.target.checked?this.selecionadas.add(t.id):this.selecionadas.delete(t.id));this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         if(e.target.id==='espelho-mostrar-todas'){this.selecionadas=e.target.checked?new Set(this.turmas.map(t=>t.id)):new Set();this._renderizarFiltros();this.renderizarMapa();this._registrarDragDrop();return true;}
         return false;

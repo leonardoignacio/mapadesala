@@ -8,27 +8,36 @@ Object.assign(window.ControllerEspelho, {
         return{numero:lista.indexOf(encontro)+1,total:lista.length};
     },
     // UM registro por item da lista do Apoio: "Excluir" (retirar do SS/SGO) ou "Inserir" (lançar no SS/SGO).
-    _logAlteracao(encontro, tipo, anterior = null) {
+    _logAlteracao(encontro, tipo, anterior = null, tipoEvento = null) {
         const usuario=window.usuarioAtual||{},acao=tipo==='Excluir'?'Excluir':'Inserir';
         const turma=(window.Store.dados.turmas||[]).find(t=>t.id===encontro.id_turma)||{},pos=this._posicaoNaUC(encontro);
-        return { versao:2, acao, tipo:acao==='Excluir'?'Excluir':'Redistribuir', dados_encontro:{...encontro},
+        const evento=tipoEvento||(acao==='Excluir'?'Excluir':'Inserir');
+        return { versao:3, acao, tipo:evento, tipo_evento:evento, dados_encontro:{...encontro},
             id_turma:encontro.id_turma||'', id_encontro:encontro.id||'', data:encontro.data||'',
             area:turma.area||turma.curso_area||'', turma_referencia:turma.referencia||'', oferta:turma.oferta||'',
             numero_aula:pos.numero, total_aulas:pos.total, chave:window.Util.chaveEncontro(encontro),
             SS:false, SGO:false, status:'Pendente', criado_em:new Date().toISOString(),
             criado_por:usuario.email||'', criado_por_nome:usuario.nome_completo||usuario.nome||'' };
     },
-    // Edição de um encontro existente = excluir os dados antigos + inserir os novos (dois registros).
-    // Se nada mudou, os dois são idênticos e a lista do Apoio os anula automaticamente.
+    // Alteração material: snapshots de saída/entrada separados, com a causa explícita.
+    // Os registros equivalentes pendentes são conciliados antes da gravação.
     _opsLogEdicao(depois, antes) {
-        const ops=[],add=doc=>ops.push(this._opLog(doc));
-        if(antes)add(this._logAlteracao(antes,'Excluir'));
-        add(this._logAlteracao(depois,'Inserir'));
-        return ops;
+        if(!antes)return [this._opLog(this._logAlteracao(depois,'Inserir'))];
+        if(window.Util.chaveEncontro(antes)===window.Util.chaveEncontro(depois))return [];
+        const evento=this._tipoAlteracao(antes,depois);
+        return [this._opLog(this._logAlteracao(antes,'Excluir',null,evento)),
+                this._opLog(this._logAlteracao(depois,'Inserir',null,evento))];
     },
     _tipoAlteracao(anterior, atual) {
+        if(!anterior)return 'Inserir';
         const ids=x=>(x?.docentes||[]).map(d=>d.id||this._norm(d.email)).sort().join('|');
-        return anterior && ids(anterior)!==ids(atual) ? 'Alterar Docente' : 'Redistribuir';
+        const mudouDocente=ids(anterior)!==ids(atual);
+        const sala=x=>x?.sala_id||this._norm(x?.sala_referencia||x?.sala_nome||'');
+        const mudouSala=sala(anterior)!==sala(atual);
+        if(mudouDocente&&mudouSala)return 'Alterar Docente e Sala';
+        if(mudouDocente)return 'Alterar Docente';
+        if(mudouSala)return 'Alterar Sala';
+        return 'Redistribuir';
     },
     // Registro de alteração com metadados: o _commitGrupos pode descartá-lo ANTES de gravar se for duplicado ou anulado.
     _opLog(doc) {
@@ -55,7 +64,10 @@ Object.assign(window.ControllerEspelho, {
                 }));
                 grupo.forEach(docs=>existentes.push(...docs));
             }
-        }catch(err){console.warn('[Alterações] Verificação de duplicidade não concluída; gravando normalmente:',err);return grupos;}
+        }catch(err){
+            console.error('[Alterações] Não foi possível conciliar os registros pendentes; operação de encontros cancelada para evitar auditoria inconsistente.',err);
+            throw new Error('Não foi possível conferir as Alterações pendentes. Nenhum encontro foi salvo; tente novamente em instantes.');
+        }
 
         const encontroVivo=id=>(window.Store.dados.encontros||[]).find(e=>e.id===id);
         const itens=[];
@@ -107,7 +119,7 @@ Object.assign(window.ControllerEspelho, {
         const preparados=registros.map(r=>{const t=this._buscarTurma(cacheTurmas,r.id_turma);const p=this._normalizarEncontro(r,t);p.SS=false;p.SGO=false;p.criado_em=new Date().toISOString();return p;});
         this._validarDatasETurmas(preparados,cacheTurmas);this._validarLimiteUC(preparados);this._validarConflitos(preparados);
         const refs=preparados.map(()=>window.db.collection(this.colecaoEncontros).doc()), grupos=[];
-        for(let i=0;i<preparados.length;i++){const p=preparados[i],ref=refs[i];grupos.push([b=>b.set(ref,p),this._opLog(this._logAlteracao({...p,id:ref.id},'Redistribuir'))]);}
+        for(let i=0;i<preparados.length;i++){const p=preparados[i],ref=refs[i];grupos.push([b=>b.set(ref,p),this._opLog(this._logAlteracao({...p,id:ref.id},'Inserir'))]);}
         const patchesHoras=this._anexarPatchesHoras(grupos,preparados.map(depois=>({antes:null,depois})));await this._commitGrupos(grupos);this._sincronizarPatchesHoras(patchesHoras);preparados.forEach((p,i)=>window.Store.upsertLocal('encontros',{id:refs[i].id,...p}));return preparados.length;
     },
     async salvarEdicaoEmLote(alvos, payload, cacheTurmas) {
@@ -191,7 +203,7 @@ Object.assign(window.ControllerEspelho, {
             const ref=this._docRefEncontro(old.id);
             if(mudancasAgenda[i]){
                                 const patch={data:p.data,SS:false,SGO:false,atualizado_em:p.atualizado_em};
-                grupos.push([b=>b.update(ref,patch),this._opLog(this._logAlteracao(old,'Excluir',old)),this._opLog(this._logAlteracao(p,'Redistribuir'))]);
+                grupos.push([b=>b.update(ref,patch),this._opLog(this._logAlteracao(old,'Excluir',old)),this._opLog(this._logAlteracao(p,'Inserir'))]);
             }else grupos.push([b=>b.update(ref,{SS:p.SS,SGO:p.SGO,atualizado_em:p.atualizado_em})]);
         }
         const pares=[...preparados.map((depois,i)=>mudancasAgenda[i]?{antes:antigos[i],depois}:null).filter(Boolean),...substituidos.map(o=>({antes:o,depois:null}))];
