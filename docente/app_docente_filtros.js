@@ -8,7 +8,7 @@
     A._gruposFiltro = { areas: [], docentes: [], dias: [], periodos: [] };
 
     A._docentesDisponiveis = function () { return window.ControllerDocente.obterDocentes(); };
-    A._idDocenteFiltro = function (d) { return String(d.id || d.email || ''); };
+    A._idDocenteFiltro = function (d) { return String(d.id || d.uid || d.email || ''); };
     A._defaultsFiltro = function (tab) {
         const cargo = window.usuarioAtual?.cargo || '', docs = this._docentesDisponiveis();
         const areasExistentes = [...new Set(docs.flatMap(d => this._areasDocente(d)))];
@@ -196,7 +196,7 @@
             const encontros = window.ControllerDashboard.listarEncontros({ inicio: rangeAno.inicio, fim: rangeAno.fim });
             const cards = [];
             for (let i = 0; i < docs.length; i++) {
-                const doc = docs[i], id = String(doc.id || doc.email || i), mesSelecionado = this.mesesPlanejamentoPorDocente[id] || mesAtual;
+                const doc = docs[i], id = String(doc.id || doc.uid || doc.email || i), mesSelecionado = this.mesesPlanejamentoPorDocente[id] || mesAtual;
                 const rangeMes = this._mesBounds(mesSelecionado), chaveAtividades = `${window.usuarioAtual?.uid || window.usuarioAtual?.email || cargo}|${rangeMes.inicio}|${rangeMes.fim}`;
                 let atividades;
                 if (this.cacheAtividadesPlanejamento.has(chaveAtividades)) atividades = this.cacheAtividadesPlanejamento.get(chaveAtividades);
@@ -206,15 +206,98 @@
                 }
                 C.atividades = atividades;
                 const mensal = this._cardResumoPlanejamento(doc, rangeMes, 'Média mensal', encontros, true), anual = this._cardResumoPlanejamento(doc, rangeAno, 'Média anual', encontros, false), atividadesHtml = this._detalhesAtividades([doc], rangeMes);
-                cards.push(`<details data-plano-docente="${this._esc(id)}" class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm" ${abertos.includes(id) || (!abertos.length && i === 0) ? 'open' : ''}><summary class="cursor-pointer list-none px-4 py-3 text-sm font-extrabold text-slate-800"><span class="flex flex-wrap items-center justify-between gap-2"><span>${this._esc(doc.nome_completo || doc.nome || doc.email || 'Docente')}</span><span class="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-800">Média mensal e anual</span></span></summary><div class="space-y-3 border-t border-slate-200 p-3 sm:p-4">${mensal}${anual}${atividadesHtml}</div></details>`);
+                const abrirInicial = cargo === 'docente' && !abertos.length && i === 0;
+                cards.push(`<details data-plano-docente="${this._esc(id)}" class="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm" ${abertos.includes(id) || abrirInicial ? 'open' : ''}><summary class="cursor-pointer list-none px-4 py-3 text-sm font-extrabold text-slate-800"><span class="flex flex-wrap items-center justify-between gap-2"><span>${this._esc(doc.nome_completo || doc.nome || doc.email || 'Docente')}</span><span class="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-800">Média mensal e anual</span></span></summary><div class="space-y-3 border-t border-slate-200 p-3 sm:p-4"><div data-card-mensal="${this._esc(id)}">${mensal}</div>${anual}<div data-atividades-mes="${this._esc(id)}">${atividadesHtml}</div></div></details>`);
             }
-            box.innerHTML = `<div class="mb-2 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">${cargo === 'docente' ? 'Este quadro é privado e mostra somente seus dados.' : 'Exibição restrita a técnicos/coordenadores e administradores; os dados estão agrupados por docente.'}</div><div class="space-y-3">${cards}</div>`;
+            box.innerHTML = `<div class="space-y-3">${cards}</div>`;
         } catch (err) {
             box.innerHTML = `<p class="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message || 'Não foi possível calcular o planejamento.')}</p>`;
         } finally { C.atividades = atividadesAnteriores; }
         this._atualizarBotaoFiltro();
     };
     A._invalidarCachePlanejamento = function () { this.cachePlanejamentoMetricas.clear(); this.cacheAtividadesPlanejamento.clear(); };
+    const renderCalendarioOriginal = A._renderizarCalendario.bind(A);
+    A._renderizarCalendario = async function () {
+        const box = document.getElementById('docente-cal-conteudo');
+        const agendaBox = document.getElementById('docente-cal-agendas');
+        if (!box || !agendaBox) return;
+        const painel = document.querySelector('#docente-root main');
+        const scrollTop = painel?.scrollTop ?? null, scrollLeft = painel?.scrollLeft ?? null;
+        const agendasAbertas = new Set([...agendaBox.querySelectorAll('details[data-docente-agenda][open]')].map(el => el.dataset.docenteAgenda));
+        const restaurarRolagem = () => {
+            const painelAtual = document.querySelector('#docente-root main');
+            if (painelAtual && scrollTop !== null) { painelAtual.scrollTop = scrollTop; painelAtual.scrollLeft = scrollLeft; }
+        };
+        const cargo = window.usuarioAtual?.cargo, C = window.ControllerDocente, D = window.ControllerDashboard, Render = window.AppDashboard, range = this._semanal(), f = this._filtroAba('docente-tab-calendario');
+        if (!Render || typeof Render._calendarioDocente !== 'function') return renderCalendarioOriginal();
+        const label = document.getElementById('docente-cal-semana');
+        if (label) label.textContent = D.formatarSemana(range.inicio, range.fim);
+        const areas = f.areas, diasOk = data => f.dias.includes(this._weekdayISO(data)), periodoOk = enc => f.periodos.includes(this._norm(D._periodo(enc)));
+        const daArea = doc => {
+            const areasDoc = this._areasDocente(doc);
+            return !areas.length || areasDoc.some(a => areas.some(x => this._norm(a) === this._norm(x)));
+        };
+        const nomeDoc = doc => doc.nome_completo || [doc.nome,doc.sobrenome].filter(Boolean).join(' ') || doc.email || 'Docente';
+        try {
+            const todos = C.obterDocentes().filter(daArea), encontrosPeriodo = D.listarEncontros({ inicio: range.inicio, fim: range.fim }).filter(enc => diasOk(enc.data) && periodoOk(enc));
+            const encontrosArea = cargo === 'tecnico' ? encontrosPeriodo.filter(enc => (enc.docentes || []).some(pessoa => todos.some(doc => C.corresponde(pessoa, doc)))) : [];
+            const selecionados = (cargo === 'docente' ? [this._proprioDocente()] : this._docentesFiltrados('docente-tab-calendario')).filter(daArea);
+            const agendas = [], itensIndividuais = [];
+            const podeExibirPlanejamento = ['docente','tecnico','admin','root'].includes(cargo);
+            const atividades = podeExibirPlanejamento && selecionados.length ? await C.carregarAtividades(cargo === 'docente' ? selecionados[0] : null, range.inicio, range.fim) : [];
+            for (let i = 0; i < selecionados.length; i++) {
+                const doc = selecionados[i], idDocente = this._idDocenteFiltro(doc), encontrosDoc = (cargo === 'tecnico' ? encontrosArea : encontrosPeriodo).filter(enc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc)));
+                const itens = podeExibirPlanejamento ? [...encontrosDoc, ...await this._gerarPlanejamentoSemana(encontrosDoc, range, [doc], atividades.filter(x => C.corresponde(x, doc)))] : encontrosDoc;
+                itensIndividuais.push({ doc, itens });
+                const inner = Render._calendarioDocente(itens, range.inicio, { mostrarDocentes: false, mostrarCancelamentos: false });
+                const aberto = agendasAbertas.has(idDocente) ? 'open' : '';
+                agendas.push(`<details ${aberto} data-docente-agenda="${this._esc(idDocente)}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-extrabold text-slate-800"><span>${this._esc(nomeDoc(doc))}</span><span class="text-xs font-semibold text-slate-500">Agenda individual</span></summary><div class="docente-cal-scroll-livre border-t border-slate-200">${inner}</div></details>`);
+            }
+            const encontrosSemana = cargo === 'tecnico' ? encontrosArea : encontrosPeriodo.filter(enc => selecionados.some(doc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc))));
+            const planejamentoSemana = cargo === 'tecnico' ? [] : itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'));
+            const itensSemana = [...encontrosSemana, ...planejamentoSemana];
+            box.innerHTML = Render._calendarioDocente(itensSemana, range.inicio, { mostrarDocentes: cargo !== 'docente', mostrarCancelamentos: false });
+            const total = document.getElementById('docente-cal-total');
+            if (total) total.textContent = `${encontrosSemana.length} encontro(s)`;
+            agendaBox.innerHTML = agendas.length ? agendas.join('') : this._mensagemSemSelecao();
+            restaurarRolagem();
+            if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(restaurarRolagem);
+        } catch (err) {
+            const mensagem = `<p class="m-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message || 'Não foi possível carregar o calendário.')}</p>`;
+            box.innerHTML = mensagem; agendaBox.innerHTML = mensagem;
+            restaurarRolagem();
+        }
+    };
+    A._atualizarMesPlanejamento = async function (docenteId, mes) {
+        const box = document.getElementById('docente-planejamento-conteudo'), C = window.ControllerDocente, cargo = window.usuarioAtual?.cargo;
+        const doc = (cargo === 'docente' ? [this._proprioDocente()] : this._docentesFiltrados('docente-tab-planejamento')).find(x => String(x.id || x.uid || x.email || '') === String(docenteId));
+        if (!box || !doc) return;
+        const hoje = new Date(), mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+        if (!/^\d{4}-\d{2}$/.test(mes) || mes > mesAtual) return;
+        const seletorAtivo = document.activeElement?.matches?.('[data-planejamento-mes]') ? document.activeElement : null;
+        const painel = document.querySelector('#docente-root main'), scrollTop = painel?.scrollTop, scrollLeft = painel?.scrollLeft;
+        this.mesesPlanejamentoPorDocente[docenteId] = mes;
+        const range = this._mesBounds(mes), rangeAno = this._mesBounds(mesAtual);
+        const anteriores = C.atividades;
+        const chaveAtividades = `${window.usuarioAtual?.uid || window.usuarioAtual?.email || cargo}|${range.inicio}|${range.fim}`;
+        let atividades = this.cacheAtividadesPlanejamento.get(chaveAtividades);
+        try {
+            if (!atividades) {
+                atividades = [...await C.carregarAtividades(cargo === 'docente' ? doc : null, range.inicio, range.fim)];
+                this.cacheAtividadesPlanejamento.set(chaveAtividades, atividades);
+            }
+            C.atividades = atividades;
+            const encontros = window.ControllerDashboard.listarEncontros({ inicio: `${rangeAno.ano}-01-01`, fim: rangeAno.fim });
+            const areaDoc = [doc], mensal = this._cardResumoPlanejamento(doc, range, 'Média mensal', encontros, true);
+            const atividadesHtml = this._detalhesAtividades(areaDoc, range), details = [...box.querySelectorAll('details[data-plano-docente]')].find(x => x.dataset.planoDocente === String(docenteId));
+            const resumo = details?.querySelector('[data-card-mensal]'), extras = details?.querySelector('[data-atividades-mes]');
+            if (resumo) resumo.innerHTML = mensal;
+            if (extras) extras.innerHTML = atividadesHtml;
+        } finally { C.atividades = anteriores; }
+        const seletorNovo = [...box.querySelectorAll('[data-planejamento-mes]')].find(x => x.dataset.planejamentoMes === String(docenteId));
+        if (seletorAtivo && seletorNovo) seletorNovo.focus({ preventScroll: true });
+        if (painel && scrollTop !== undefined) { painel.scrollTop = scrollTop; painel.scrollLeft = scrollLeft; }
+    };
 
     const iniciarOriginal = A.iniciarView.bind(A);
     A.iniciarView = async function () {
@@ -257,7 +340,7 @@
         const t = e.target;
         if (this._mounted() && t.matches('[data-planejamento-mes]')) {
             const docenteId = t.dataset.planejamentoMes;
-            if (t.value !== this.mesesPlanejamentoPorDocente[docenteId]) { this.mesesPlanejamentoPorDocente[docenteId] = t.value; await this._renderizarPlanejamento(); }
+            if (t.value !== this.mesesPlanejamentoPorDocente[docenteId]) await this._atualizarMesPlanejamento(docenteId, t.value);
             return true;
         }
         if (this._mounted() && t.closest('#docente-filtros-conteudo') && t.dataset.filtro) return this._aplicarFiltroAlterado(t);

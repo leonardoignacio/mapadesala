@@ -11,18 +11,24 @@ window.ViewsDocente = {
         abas.push(this._aba('docente-tab-ferias','Férias Docente'));
         return `<div id="docente-root" class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-4 md:px-7">
             <header class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 flex-wrap items-end justify-between gap-3">
-                <div><h1 class="text-xl font-extrabold text-slate-800 md:text-2xl">Área Docente</h1><p class="mt-0.5 text-xs text-slate-500">Calendário de aulas, escala de trabalho e períodos de férias.</p></div>
+                <div><h1 class="text-xl font-extrabold text-slate-800 md:text-2xl">Área Docente</h1></div>
                 <div class="flex items-center gap-2"><span class="hidden rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700 sm:inline-flex">${window.Util.esc(u.nome_completo||u.nome||'Equipe')}</span><button type="button" id="docente-btn-filtros" class="grid h-10 w-10 place-items-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" title="Abrir filtros" aria-label="Abrir filtros"><span id="docente-icone-filtros"></span></button><button type="button" id="docente-btn-atualizar" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">↻ Atualizar</button></div>
             </header>
             <nav class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 gap-4 overflow-x-auto border-b border-slate-200">${abas.join('')}</nav>
             <main class="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto">
-                <section id="docente-tab-calendario" class="tab-content space-y-3">
-                    <section class="dash-docente-calendar overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <header class="flex flex-col gap-3 border-b border-slate-200 bg-white px-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
-                            <div><h2 class="text-base font-extrabold text-slate-800 sm:text-lg">Calendário semanal</h2><p class="mt-0.5 text-xs text-slate-500">Encontros e horários de planejamento, organizados de segunda a sábado.</p></div>
-                            <div class="flex w-full items-center justify-between gap-2 lg:w-auto lg:justify-end"><button type="button" id="docente-cal-hoje" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100">Hoje</button><div class="flex shrink-0 items-center gap-1"><button type="button" id="docente-cal-anterior" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Semana anterior">‹</button><button type="button" id="docente-cal-proxima" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Próxima semana">›</button></div><div class="min-w-0 flex-1 text-center lg:min-w-[210px] lg:flex-none lg:text-right"><p id="docente-cal-semana" class="text-xs font-bold text-slate-800 sm:text-sm"></p><span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Semana de trabalho</span></div></div>
-                        </header>
-                        <div id="docente-cal-conteudo" class="min-w-0"></div>
+                <section id="docente-tab-calendario" class="tab-content space-y-4">
+                    <div class="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-md">
+                        <button type="button" id="docente-cal-hoje" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100">Hoje</button>
+                        <div class="flex items-center gap-1"><button type="button" id="docente-cal-anterior" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Semana anterior">‹</button><button type="button" id="docente-cal-proxima" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Próxima semana">›</button></div>
+                        <div class="min-w-0 flex-1 text-right"><p id="docente-cal-semana" class="text-xs font-bold text-slate-800 sm:text-sm"></p><span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Semana de trabalho</span></div>
+                    </div>
+                    <details open class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-800"><span>Calendário semanal</span><span id="docente-cal-total" class="text-xs font-semibold text-slate-500"></span></summary>
+                        <div id="docente-cal-conteudo" class="docente-cal-scroll-livre min-w-0 border-t border-slate-200"></div>
+                    </details>
+                    <section class="space-y-2">
+                        <h2 class="px-1 text-sm font-extrabold text-slate-700">Agendas individuais</h2>
+                        <div id="docente-cal-agendas" class="docente-cal-scroll-livre min-w-0 space-y-2"></div>
                     </section>
                 </section>
                 <section id="docente-tab-escala" class="tab-content hidden space-y-3"><div id="docente-escala-conteudo"></div></section>
