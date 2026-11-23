@@ -254,7 +254,10 @@ async function roteador() {
             if (window.AppTurmaListar) await window.AppTurmaListar.iniciarView();
             break;
         }
-        case '#/area-docentes': viewContainer.innerHTML = window.Views.docentes(); break;
+        case '#/area-docentes':
+            viewContainer.innerHTML = window.ViewsDocente ? window.ViewsDocente.renderizar() : window.Views.docentes();
+            if (window.AppDocente) await window.AppDocente.iniciarView();
+            break;
         case '#/coordenacao': viewContainer.innerHTML = window.Views.coordenacao(); break;
         case '#/apoio-tecnico':
             viewContainer.innerHTML = window.ViewsApoio.renderizar(window.usuarioAtual);
@@ -288,6 +291,7 @@ window.Store.onUpdateCallback = () => {
         if (pendentes?.size || window.AppEspelho?.alvosEdicaoLote?.size) return;
         // Espelho: atualização suave (mantém a rolagem exatamente onde está). Demais telas: re-render completo.
         if (window.location.hash === '#/dashboard' && window.AppDashboard?.atualizarSuave) { window.AppDashboard.atualizarSuave(); return; }
+        if (window.location.hash === '#/area-docentes' && window.AppDocente?.atualizarSuave) { window.AppDocente.atualizarSuave(); return; }
         if (window.location.hash === '#/espelho' && window.AppEspelho?.atualizarSuave && document.getElementById('espelho-painel')) {
             window.AppEspelho.atualizarSuave().catch(() => roteador());
             return;
@@ -305,6 +309,7 @@ document.addEventListener('submit', async (e) => {
     if (e.target.id !== 'login-form') e.preventDefault();
     if (window.AppUsuarios && await window.AppUsuarios.tratarSubmits(e)) return;
     if (window.AppDashboard && await window.AppDashboard.tratarSubmits(e)) return;
+    if (window.AppDocente && await window.AppDocente.tratarSubmits(e)) return;
     // Informações pessoais do Apoio (inclui perfil Apoio: edita apenas o próprio cadastro).
     if (window.usuarioAtual.cargo !== 'pendente' && window.AppApoio && await window.AppApoio.tratarSubmits(e)) return;
 
@@ -341,6 +346,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('change', async (e) => {
+    if (window.AppDocente && await window.AppDocente.tratarMudancas(e)) return;
     if (window.AppDashboard && await window.AppDashboard.tratarMudancas(e)) return;
     if (window.AppApoio && await window.AppApoio.tratarMudancas(e)) return;
     if (window.AppEspelho && await window.AppEspelho.tratarMudancas(e)) return;
@@ -349,6 +355,7 @@ document.addEventListener('change', async (e) => {
 document.addEventListener('click', async (e) => {
     
     if (window.AppUsuarios && await window.AppUsuarios.tratarCliques(e)) return;
+    if (window.AppDocente && await window.AppDocente.tratarCliques(e)) return;
     if (window.AppDashboard && await window.AppDashboard.tratarCliques(e)) return;
 
     if (e.target.closest('#btn-mobile-menu') || e.target.closest('#sidebar-backdrop')) {

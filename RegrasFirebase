@@ -204,6 +204,77 @@ service cloud.firestore {
     }
 
     // =====================================================================
+    // ÁREA DOCENTE
+    // Escalas e férias são consultáveis pela equipe ativa. Só o titular docente
+    // cria/encerra sua escala e administra seus períodos de férias.
+    // Atividades e descrições são privadas ao docente e à equipe técnica/admin.
+    // =====================================================================
+    function proprioDocente(dados) {
+      return ehUm(['docente'])
+        && dados.get('docente_uid', '') == request.auth.uid
+        && dados.get('docente_id', '') == meuId();
+    }
+
+    function podeLerAtividadeDocente(dados) {
+      // UID é o único campo necessário na consulta do docente; os escritores
+      // não podem alterar o vínculo UID/usuário validado por proprioDocente().
+      return ehSuper() || ehUm(['root', 'admin', 'tecnico'])
+        || (ehUm(['docente']) && dados.get('docente_uid', '') == request.auth.uid);
+    }
+
+    match /escalas_docentes/{id} {
+      allow read: if leituraEquipe();
+      allow create: if proprioDocente(request.resource.data)
+        && request.resource.data.keys().hasOnly(['docente_uid', 'docente_id', 'docente_email', 'docente_nome', 'dias_semana', 'inicio_vigencia', 'final_vigencia', 'ch_semanal_minutos', 'criado_em', 'criado_por_email'])
+        && request.resource.data.get('inicio_vigencia', '') is string
+        && request.resource.data.get('final_vigencia', '') == 'Atual'
+        && request.resource.data.get('dias_semana', {}) is map;
+      // Única alteração permitida em um registro existente: encerrar sua vigência;
+      // o docente não pode reescrever a grade histórica.
+      allow update: if proprioDocente(resource.data)
+        && proprioDocente(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['final_vigencia', 'encerrado_em', 'encerrado_por_email'])
+        && request.resource.data.get('final_vigencia', '') is string
+        && request.resource.data.get('final_vigencia', '') != 'Atual'
+        && request.resource.data.get('final_vigencia', '') >= resource.data.get('inicio_vigencia', '');
+      allow delete: if false;
+    }
+
+    match /ferias_docentes/{id} {
+      allow read: if leituraEquipe();
+      allow create: if proprioDocente(request.resource.data)
+        && request.resource.data.keys().hasOnly(['docente_uid', 'docente_id', 'docente_email', 'docente_nome', 'periodo_aquisitivo', 'data_inicio', 'data_retorno', 'qtde_dias', 'criado_em', 'atualizado_em'])
+        && request.resource.data.get('periodo_aquisitivo', '') is string
+        && request.resource.data.get('periodo_aquisitivo', '').matches('^[0-9]{4}$')
+        && request.resource.data.get('data_inicio', '') is string
+        && request.resource.data.get('data_retorno', '') > request.resource.data.get('data_inicio', '')
+        && request.resource.data.get('qtde_dias', 0) is int;
+      allow update: if proprioDocente(resource.data)
+        && proprioDocente(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['periodo_aquisitivo', 'data_inicio', 'data_retorno', 'qtde_dias', 'atualizado_em'])
+        && request.resource.data.get('periodo_aquisitivo', '').matches('^[0-9]{4}$')
+        && request.resource.data.get('data_retorno', '') > request.resource.data.get('data_inicio', '');
+      allow delete: if proprioDocente(resource.data);
+    }
+
+    match /atividades_docentes/{id} {
+      allow read: if podeLerAtividadeDocente(resource.data);
+      allow create: if proprioDocente(request.resource.data)
+        && request.resource.data.keys().hasOnly(['docente_uid', 'docente_id', 'docente_email', 'docente_nome', 'data', 'inicio', 'termino', 'tipo', 'descricao', 'criado_em', 'atualizado_em'])
+        && request.resource.data.get('data', '') is string
+        && request.resource.data.get('inicio', '') is string
+        && request.resource.data.get('termino', '') > request.resource.data.get('inicio', '')
+        && request.resource.data.get('tipo', '') == 'Outra Atividade'
+        && request.resource.data.get('descricao', '') is string;
+      allow update: if proprioDocente(resource.data)
+        && proprioDocente(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['data', 'inicio', 'termino', 'tipo', 'descricao', 'atualizado_em'])
+        && request.resource.data.get('termino', '') > request.resource.data.get('inicio', '')
+        && request.resource.data.get('tipo', '') == 'Outra Atividade';
+      allow delete: if proprioDocente(resource.data);
+    }
+
+    // =====================================================================
     // SOLICITAÇÕES DE HABILITAÇÃO EM OUTRAS ÁREAS
     // Qualquer membro ativo da equipe cria a PRÓPRIA solicitação (sempre pendente) e lê somente as suas;
     // Root/Admin leem todas e avaliam (aprovar/recusar).

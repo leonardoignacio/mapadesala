@@ -99,19 +99,7 @@ window.AppDashboard = {
         return m?`${String(Number(m[1])).padStart(2,'0')}:${m[2]}`:'Horário não informado';
     },
     _paletaAgenda(enc) {
-        const esp=window.AppEspelho;
-        try { if(esp?._paletaUC)return esp._paletaUC(enc.id_uc,enc.turma,esp._paletaTurma?.(enc.id_uc)); } catch(_) {}
-        const paletas=[
-            {border:'#1d4ed8',soft:'#eff6ff',text:'#1e3a8a'},
-            {border:'#0f766e',soft:'#f0fdfa',text:'#134e4a'},
-            {border:'#7c3aed',soft:'#f5f3ff',text:'#4c1d95'},
-            {border:'#047857',soft:'#ecfdf5',text:'#064e3b'},
-            {border:'#0369a1',soft:'#f0f9ff',text:'#0c4a6e'},
-            {border:'#4f46e5',soft:'#eef2ff',text:'#312e81'},
-            {border:'#334155',soft:'#f1f5f9',text:'#1e293b'},
-            {border:'#0891b2',soft:'#ecfeff',text:'#164e63'}
-        ];
-        const id=String(enc.id_uc||enc.uc_referencia||enc.id||'');let hash=0;for(let i=0;i<id.length;i++)hash=(hash*31+id.charCodeAt(i))>>>0;return paletas[hash%paletas.length];
+        return {border:'#2563eb',soft:'#eff6ff',text:'#1e3a8a'};
     },
     _calendarioDocente(encontros,inicio,{mostrarDocentes=false,mostrarCancelamentos=!mostrarDocentes}={}) {
         const C=window.ControllerDashboard,e=this._esc,dias=Array.from({length:6},(_,i)=>C._addDays(inicio,i)),periodos=['Manhã','Tarde','Noite'];
@@ -136,6 +124,10 @@ window.AppDashboard = {
         const avisoCard=(aviso,mobile=false)=>{const pal=paletaAviso(aviso),texto=[aviso.rotulo,aviso.descricao].filter(Boolean).join(' · ');return mobile?`<article class="dash-mobile-exception" style="--exception-bg:${pal.bg};--exception-border:${pal.border};--exception-text:${pal.text}" title="${e(texto)}"><b>${e(aviso.rotulo)}</b>${aviso.descricao?`<span>${e(aviso.descricao)}</span>`:''}</article>`:`<div class="dash-cal-exception-card" style="--exception-bg:${pal.bg};--exception-border:${pal.border};--exception-text:${pal.text}" title="${e(texto)}"><b>${e(aviso.rotulo)}</b>${aviso.descricao?`<span> · ${e(aviso.descricao)}</span>`:''}</div>`;};
         const cartao=(enc,modoMobile=false)=>{
             const turma=enc.turma||{},pal=this._paletaAgenda(enc),ref=e(enc.uc_referencia||'UC'),turmaRef=e(turma.referencia||enc.turma_referencia||'Turma'),oferta=e(turma.oferta||''),salaRaw=enc.sala_referencia||enc.sala_nome||(window.Store.dados.salas||[]).find(x=>x.id===enc.sala_id)?.referencia||enc.sala_id||'',sala=e(salaRaw),docentes=(enc.docentes||[]).map(d=>d.nome_completo||d.nome||d.email).filter(Boolean).join(', '),docenteNome=docentes||'Docente não informado',rotuloTurma=`${turmaRef}${oferta?` · ${oferta}`:''}`,salaHtml=sala?`<span class="dash-cal-event-meta dash-cal-event-sala">Sala ${sala}</span>`:'',docentesHtml=`<span class="dash-cal-event-docente">${e(docenteNome)}</span>`,tituloCompleto=`${ref} · ${rotuloTurma} · ${docenteNome}${salaRaw?` · Sala ${salaRaw}`:''}`;
+            if(enc.tipo==='planejamento_docente'){
+                const outra=enc.atividade_tipo==='Outra Atividade',descricao=String(enc.atividade_descricao||''),compensacao=outra&&/compensa[cç][aã]o/i.test(descricao),rotulo=outra?'Outra Atividade':'Planejamento',pal=compensacao?{bg:'#fff7ed',border:'#f97316',text:'#9a3412'}:outra?{bg:'#f5f3ff',border:'#8b5cf6',text:'#5b21b6'}:{bg:'#ecfdf5',border:'#22c55e',text:'#166534'},desc=outra?`<span class="dash-cal-planning-description">${e(descricao)}</span>`:'',attrs=`data-data="${e(enc.data||'')}" data-inicio="${e(enc.h_inicio||'')}" data-termino="${e(enc.h_termino||'')}" data-atividade-id="${e(enc.atividade_id||'')}"`,label=`${rotulo} · ${enc.h_inicio||''}–${enc.h_termino||''}`,vars=`--planning-bg:${pal.bg};--planning-border:${pal.border};--planning-text:${pal.text}`;
+                return `<button type="button" class="dash-cal-planning ${modoMobile?'dash-cal-planning-mobile':''} docente-btn-atividade text-left" style="${vars}" ${attrs} title="${e(outra?`${label} · ${descricao}`:label)}"><span class="dash-cal-planning-title">${rotulo}</span><span class="dash-cal-planning-time">${e(enc.h_inicio||'')}–${e(enc.h_termino||'')} · ${e(String(enc.ch_encontro||0))}h</span>${desc}<span class="dash-cal-planning-action">Alterar atividade</span></button>`;
+            }
             if(modoMobile)return `<article class="dash-mobile-event ${mostrarDocentes?'dash-mobile-event-consolidado':''}" style="--event-bg:${pal.soft};--event-border:${pal.border};--event-text:${pal.text}"><div class="min-w-0"><p class="dash-mobile-event-uc">${ref}</p><p class="dash-mobile-event-turma">${e(rotuloTurma)}</p><p class="dash-mobile-event-docente">${e(docenteNome)}</p>${salaHtml?`<p class="dash-mobile-event-meta dash-mobile-event-sala">Sala ${sala}</p>`:''}</div></article>`;
             return `<article class="dash-cal-event ${mostrarDocentes?'dash-cal-event-consolidado':''}" title="${e(tituloCompleto)}" style="--event-bg:${pal.soft};--event-border:${pal.border};--event-text:${pal.text}"><span class="dash-cal-event-uc">${ref}</span><span class="dash-cal-event-turma">${e(rotuloTurma)}</span>${docentesHtml}${salaHtml}</article>`;
         };
@@ -150,10 +142,24 @@ window.AppDashboard = {
         const mobile=`<div class="dash-cal-mobile">${dias.map((data,i)=>{const atual=porDia.get(data),avisosDiaLista=avisosDia.get(data),avisosPeriodos=periodos.flatMap(periodo=>avisosPeriodo.get(data).get(periodo)),total=periodos.reduce((s,p)=>s+atual.get(p).length,0)+avisosDiaLista.length+avisosPeriodos.length,todosAvisos=[...avisosDiaLista,...avisosPeriodos],badgePal=todosAvisos.length?paletaAviso(todosAvisos[0]):null,badgeAviso=todosAvisos.length?`<span class="dash-mobile-day-alert" style="--exception-bg:${badgePal.bg};--exception-border:${badgePal.border};--exception-text:${badgePal.text}" title="${e(todosAvisos.map(a=>a.rotulo).join(', '))}">${e(todosAvisos.length>1?`${todosAvisos.length} avisos`:todosAvisos[0].rotulo)}</span>`:'',avisosMobile=avisosDiaLista.map(a=>avisoCard(a,true)).join(''),grupos=periodos.map(periodo=>{const eventos=atual.get(periodo),avisos=avisosPeriodo.get(data).get(periodo);if(!eventos.length&&!avisos.length)return'';return `<section class="dash-mobile-period ${classePeriodo(periodo)}"><h4 class="dash-mobile-period-label">${periodo.toUpperCase()}</h4><div class="dash-mobile-period-events">${avisos.map(a=>avisoCard(a,true)).join('')}${eventos.slice().sort((a,b)=>(a.h_inicio||'').localeCompare(b.h_inicio||'')).map(enc=>cartao(enc,true)).join('')}</div></section>`;}).join(''),conteudo=avisosMobile+grupos||'<p class="dash-mobile-empty">Sem encontros ou avisos neste dia.</p>';return `<details data-date="${data}" class="dash-mobile-day ${data===hoje?'dash-mobile-today':''}" ${data===aberto?'open':''}><summary><span><b>${nomes[i]}</b><span>${Number(data.slice(8,10))} ${mesDia(data)}</span></span>${badgeAviso}<span class="dash-mobile-count">${total}</span></summary><div class="dash-mobile-day-content">${conteudo}</div></details>`;}).join('')}</div>`;
         return desktop+mobile;
     },
-    _renderizarSemanaDocente() {
+    async _agendaComPlanejamento(encontros,inicio,modo='minhas'){
+        const cargo=window.usuarioAtual?.cargo;if(!['docente','tecnico','admin','root'].includes(cargo))return encontros;
+        const A=window.AppDocente,C=window.ControllerDocente,D=window.ControllerDashboard;if(!A||!C)return encontros;
+        const fim=D._addDays(inicio,5);let docs;
+        if(cargo==='docente')docs=[C.docenteAtual()];
+        else{
+            const areas=modo==='todas'?[]:D._areasUsuario(),norm=x=>window.Util.semAcento(x||'').toLowerCase();
+            docs=C.obterDocentes().filter(d=>!areas.length||A._areasDocente(d).some(a=>areas.some(x=>norm(a)===norm(x))));
+            const seleccion=this.filtrosAgendaTecnica?.docentes;if(cargo==='tecnico'&&seleccion!==null&&seleccion!==undefined)docs=docs.filter(d=>seleccion.includes(this._chaveDocenteAgenda(d)));
+        }
+        if(!docs.length)return encontros;
+        const actividades=await C.carregarAtividades(window.usuarioActual?.cargo==='docente'?docs[0]:null,inicio,fim);
+        const extra=await A._gerarPlanejamentoSemana(encontros,{inicio,fim},docs,actividades);return [...encontros,...extra];
+    },
+    async _renderizarSemanaDocente() {
         const data=window.ControllerDashboard.listarSemanaDocente(this.semanaDocente),label=document.getElementById('dash-semana-docente-label'),box=document.getElementById('dash-semana-docente');
         if(label)label.textContent=window.ControllerDashboard.formatarSemana(data.inicio,data.fim);
-        if(box)box.innerHTML=this._calendarioDocente(data.encontros,data.inicio);
+        if(box){try{const itens=await this._agendaComPlanejamento(data.encontros,data.inicio);box.innerHTML=this._calendarioDocente(itens,data.inicio);}catch(err){box.innerHTML=`<p class="p-4 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar planejamentos.')}</p>`;}}
     },
     _chaveDocenteAgenda(d) {
         const email=String(d?.email||'').trim().toLowerCase();if(email)return `email:${email}`;
@@ -197,11 +203,11 @@ window.AppDashboard = {
             return true;
         });
     },
-    _renderizarAgendaTecnica(reconstruirFiltros=true) {
+    async _renderizarAgendaTecnica(reconstruirFiltros=true) {
         const chave=`${this.semanaTecnica}|${this.modoAreas}`,data=!reconstruirFiltros&&this.agendaTecnicaCache?.chave===chave?this.agendaTecnicaCache.data:window.ControllerDashboard.listarAgendaDocentes(this.semanaTecnica,this.modoAreas),label=document.getElementById('dash-semana-tecnica-label'),box=document.getElementById('dash-agenda-semanal'),sel=document.getElementById('dash-agenda-areas');this.agendaTecnicaCache={chave,data};
         if(label)label.textContent=window.ControllerDashboard.formatarSemana(data.inicio,data.fim);if(sel)sel.value=this.modoAreas;
         if(reconstruirFiltros)this._renderizarControlesAgendaTecnica(data.encontros);
-        if(box){const scroll=box.querySelector('.dash-cal-scroll')?.scrollTop||0,abertas=[...box.querySelectorAll('.dash-mobile-day[open]')].map(x=>x.dataset.date);box.innerHTML=this._calendarioDocente(this._filtrarAgendaTecnica(data.encontros),data.inicio,{mostrarDocentes:true,mostrarCancelamentos:false});const novoScroll=box.querySelector('.dash-cal-scroll');if(novoScroll)novoScroll.scrollTop=scroll;box.querySelectorAll('.dash-mobile-day').forEach(x=>{if(abertas.includes(x.dataset.date))x.open=true;});}
+        if(box){const scroll=box.querySelector('.dash-cal-scroll')?.scrollTop||0,abertas=[...box.querySelectorAll('.dash-mobile-day[open]')].map(x=>x.dataset.date);try{const base=this._filtrarAgendaTecnica(data.encontros),itens=await this._agendaComPlanejamento(base,data.inicio,this.modoAreas);box.innerHTML=this._calendarioDocente(itens,data.inicio,{mostrarDocentes:true,mostrarCancelamentos:false});}catch(err){box.innerHTML=`<p class="p-4 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar planejamentos.')}</p>`;}const novoScroll=box.querySelector('.dash-cal-scroll');if(novoScroll)novoScroll.scrollTop=scroll;box.querySelectorAll('.dash-mobile-day').forEach(x=>{if(abertas.includes(x.dataset.date))x.open=true;});}
         if(!reconstruirFiltros)this._atualizarResumoFiltrosAgendaTecnica();
     },
     async _renderizarAlteracoesTecnicas() { return this._renderizarListaAlteracoesPendentes('dash-alteracoes-pendentes'); },

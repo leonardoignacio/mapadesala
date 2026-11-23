@@ -120,7 +120,7 @@ window.Views = {
     },
 
     docentes() {
-        return `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Área Docentes</h1><p class="text-slate-500 mt-2">Módulo em construção.</p></div>`;
+        return window.ViewsDocente ? window.ViewsDocente.renderizar() : `<div class="p-8 fade-in flex-1"><h1 class="text-2xl font-bold text-slate-800">Área Docentes</h1><p class="text-slate-500 mt-2">Não foi possível carregar esta view.</p></div>`;
     },
 
     coordenacao() {
