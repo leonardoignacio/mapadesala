@@ -6,7 +6,7 @@ window.ViewsDocente = {
     },
     renderizar() {
         const u=window.usuarioAtual||{},cargo=u.cargo||'',podeVerPlano=['docente','tecnico','admin','root'].includes(cargo);
-        const abas=[this._aba('docente-tab-calendario','Calendário',true),this._aba('docente-tab-escala','Escala')];
+        const abas=[this._aba('docente-tab-calendario','Calendário Semanal',true),this._aba('docente-tab-escala','Escala')];
         if(podeVerPlano)abas.push(this._aba('docente-tab-planejamento','Aulas/Planejamento'));
         abas.push(this._aba('docente-tab-ferias','Férias Docente'));
         return `<div id="docente-root" class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-4 md:px-7">
@@ -23,7 +23,7 @@ window.ViewsDocente = {
                         <div class="min-w-0 flex-1 text-right"><p id="docente-cal-semana" class="text-xs font-bold text-slate-800 sm:text-sm"></p><span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Semana de trabalho</span></div>
                     </div>
                     <details open class="overflow-hidden rounded-2xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-md ring-1 ring-blue-100">
-                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-blue-100 bg-gradient-to-r from-blue-100 to-indigo-50 px-4 py-3 text-sm font-extrabold text-blue-950"><span class="flex items-center gap-2"><span>Calendário semanal</span><span class="rounded-full border border-blue-200 bg-white/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-blue-700">Painel principal</span></span><span id="docente-cal-total" class="text-xs font-bold text-blue-800"></span></summary>
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-blue-100 bg-gradient-to-r from-blue-100 to-indigo-50 px-4 py-3 text-sm font-extrabold text-blue-950"><span class="flex items-center gap-2"><span>Calendário Semanal</span><span class="rounded-full border border-blue-200 bg-white/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-blue-700">Painel principal</span></span><span id="docente-cal-total" class="text-xs font-bold text-blue-800"></span></summary>
                         <div id="docente-cal-conteudo" class="docente-cal-scroll-livre min-w-0"></div>
                     </details>
                     <section class="space-y-2">

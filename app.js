@@ -75,7 +75,12 @@ window.auth.onAuthStateChanged(async (user) => {
             areas: dadosUsuario?.areas || []
         };
 
-        // Root/Admin: mantém o diretório público de docentes em dia (segundo plano; só grava quando há diferença).
+        // Cada usuário ativo publica somente seu próprio registro mínimo de destinatário.
+        if (window.ControllerAdminCredenciamento?.publicarMeuDestinatario) {
+            window.ControllerAdminCredenciamento.publicarMeuDestinatario()
+                .catch(err => console.warn('[Diretório] Registro mínimo do usuário não publicado:', err));
+        }
+        // Root/Admin também mantêm sincronizada a lista completa sem expor a coleção usuarios aos demais perfis.
         if (['root', 'admin'].includes(cargo) && window.ControllerAdminCredenciamento?.sincronizarDiretorio) {
             setTimeout(() => window.ControllerAdminCredenciamento.sincronizarDiretorio()
                 .catch(err => console.warn('[Diretório] Sincronização não concluída:', err)), 1500);

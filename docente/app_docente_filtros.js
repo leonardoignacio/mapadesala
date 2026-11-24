@@ -16,7 +16,11 @@
         const areas = areasUsuario.some(x => this._norm(x) === 'todas') ? areasExistentes : areasExistentes.filter(a => areasUsuario.some(x => this._norm(x) === this._norm(a)));
         let docentes = docs.filter(d => this._areasCompat(areas, this._areasDocente(d))).map(d => this._idDocenteFiltro(d));
         if (!areas.length && !areasUsuario.length) docentes = docs.map(d => this._idDocenteFiltro(d));
-        if (cargo === 'docente' && ['docente-tab-calendario', 'docente-tab-planejamento'].includes(tab)) {
+        if (cargo === 'docente' && tab === 'docente-tab-calendario') {
+            // A agenda pessoal já ocupa o calendário semanal principal; as agendas individuais
+            // ficam sem seleção inicial, evitando duplicar o docente logado.
+            docentes = [];
+        } else if (cargo === 'docente' && tab === 'docente-tab-planejamento') {
             const self = docs.find(d => window.ControllerDocente.corresponde(d, this._proprioDocente()));
             docentes = self ? [this._idDocenteFiltro(self)] : [];
         }
@@ -246,8 +250,7 @@
             const selecionados = this._docentesFiltrados('docente-tab-calendario').filter(daArea);
             const agendas = [], itensIndividuais = [];
             const perfilPrivilegiado = ['tecnico','admin','root'].includes(cargo);
-            const proprioSelecionado = selecionados.some(doc => C.corresponde(doc, C.docenteAtual()));
-            const atividades = selecionados.length && (perfilPrivilegiado || (cargo === 'docente' && proprioSelecionado))
+            const atividades = (perfilPrivilegiado && selecionados.length) || cargo === 'docente'
                 ? await C.carregarAtividades(cargo === 'docente' ? C.docenteAtual() : null, range.inicio, range.fim)
                 : [];
             for (let i = 0; i < selecionados.length; i++) {
@@ -259,8 +262,13 @@
                 const aberto = agendasAbertas.has(idDocente) ? 'open' : '';
                 agendas.push(`<details ${aberto} data-docente-agenda="${this._esc(idDocente)}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-extrabold text-slate-800"><span>${this._esc(nomeDoc(doc))}</span><span class="text-xs font-semibold text-slate-500">Agenda individual</span></summary><div class="docente-cal-scroll-livre border-t border-slate-200">${inner}</div></details>`);
             }
-            const encontrosSemana = cargo === 'tecnico' ? encontrosArea : encontrosPeriodo.filter(enc => selecionados.some(doc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc))));
-            const planejamentoSemana = cargo === 'tecnico' ? [] : itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'));
+            const docentePrincipal = cargo === 'docente' ? C.docenteAtual() : null;
+            const encontrosSemana = cargo === 'tecnico' ? encontrosArea : cargo === 'docente'
+                ? encontrosPeriodo.filter(enc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, docentePrincipal)))
+                : encontrosPeriodo.filter(enc => selecionados.some(doc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc))));
+            const planejamentoSemana = cargo === 'tecnico' ? [] : cargo === 'docente'
+                ? await this._gerarPlanejamentoSemana(encontrosSemana, range, docentePrincipal ? [docentePrincipal] : [], atividades)
+                : itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'));
             const itensSemana = [...encontrosSemana, ...planejamentoSemana];
             const mostrarNomeDocente = cargo !== 'docente' || selecionados.some(doc => !C.corresponde(doc, C.docenteAtual()));
             box.innerHTML = Render._calendarioDocente(itensSemana, range.inicio, { mostrarDocentes: mostrarNomeDocente, mostrarCancelamentos: false });

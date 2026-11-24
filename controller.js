@@ -8,7 +8,7 @@ const STORAGE_CACHE_DEBOUNCE_MS = 250;
 const CARGOS_COLECAO_USUARIOS = ["root", "admin"];
 
 window.Store = {
-    dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], diretorio: [], docentes: [] },
+    dados: { areas: [], cursos: [], ucs: [], turmas: [], encontros: [], excecoes: [], salas: [], usuarios: [], diretorio: [], destinatarios: [], docentes: [] },
     listeners: [],
     inicializado: false,
     _promessaInicio: null,
@@ -51,7 +51,9 @@ window.Store = {
                 return false;
             }
             Object.keys(this.dados).forEach(k => {
-                if (Array.isArray(parsed.data?.[k])) this.dados[k] = parsed.data[k];
+                if (Array.isArray(parsed.data?.[k])) this.dados[k] = k === 'destinatarios'
+                    ? (parsed.destinatariosVersion === 2 ? this._sanitizarDestinatarios(parsed.data[k]) : [])
+                    : parsed.data[k];
             });
             if (!this._carregaUsuarios()) {
                 // Perfis sem acesso à coleção: remove qualquer resquício de versões anteriores do cache.
@@ -79,6 +81,16 @@ window.Store = {
         return limpo;
     },
 
+    _sanitizarDestinatarios(lista) {
+        const permitidas = new Set(['id', 'uid', 'nome', 'cargo', 'status', '_normalizarNecessario']);
+        return (lista || []).map(u => {
+            const precisaLimpeza = !!u?._normalizarNecessario || Object.keys(u || {}).some(k => !permitidas.has(k));
+            const item = { id: String(u?.id || ''), uid: String(u?.uid || ''), nome: String(u?.nome || ''), cargo: String(u?.cargo || ''), status: String(u?.status || 'ativo') };
+            if (precisaLimpeza) item._normalizarNecessario = true;
+            return item;
+        });
+    },
+
     _salvarCacheNavegador() {
         if (!this._usuarioId) return;
         if (this._cacheTimer) clearTimeout(this._cacheTimer);
@@ -86,8 +98,12 @@ window.Store = {
             this._cacheTimer = null;
             try {
                 const data = {};
-                Object.keys(this.dados).forEach(k => { data[k] = (k === "usuarios" && !this._carregaUsuarios()) ? [] : this._sanitizarCache(this.dados[k]); });
-                localStorage.setItem(this._chaveCache(), JSON.stringify({ version: 2, user: this._usuarioId, savedAt: Date.now(), data }));
+                Object.keys(this.dados).forEach(k => {
+                    if (k === 'usuarios' && !this._carregaUsuarios()) data[k] = [];
+                    else if (k === 'destinatarios') data[k] = this._sanitizarDestinatarios(this.dados[k]);
+                    else data[k] = this._sanitizarCache(this.dados[k]);
+                });
+                localStorage.setItem(this._chaveCache(), JSON.stringify({ version: 2, destinatariosVersion: 2, user: this._usuarioId, savedAt: Date.now(), data }));
             } catch (err) {
                 console.warn("[Store] Limite de armazenamento local atingido:", err);
             }
@@ -110,7 +126,7 @@ window.Store = {
                 { col: "areas", chave: "areas" }, { col: "cursos", chave: "cursos" },
                 { col: "ucs", chave: "ucs" }, { col: "turmas", chave: "turmas" },
                 { col: "encontros", chave: "encontros" }, { col: "datas_excecoes", chave: "excecoes" },
-                { col: "salas_aula", chave: "salas" }, { col: "diretorio_docentes", chave: "diretorio" }
+                { col: "salas_aula", chave: "salas" }, { col: "diretorio_docentes", chave: "diretorio" }, { col: "diretorio_solicitacoes_minimo", chave: "destinatarios" }
             ];
             if (this._carregaUsuarios()) colecoes.push({ col: "usuarios", chave: "usuarios" });
             let pendentes = colecoes.length;
@@ -140,7 +156,10 @@ window.Store = {
             const teveMudancaReal = snapshot.docChanges().length > 0;
             if (primeiroDisparo || teveMudancaReal) {
                 this.dados[nomeEstado] = [];
-                snapshot.forEach(doc => this.dados[nomeEstado].push({ id: doc.id, ...doc.data() }));
+                snapshot.forEach(doc => {
+                    const item = { id: doc.id, ...doc.data() };
+                    this.dados[nomeEstado].push(nomeEstado === 'destinatarios' ? this._sanitizarDestinatarios([item])[0] : item);
+                });
                 if (nomeEstado === "usuarios" || nomeEstado === "diretorio") this._processarDocentes();
                 this._salvarCacheNavegador();
                 if (!primeiroDisparo && teveMudancaReal && typeof this.onUpdateCallback === "function") this.onUpdateCallback(nomeEstado);
@@ -165,7 +184,7 @@ window.Store = {
         if (!item || !item.id || !Array.isArray(this.dados[chave])) return;
         if (chave === "usuarios" && !this._carregaUsuarios()) return;   // perfis sem acesso nunca guardam usuários
         const idx = this.dados[chave].findIndex(x => x.id === item.id);
-        if (idx >= 0) this.dados[chave][idx] = { ...this.dados[chave][idx], ...item };
+        if (idx >= 0) this.dados[chave][idx] = chave === 'destinatarios' ? { ...item } : { ...this.dados[chave][idx], ...item };
         else this.dados[chave].push(item);
         if (chave === "usuarios" || chave === "diretorio") this._processarDocentes();
         this._salvarCacheNavegador();

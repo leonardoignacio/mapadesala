@@ -144,6 +144,7 @@
 .dash-cal-planning { display:flex; min-width:0; flex:0 0 auto; flex-direction:column; gap:3px; box-sizing:border-box; border:1px solid color-mix(in srgb,var(--planning-border,#22c55e) 36%,white); border-left:3px solid var(--planning-border,#22c55e); border-radius:7px; background:var(--planning-bg,#ecfdf5); padding:7px 8px; color:var(--planning-text,#166534); box-shadow:0 1px 2px #0f172a10; }
 .dash-cal-planning:hover,.dash-cal-planning:focus-visible { border-color:var(--planning-border,#22c55e); filter:saturate(1.08); outline:2px solid color-mix(in srgb,var(--planning-border,#22c55e) 35%,white); outline-offset:1px; }
 .dash-cal-planning-title { overflow-wrap:anywhere; font-size:10px; font-weight:900; line-height:1.25; }
+.dash-cal-planning-docente { overflow-wrap:anywhere; color:#1e3a8a; font-size:9px; font-weight:900; line-height:1.25; }
 .dash-cal-planning-time { color:var(--planning-text,#166534); font-size:9px; font-weight:800; font-variant-numeric:tabular-nums; }
 .dash-cal-planning-description { overflow-wrap:anywhere; color:#475569; font-size:9px; line-height:1.3; }
 .dash-cal-planning-action { align-self:flex-end; color:var(--planning-text,#166534); font-size:8px; font-weight:800; }

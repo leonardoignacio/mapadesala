@@ -152,6 +152,36 @@ service cloud.firestore {
       allow write: if ehSuper() || ehAdmin();
     }
 
+    // Diretório legado: pode conter campos extras; somente Admin/Root podem inspecionar ou limpar.
+    match /diretorio_solicitacoes/{usuarioId} {
+      allow read, write: if ehSuper() || ehAdmin();
+    }
+
+    // Diretório mínimo versionado, separado dos documentos legados.
+    // A consulta list não usa resource.data.keys() como filtro: Firestore Rules não filtram resultados.
+    // A proteção dos campos é garantida pelo esquema obrigatório em TODAS as gravações desta coleção.
+    match /diretorio_solicitacoes_minimo/{usuarioId} {
+      function camposDestinatarioMinimos(dados) {
+        return dados.keys().hasAll(['uid', 'nome', 'cargo', 'status'])
+          && dados.keys().hasOnly(['uid', 'nome', 'cargo', 'status']);
+      }
+      function registroProprioValido() {
+        return ehEquipe()
+          && usuarioId == meuId()
+          && camposDestinatarioMinimos(request.resource.data)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.cargo == cargo()
+          && request.resource.data.status == 'ativo'
+          && (request.resource.data.nome == meuDoc().get('nome_completo', '')
+              || request.resource.data.nome == meuDoc().get('nome', ''));
+      }
+      // O conteúdo continua mínimo porque Root/Admin também só podem gravar o esquema permitido.
+      allow get, list: if leituraEquipe();
+      allow create, update: if ((ehSuper() || ehAdmin()) && camposDestinatarioMinimos(request.resource.data))
+        || registroProprioValido();
+      allow delete: if ehSuper() || ehAdmin();
+    }
+
     // Coleções legadas: só o titular lê; só o superusuário escreve.
     match /usuarios_permissoes/{emailId} {
       allow read: if ehSuper() || (logado() && meuEmail() == emailId);
@@ -296,7 +326,8 @@ service cloud.firestore {
     // =====================================================================
     function solicitacaoDestinadaAoUsuario(dados) {
       return ehEquipe()
-        && dados.get('perfis_destino', []).hasAny([cargo()]);
+        && (dados.get('perfis_destino', []).hasAny([cargo()])
+            || dados.get('destinatarios_uids', []).hasAny([request.auth.uid]));
     }
 
     match /solicitacoes/{id} {
@@ -306,16 +337,22 @@ service cloud.firestore {
 
       allow create: if ehSuper()
         || (ehEquipe()
-            && request.resource.data.keys().hasAll(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'tipo', 'area', 'assunto', 'mensagem', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
-            && request.resource.data.keys().hasOnly(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'tipo', 'area', 'assunto', 'mensagem', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+            && request.resource.data.keys().hasAll(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'perfis_destino_individual', 'destinatarios_uids', 'tipo', 'area', 'assunto', 'mensagem', 'resposta_processamento', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+            && request.resource.data.keys().hasOnly(['uid_solicitante', 'id_solicitante', 'email_solicitante', 'nome_solicitante', 'cargo_solicitante', 'perfis_destino', 'perfis_destino_individual', 'destinatarios_uids', 'tipo', 'area', 'assunto', 'mensagem', 'resposta_processamento', 'status', 'criado_em', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
             && request.resource.data.uid_solicitante == request.auth.uid
             && request.resource.data.id_solicitante == meuId()
             && request.resource.data.email_solicitante == meuEmail()
             && request.resource.data.cargo_solicitante == cargo()
             && request.resource.data.perfis_destino is list
-            && request.resource.data.perfis_destino.size() > 0
             && request.resource.data.perfis_destino.size() <= 5
             && request.resource.data.perfis_destino.hasOnly(['root', 'admin', 'tecnico', 'docente', 'apoio'])
+            && request.resource.data.perfis_destino_individual is list
+            && request.resource.data.perfis_destino_individual.size() <= 5
+            && request.resource.data.perfis_destino_individual.hasOnly(['root', 'admin', 'tecnico', 'docente', 'apoio'])
+            && request.resource.data.destinatarios_uids is list
+            && request.resource.data.destinatarios_uids.size() <= 50
+            && (request.resource.data.perfis_destino.size() > 0 || request.resource.data.destinatarios_uids.size() > 0)
+            && request.resource.data.resposta_processamento == ''
             && request.resource.data.tipo in ['area', 'problema', 'geral']
             && request.resource.data.status == 'Pendente'
             && request.resource.data.assunto is string
@@ -329,17 +366,21 @@ service cloud.firestore {
             && request.resource.data.processada_em == ''
             && request.resource.data.processada_por_uid == ''
             && request.resource.data.processada_por_email == ''
-            && request.resource.data.processada_por_nome == '');
+            && request.resource.data.processada_por_nome == ''
+            && request.resource.data.resposta_processamento is string
+            && request.resource.data.resposta_processamento.size() <= 2000);
 
       allow update: if (ehAdmin() || solicitacaoDestinadaAoUsuario(resource.data))
         && resource.data.get('uid_solicitante', '') != request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'processada_em', 'processada_por_uid', 'processada_por_email', 'processada_por_nome', 'resposta_processamento'])
         && ((resource.data.get('status', '') == 'Pendente'
               && request.resource.data.get('status', '') == 'Processada'
               && request.resource.data.get('processada_em', '') is string
               && request.resource.data.get('processada_por_uid', '') == request.auth.uid
               && request.resource.data.get('processada_por_email', '') == meuEmail()
-              && request.resource.data.get('processada_por_nome', '') is string)
+              && request.resource.data.get('processada_por_nome', '') is string
+              && request.resource.data.get('resposta_processamento', '') is string
+              && request.resource.data.get('resposta_processamento', '').size() <= 2000)
             || (resource.data.get('status', '') == 'Processada'
               && request.resource.data.get('status', '') == 'Pendente'));
 

@@ -125,11 +125,18 @@ window.AppDocente = {
     },
     async _renderizarCalendario(){
         const box=document.getElementById('docente-cal-conteudo');if(!box)return;
-        const C=window.ControllerDashboard,r=this._semanal(),label=document.getElementById('docente-cal-semana');if(label)label.textContent=C.formatarSemana(r.inicio,r.fim);
+        const C=window.ControllerDashboard,CD=window.ControllerDocente,r=this._semanal(),label=document.getElementById('docente-cal-semana');if(label)label.textContent=C.formatarSemana(r.inicio,r.fim);
         try{
-            let encontros=this._semanaEncontros();
-            if(window.usuarioAtual?.cargo==='docente')encontros=[...encontros,...await this._gerarPlanejamentoSemana(encontros)];
-            const selecionados=this._docentesFiltrados?this._docentesFiltrados('docente-tab-calendario'):[],propria=window.usuarioAtual?.cargo==='docente'&&selecionados.length===1&&window.ControllerDocente.corresponde(selecionados[0],this._proprioDocente()),html=window.AppDashboard?window.AppDashboard._calendarioDocente(encontros,r.inicio,{mostrarDocentes:!propria,mostrarCancelamentos:propria}):'<p class="p-4 text-sm text-slate-500">Calendário indisponível.</p>';
+            await CD.carregarBase();
+            const cargo=window.usuarioAtual?.cargo,privilegiado=['tecnico','admin','root'].includes(cargo),selecionados=this._docentesFiltrados?this._docentesFiltrados('docente-tab-calendario'):[];
+            let encontros=this._semanaEncontros(),docsPlanejamento=[];
+            if(cargo==='docente')docsPlanejamento=[this._proprioDocente()];
+            else if(privilegiado)docsPlanejamento=selecionados;
+            if(docsPlanejamento.length){
+                const atividades=await CD.carregarAtividades(privilegiado?null:this._proprioDocente(),r.inicio,r.fim);
+                encontros=[...encontros,...await this._gerarPlanejamentoSemana(encontros,r,docsPlanejamento,atividades)];
+            }
+            const propria=cargo==='docente',html=window.AppDashboard?window.AppDashboard._calendarioDocente(encontros,r.inicio,{mostrarDocentes:privilegiado,mostrarCancelamentos:propria}):'<p class="p-4 text-sm text-slate-500">Calendário indisponível.</p>';
             box.innerHTML=html;
         }catch(err){box.innerHTML=`<p class="m-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar o calendário.')}</p>`;}
     },
