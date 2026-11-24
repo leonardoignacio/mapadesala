@@ -22,9 +22,9 @@ window.ViewsDocente = {
                         <div class="flex items-center gap-1"><button type="button" id="docente-cal-anterior" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Semana anterior">‹</button><button type="button" id="docente-cal-proxima" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-lg font-semibold text-slate-600 hover:bg-slate-50" aria-label="Próxima semana">›</button></div>
                         <div class="min-w-0 flex-1 text-right"><p id="docente-cal-semana" class="text-xs font-bold text-slate-800 sm:text-sm"></p><span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Semana de trabalho</span></div>
                     </div>
-                    <details open class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-800"><span>Calendário semanal</span><span id="docente-cal-total" class="text-xs font-semibold text-slate-500"></span></summary>
-                        <div id="docente-cal-conteudo" class="docente-cal-scroll-livre min-w-0 border-t border-slate-200"></div>
+                    <details open class="overflow-hidden rounded-2xl border-2 border-blue-300 bg-gradient-to-br from-blue-50 via-white to-indigo-50 shadow-md ring-1 ring-blue-100">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-blue-100 bg-gradient-to-r from-blue-100 to-indigo-50 px-4 py-3 text-sm font-extrabold text-blue-950"><span class="flex items-center gap-2"><span>Calendário semanal</span><span class="rounded-full border border-blue-200 bg-white/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-blue-700">Painel principal</span></span><span id="docente-cal-total" class="text-xs font-bold text-blue-800"></span></summary>
+                        <div id="docente-cal-conteudo" class="docente-cal-scroll-livre min-w-0"></div>
                     </details>
                     <section class="space-y-2">
                         <h2 class="px-1 text-sm font-extrabold text-slate-700">Agendas individuais</h2>

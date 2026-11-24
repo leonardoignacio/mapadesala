@@ -30,7 +30,8 @@
         const f = this._filtroAba(tab), cargo = window.usuarioAtual?.cargo || '';
         let docs = this._docentesDisponiveis().filter(d => {
             const id = this._idDocenteFiltro(d), areas = this._areasDocente(d);
-            const areaOk = !f.areas.length || areas.some(a => f.areas.some(x => this._norm(x) === this._norm(a)));
+            const selecaoExplicita = tab === 'docente-tab-calendario' && f.docentes.includes(id);
+            const areaOk = selecaoExplicita || !f.areas.length || areas.some(a => f.areas.some(x => this._norm(x) === this._norm(a)));
             const docenteOk = !f.docentes.length ? false : f.docentes.includes(id);
             const nome = d.nome_completo || [d.nome, d.sobrenome].filter(Boolean).join(' ') || d.email || '';
             const buscaOk = !f.busca || this._norm(`${nome} ${areas.join(' ')}`).includes(this._norm(f.busca));
@@ -235,18 +236,23 @@
         const areas = f.areas, diasOk = data => f.dias.includes(this._weekdayISO(data)), periodoOk = enc => f.periodos.includes(this._norm(D._periodo(enc)));
         const daArea = doc => {
             const areasDoc = this._areasDocente(doc);
-            return !areas.length || areasDoc.some(a => areas.some(x => this._norm(a) === this._norm(x)));
+            const selecaoExplicita = f.docentes.includes(this._idDocenteFiltro(doc));
+            return selecaoExplicita || !areas.length || areasDoc.some(a => areas.some(x => this._norm(a) === this._norm(x)));
         };
         const nomeDoc = doc => doc.nome_completo || [doc.nome,doc.sobrenome].filter(Boolean).join(' ') || doc.email || 'Docente';
         try {
             const todos = C.obterDocentes().filter(daArea), encontrosPeriodo = D.listarEncontros({ inicio: range.inicio, fim: range.fim }).filter(enc => diasOk(enc.data) && periodoOk(enc));
             const encontrosArea = cargo === 'tecnico' ? encontrosPeriodo.filter(enc => (enc.docentes || []).some(pessoa => todos.some(doc => C.corresponde(pessoa, doc)))) : [];
-            const selecionados = (cargo === 'docente' ? [this._proprioDocente()] : this._docentesFiltrados('docente-tab-calendario')).filter(daArea);
+            const selecionados = this._docentesFiltrados('docente-tab-calendario').filter(daArea);
             const agendas = [], itensIndividuais = [];
-            const podeExibirPlanejamento = ['docente','tecnico','admin','root'].includes(cargo);
-            const atividades = podeExibirPlanejamento && selecionados.length ? await C.carregarAtividades(cargo === 'docente' ? selecionados[0] : null, range.inicio, range.fim) : [];
+            const perfilPrivilegiado = ['tecnico','admin','root'].includes(cargo);
+            const proprioSelecionado = selecionados.some(doc => C.corresponde(doc, C.docenteAtual()));
+            const atividades = selecionados.length && (perfilPrivilegiado || (cargo === 'docente' && proprioSelecionado))
+                ? await C.carregarAtividades(cargo === 'docente' ? C.docenteAtual() : null, range.inicio, range.fim)
+                : [];
             for (let i = 0; i < selecionados.length; i++) {
                 const doc = selecionados[i], idDocente = this._idDocenteFiltro(doc), encontrosDoc = (cargo === 'tecnico' ? encontrosArea : encontrosPeriodo).filter(enc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc)));
+                const podeExibirPlanejamento = perfilPrivilegiado || (cargo === 'docente' && C.corresponde(doc, C.docenteAtual()));
                 const itens = podeExibirPlanejamento ? [...encontrosDoc, ...await this._gerarPlanejamentoSemana(encontrosDoc, range, [doc], atividades.filter(x => C.corresponde(x, doc)))] : encontrosDoc;
                 itensIndividuais.push({ doc, itens });
                 const inner = Render._calendarioDocente(itens, range.inicio, { mostrarDocentes: false, mostrarCancelamentos: false });
@@ -256,7 +262,8 @@
             const encontrosSemana = cargo === 'tecnico' ? encontrosArea : encontrosPeriodo.filter(enc => selecionados.some(doc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc))));
             const planejamentoSemana = cargo === 'tecnico' ? [] : itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'));
             const itensSemana = [...encontrosSemana, ...planejamentoSemana];
-            box.innerHTML = Render._calendarioDocente(itensSemana, range.inicio, { mostrarDocentes: cargo !== 'docente', mostrarCancelamentos: false });
+            const mostrarNomeDocente = cargo !== 'docente' || selecionados.some(doc => !C.corresponde(doc, C.docenteAtual()));
+            box.innerHTML = Render._calendarioDocente(itensSemana, range.inicio, { mostrarDocentes: mostrarNomeDocente, mostrarCancelamentos: false });
             const total = document.getElementById('docente-cal-total');
             if (total) total.textContent = `${encontrosSemana.length} encontro(s)`;
             agendaBox.innerHTML = agendas.length ? agendas.join('') : this._mensagemSemSelecao();

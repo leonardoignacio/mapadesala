@@ -85,7 +85,7 @@ window.AppDocente = {
     _subtrair(base,ocupados){
         const merged=this._mergeIntervals(ocupados),out=[];
         for(const [a,b] of base){let inicio=a;for(const [x,y] of merged){if(y<=inicio||x>=b)continue;if(x>inicio)out.push([inicio,Math.min(x,b)]);inicio=Math.max(inicio,y);if(inicio>=b)break;}if(inicio<b)out.push([inicio,b]);}
-        return out.filter(x=>x[1]-x[0]>=15);
+        return out.filter(x=>x[1]>x[0]);
     },
     _meetingsDia(encontros,docente,data){return encontros.filter(e=>e.data===data&&this._matchesEncontro(e,docente));},
     _intervalosAula(encontros,docente,data){
@@ -98,16 +98,26 @@ window.AppDocente = {
     },
     async _gerarPlanejamentoSemana(encontros,range=this._semanal(),docentes=null,atividadesBase=null){
         const C=window.ControllerDocente,lista=docentes||[this._proprioDocente()];if(!lista.length)return[];
+        await C.carregarBase();
         const atividades=atividadesBase||await C.carregarAtividades(lista[0],range.inicio,range.fim),itens=[];
+        const formatarHora=minutos=>`${String(Math.floor(minutos/60)).padStart(2,'0')}:${String(minutos%60).padStart(2,'0')}`;
         for(const docente of lista){
-            const atividadesDocente=atividades.filter(x=>C.corresponde(x,docente));
+            const atividadesDocente=atividades.filter(x=>C.corresponde(x,docente)&&x.tipo==='Outra Atividade'&&x.data>=range.inicio&&x.data<=range.fim);
+            const ocupadasPorAtividade=new Map();
+            for(const atividade of atividadesDocente){
+                const inicio=C._minutos(atividade.inicio||atividade.h_inicio),termino=C._minutos(atividade.termino||atividade.h_termino);
+                if(!C._dataISO(atividade.data)||inicio===null||termino===null||termino<=inicio)continue;
+                const horaInicio=formatarHora(inicio),horaTermino=formatarHora(termino),periodo=this._periodoHora(horaInicio);
+                itens.push({id:`atividade:${atividade.id||`${docente.uid||docente.id||docente.email}:${atividade.data}:${horaInicio}:${horaTermino}`}`,tipo:'planejamento_docente',data:atividade.data,h_inicio:horaInicio,h_termino:horaTermino,ch_encontro:(termino-inicio)/60,uc_referencia:'Outra Atividade',uc_titulo:'',turma:{periodo},docentes:[docente],atividade_tipo:'Outra Atividade',atividade_descricao:atividade.descricao||'',atividade_id:atividade.id||'',turma_referencia:'',id_turma:'',id_uc:''});
+                if(!ocupadasPorAtividade.has(atividade.data))ocupadasPorAtividade.set(atividade.data,[]);
+                ocupadasPorAtividade.get(atividade.data).push([inicio,termino]);
+            }
             for(let offset=0;offset<6;offset++){
                 const data=window.ControllerDashboard._addDays(range.inicio,offset),janelas=this._janelasTrabalho(docente,data);if(!janelas.length)continue;
-                const ocupados=this._intervalosAula(encontros,docente,data),livres=this._subtrair(janelas,ocupados);
+                const ocupados=[...this._intervalosAula(encontros,docente,data),...(ocupadasPorAtividade.get(data)||[])],livres=this._subtrair(janelas,ocupados);
                 livres.forEach(([a,b])=>{
-                    const inicio=`${String(Math.floor(a/60)).padStart(2,'0')}:${String(a%60).padStart(2,'0')}`,termino=`${String(Math.floor(b/60)).padStart(2,'0')}:${String(b%60).padStart(2,'0')}`;
-                    const atividade=atividadesDocente.find(x=>x.data===data&&x.inicio===inicio&&x.termino===termino),periodo=this._periodoHora(inicio);
-                    itens.push({id:`plan:${docente.uid||docente.id||docente.email}:${data}:${inicio}:${termino}`,tipo:'planejamento_docente',data,h_inicio:inicio,h_termino:termino,ch_encontro:(b-a)/60,uc_referencia:atividade?'Outra Atividade':'Planejamento',uc_titulo:'',turma:{periodo},docentes:[docente],atividade_tipo:atividade?.tipo||'Planejamento',atividade_descricao:atividade?.descricao||'',atividade_id:atividade?.id||'',turma_referencia:'',id_turma:'',id_uc:''});
+                    const inicio=formatarHora(a),termino=formatarHora(b),periodo=this._periodoHora(inicio);
+                    itens.push({id:`plan:${docente.uid||docente.id||docente.email}:${data}:${inicio}:${termino}`,tipo:'planejamento_docente',data,h_inicio:inicio,h_termino:termino,ch_encontro:(b-a)/60,uc_referencia:'Planejamento',uc_titulo:'',turma:{periodo},docentes:[docente],atividade_tipo:'Planejamento',atividade_descricao:'',atividade_id:'',turma_referencia:'',id_turma:'',id_uc:''});
                 });
             }
         }
