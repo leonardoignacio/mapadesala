@@ -387,6 +387,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Estados operacionais do Mapa de Sala, indexados por sala, data e período.
+    // A equipe pode consultar; Apoio/Técnico/Admin/Root podem criar, ajustar e limpar estados.
+    match /mapa_salas_status/{id} {
+      function podeEditarMapa() { return ehSuper() || ehUm(['root', 'admin', 'tecnico', 'apoio']); }
+      function estadoMapaValido(d) {
+        return d.sala_id is string && d.sala_id.size() > 0
+          && d.data is string && d.data.matches('^\\d{4}-\\d{2}-\\d{2}$')
+          && d.periodo in ['Manhã', 'Tarde', 'Noite']
+          && d.status in ['Manutenção', 'Alocada']
+          && d.descricao is string && d.descricao.size() <= 500
+          && d.sala_referencia is string && d.sala_referencia.size() <= 120;
+      }
+      allow read: if leituraEquipe();
+      allow create: if podeEditarMapa() && estadoMapaValido(request.resource.data);
+      allow update: if podeEditarMapa()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'descricao', 'sala_referencia', 'atualizado_em', 'atualizado_por_uid', 'atualizado_por_nome'])
+        && estadoMapaValido(request.resource.data);
+      allow delete: if podeEditarMapa();
+    }
+
     // =====================================================================
     // ALTERAÇÕES (lista do Apoio Técnico; "Alterações" tem acento, por isso a comparação por texto)
     // Toda a equipe LÊ. Quem altera dados cria registros. Apenas Apoio/Técnico/Admin/Root marcam SS/SGO

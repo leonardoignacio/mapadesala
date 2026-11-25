@@ -11,7 +11,7 @@ window.ViewsDashboard = {
         if(admin)abas.push(this._aba('tab-dashboard-admin','Credenciamento',padrao==='tab-dashboard-admin'));
         if(docente||tecnico||admin)abas.push(this._aba('tab-dashboard-agenda','Calendário Semanal',padrao==='tab-dashboard-agenda'));
         if(apoio||tecnico||admin)abas.push(this._aba('tab-dashboard-alteracoes',apoio?'Alterações recentes':'Alterações pendentes',padrao==='tab-dashboard-alteracoes','dash-alteracoes-pendentes-badge'));
-        abas.push(this._aba('tab-dashboard-solicitacoes','Solicitações',false,'dash-sol-pendentes-badge'),this._aba('tab-dashboard-dados','Meus Dados',padrao==='tab-dashboard-dados'));
+        abas.push(this._aba('tab-dashboard-mapa-salas','Mapa de Sala',false),this._aba('tab-dashboard-solicitacoes','Solicitações',false,'dash-sol-pendentes-badge'),this._aba('tab-dashboard-dados','Meus Dados',padrao==='tab-dashboard-dados'));
         return `<div id="dashboard-root" class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-4 md:px-7">
             <header class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 items-end justify-between gap-3"><div><h1 class="text-xl font-extrabold text-slate-800 md:text-2xl">Dashboard</h1><p class="mt-0.5 text-xs text-slate-500">Olá, ${window.Util.esc(u.nome_completo||u.nome||'')}</p></div><span class="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700">${window.Util.esc(this._cargos()[cargo]||cargo)}</span></header>
             <nav class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 gap-4 overflow-x-auto border-b border-slate-200">${abas.join('')}</nav>
@@ -19,10 +19,11 @@ window.ViewsDashboard = {
                 ${admin?`<section id="tab-dashboard-admin" class="tab-content ${padrao==='tab-dashboard-admin'?'':'hidden'}">${window.ViewsAdminCredenciamento.renderizar({compacto:true})}</section>`:''}
                 ${docente||tecnico||admin?`<section id="tab-dashboard-agenda" class="tab-content ${padrao==='tab-dashboard-agenda'?'':'hidden'} space-y-3">${docente?this._principalDocente():this._agendaTecnica()}</section>`:''}
                 ${apoio||tecnico||admin?`<section id="tab-dashboard-alteracoes" class="tab-content ${padrao==='tab-dashboard-alteracoes'?'':'hidden'} space-y-3">${apoio?this._principalApoio():this._alteracoesTecnicas()}</section>`:''}
+                <section id="tab-dashboard-mapa-salas" class="tab-content hidden flex min-h-0 flex-col overflow-hidden">${window.ViewsApoioMapa.mapaSalas()}<div id="apoio-mapa-salas-conteudo" class="min-h-0 flex-1 overflow-hidden pb-4" aria-live="polite"></div></section>
                 <section id="tab-dashboard-dados" class="tab-content ${padrao==='tab-dashboard-dados'?'':'hidden'} space-y-3">${this.meusDados()}</section>
                 <section id="tab-dashboard-solicitacoes" class="tab-content hidden space-y-3">${this.solicitacoes()}</section>
             </main>
-            ${this.modalSolicitacao()}${docente&&window.ViewsDocente?.modalFiltros?window.ViewsDocente.modalFiltros():''}${this.modalProcessarSolicitacao()}${this.modalMeusDados()}
+            ${window.ViewsApoioMapa.modalMapaSalas()}${this.modalSolicitacao()}${docente&&window.ViewsDocente?.modalFiltros?window.ViewsDocente.modalFiltros():''}${this.modalProcessarSolicitacao()}${this.modalMeusDados()}
         </div>`;
     },
     _principalDocente() {

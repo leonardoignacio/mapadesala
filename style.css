@@ -13,9 +13,6 @@
 .dash-cal-desktop { display:block; }
 .dash-cal-mobile { display:none; }
 .dash-cal-scroll { max-height:min(70vh,760px); overflow:auto; overscroll-behavior:contain; }
-.docente-cal-scroll-livre .dash-cal-scroll { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
-.docente-cal-scroll-livre .dash-cal-period-cell { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
-.docente-cal-scroll-livre .dash-mobile-period-events { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
 .dash-cal-grid { display:grid; grid-template-columns:56px repeat(6,minmax(116px,1fr)); grid-template-rows:52px minmax(40px,auto) repeat(3,minmax(118px,auto)); min-width:752px; }
 .dash-cal-corner,.dash-cal-header { position:sticky; top:0; z-index:4; display:flex; align-items:center; gap:6px; border-bottom:1px solid #cbd5e1; background:#fff; }
 .dash-cal-corner { left:0; z-index:6; padding:0 8px; color:#94a3b8; font-size:10px; }
@@ -144,7 +141,6 @@
 .dash-cal-planning { display:flex; min-width:0; flex:0 0 auto; flex-direction:column; gap:3px; box-sizing:border-box; border:1px solid color-mix(in srgb,var(--planning-border,#22c55e) 36%,white); border-left:3px solid var(--planning-border,#22c55e); border-radius:7px; background:var(--planning-bg,#ecfdf5); padding:7px 8px; color:var(--planning-text,#166534); box-shadow:0 1px 2px #0f172a10; }
 .dash-cal-planning:hover,.dash-cal-planning:focus-visible { border-color:var(--planning-border,#22c55e); filter:saturate(1.08); outline:2px solid color-mix(in srgb,var(--planning-border,#22c55e) 35%,white); outline-offset:1px; }
 .dash-cal-planning-title { overflow-wrap:anywhere; font-size:10px; font-weight:900; line-height:1.25; }
-.dash-cal-planning-docente { overflow-wrap:anywhere; color:#1e3a8a; font-size:9px; font-weight:900; line-height:1.25; }
 .dash-cal-planning-time { color:var(--planning-text,#166534); font-size:9px; font-weight:800; font-variant-numeric:tabular-nums; }
 .dash-cal-planning-description { overflow-wrap:anywhere; color:#475569; font-size:9px; line-height:1.3; }
 .dash-cal-planning-action { align-self:flex-end; color:var(--planning-text,#166534); font-size:8px; font-weight:800; }
@@ -152,4 +148,73 @@
 @media (max-width:1023px) {
   .dash-cal-planning-title { font-size:11px; }
   .dash-cal-planning-time { font-size:10px; }
+}
+
+/* Ajustes de rolagem e identificação de docente existentes na versão de trabalho. */
+.docente-cal-scroll-livre .dash-cal-scroll { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
+.docente-cal-scroll-livre .dash-cal-period-cell { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
+.docente-cal-scroll-livre .dash-mobile-period-events { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
+.dash-cal-planning-docente { overflow-wrap:anywhere; color:#1e3a8a; font-size:9px; font-weight:900; line-height:1.25; }
+
+/* Apoio Técnico — Mapa de Sala: grade semanal responsiva com cartões por sala. */
+.ap-mapa-grid { display:grid; grid-template-columns:116px repeat(6,minmax(150px,1fr)); min-width:1016px; }
+.ap-mapa-head { position:sticky; top:0; z-index:4; display:flex; min-height:66px; flex-direction:column; justify-content:center; border-bottom:1px solid #cbd5e1; border-left:1px solid #e2e8f0; background:#f8fafc; padding:8px 10px; }
+.ap-mapa-corner { left:0; z-index:6; border-left:0; color:#475569; font-size:10px; font-weight:900; }
+.ap-mapa-head-label { color:#64748b; font-size:10px; font-weight:800; text-transform:uppercase; }
+.ap-mapa-head-date { color:#1e293b; font-size:12px; font-weight:900; }
+.ap-mapa-period { position:sticky; left:0; z-index:2; display:flex; min-height:130px; align-items:center; justify-content:center; border-right:1px solid #cbd5e1; border-bottom:3px solid #94a3b8; padding:10px 6px; font-size:11px; font-weight:900; text-align:center; }
+.ap-mapa-period-manha { background:#eff6ff; color:#1d4ed8; }
+.ap-mapa-period-tarde { background:#f0fdfa; color:#0f766e; }
+.ap-mapa-period-noite { background:#f5f3ff; color:#6d28d9; }
+.ap-mapa-cell { display:flex; min-width:0; min-height:130px; flex-direction:column; gap:7px; border-left:1px solid #e2e8f0; border-bottom:3px solid #94a3b8; background:#fff; padding:7px; }
+.ap-mapa-cell-manha { background:#f8fbff; }
+.ap-mapa-cell-tarde { background:#f4fbfa; }
+.ap-mapa-cell-noite { background:#faf8ff; }
+.ap-mapa-sala-card { min-width:0; overflow:hidden; border:1px solid #cbd5e1; border-left:4px solid #64748b; border-radius:9px; background:white; padding:8px; box-shadow:0 1px 2px #0f172a0b; }
+.ap-mapa-sala-card-status { border-color:#a7f3d0; border-left-color:#10b981; background:#ecfdf5; }
+.ap-mapa-sala-card-manutencao { border-color:#fed7aa; border-left-color:#f97316; background:#fff7ed; }
+.ap-mapa-sala-card-alocada { border-color:#bfdbfe; border-left-color:#2563eb; background:#eff6ff; }
+.ap-mapa-sala-title { overflow-wrap:anywhere; color:#0f172a; font-size:13px; font-weight:900; line-height:1.3; }
+.ap-mapa-sala-status { margin-top:4px; color:#334155; font-size:12px; font-weight:800; }
+.ap-mapa-sala-desc { margin-top:3px; overflow-wrap:anywhere; color:#475569; font-size:11px; line-height:1.35; }
+.ap-mapa-meeting-summary { display:flex; min-width:0; align-items:center; gap:6px; }
+.ap-mapa-meeting-room { flex:0 1 auto; max-width:34%; overflow:hidden; border:1px solid #bfdbfe; border-radius:5px; background:#dbeafe; padding:2px 5px; color:#1e40af; font-size:9px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.ap-mapa-meeting-course { display:flex; min-width:0; flex:1; align-items:center; gap:5px; overflow:hidden; color:#1e3a8a; font-size:12px; line-height:1.25; white-space:nowrap; }
+.ap-mapa-meeting-course > i { flex:0 0 auto; color:#94a3b8; font-style:normal; }
+.ap-mapa-meeting-item { display:flex; min-width:0; align-items:baseline; gap:3px; }
+.ap-mapa-meeting-item small { flex:0 0 auto; color:#64748b; font-size:9px; font-weight:700; }
+.ap-mapa-meeting-item b { overflow:hidden; color:#1e3a8a; font-size:12px; font-weight:900; text-overflow:ellipsis; }
+.ap-mapa-meeting-teacher { margin-top:4px; overflow:hidden; color:#0f172a; font-size:13px; font-weight:900; line-height:1.3; text-overflow:ellipsis; white-space:nowrap; }
+.ap-mapa-sala-card-editable { cursor:pointer; user-select:none; transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease; }
+.ap-mapa-sala-card-editable:hover,.ap-mapa-sala-card-editable:focus-visible { border-color:#60a5fa; box-shadow:0 4px 12px #1d4ed822; outline:2px solid #bfdbfe; outline-offset:1px; }
+.ap-mapa-sala-card-editable:hover { transform:translateY(-1px); }
+.ap-mapa-scroll { max-height:calc(100vh - 300px); min-height:280px; overflow:auto; overscroll-behavior:contain; border:1px solid #e2e8f0; border-radius:12px; background:#fff; }
+.ap-mapa-head-today { border:2px solid #2563eb; border-top:4px solid #1d4ed8; background:#dbeafe; }
+.ap-mapa-head-today .ap-mapa-head-label,.ap-mapa-head-today .ap-mapa-head-date { color:#1d4ed8; }
+.ap-mapa-dot { display:inline-block; width:8px; height:8px; margin-right:4px; border-radius:50%; vertical-align:middle; }
+.ap-mapa-dot-disponivel { background:#10b981; }
+.ap-mapa-dot-manutencao { background:#f97316; }
+.ap-mapa-dot-alocada { background:#2563eb; }
+.ap-mapa-legend span { display:inline-flex; align-items:center; border:1px solid #e2e8f0; border-radius:999px; background:#fff; padding:3px 7px; color:#475569; font-weight:700; }
+@media(max-width:640px) {
+  .ap-mapa-toolbar { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .ap-mapa-toolbar #apoio-mapa-semana-label { grid-column:1 / -1; grid-row:1; text-align:center; }
+  .ap-mapa-toolbar button { min-height:38px; }
+  .ap-mapa-scroll { max-height:calc(100vh - 280px); min-height:240px; }
+  .ap-mapa-grid { grid-template-columns:78px repeat(6,minmax(142px,1fr)); min-width:930px; }
+  .ap-mapa-head { min-height:58px; padding:6px; }
+  .ap-mapa-head-label { font-size:9px; }
+  .ap-mapa-head-date { font-size:11px; }
+  .ap-mapa-period { min-height:116px; padding:7px 3px; font-size:9px; writing-mode:vertical-rl; transform:rotate(180deg); }
+  .ap-mapa-cell { min-height:116px; gap:5px; padding:5px; }
+  .ap-mapa-sala-card { padding:6px; }
+  .ap-mapa-sala-title { font-size:12px; }
+  .ap-mapa-sala-status { font-size:11px; }
+  .ap-mapa-meeting-summary { gap:4px; }
+  .ap-mapa-meeting-room { max-width:30%; font-size:8px; }
+  .ap-mapa-meeting-course { gap:3px; font-size:11px; }
+  .ap-mapa-meeting-item { gap:2px; }
+  .ap-mapa-meeting-item small { font-size:8px; }
+  .ap-mapa-meeting-item b { font-size:11px; }
+  .ap-mapa-meeting-teacher { font-size:12px; }
 }

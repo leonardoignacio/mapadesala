@@ -398,6 +398,8 @@ window.AppDashboard = {
     },
     atualizarSuave() {
         if(window.location.hash!=='#/dashboard')return;
+        const mapa=document.getElementById('tab-dashboard-mapa-salas');
+        if(mapa&&!mapa.classList.contains('hidden')){window.AppApoio?._renderizarMapaSalas(true);return;}
         const cargo=window.usuarioAtual?.cargo;
         if(cargo==='docente'){
             if(document.getElementById('dash-semana-docente'))this._renderizarSemanaDocente();

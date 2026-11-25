@@ -7,7 +7,7 @@ window.ViewsApoio = {
 
             <div class="flex border-b border-slate-200 mb-3 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-apoio-alteracoes">Alterações recentes</button>
-                <button class="tab-btn font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-apoio-perfil">Informações pessoais</button>
+                <button class="tab-btn font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-apoio-mapa-salas">Mapa de Sala</button>
             </div>
 
             <!-- ABA: ALTERAÇÕES RECENTES -->
@@ -19,12 +19,15 @@ window.ViewsApoio = {
                 </div>
             </div>
 
-            <!-- ABA: INFORMAÇÕES PESSOAIS -->
-            <div id="tab-apoio-perfil" class="tab-content hidden flex-1 flex flex-col overflow-y-auto min-h-0">
-                <div class="w-full lg:w-[90%] mx-auto px-2 md:px-0">${this.perfil()}</div>
+            <!-- ABA: MAPA DE SALA -->
+            <div id="tab-apoio-mapa-salas" class="tab-content hidden flex-1 flex flex-col overflow-hidden min-h-0">
+                <div class="apoio-mapa-shell w-full lg:w-[96%] mx-auto flex-1 flex flex-col overflow-hidden px-2 md:px-0">
+                    ${this.mapaSalas()}
+                    <div id="apoio-mapa-salas-conteudo" class="min-h-0 flex-1 overflow-hidden pb-4" aria-live="polite"></div>
+                </div>
             </div>
 
-            ${this.modalPerfil()}
+            ${this.modalMapaSalas()}
         </div>`;
     }
 };
