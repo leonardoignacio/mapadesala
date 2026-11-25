@@ -250,13 +250,15 @@
             const selecionados = this._docentesFiltrados('docente-tab-calendario').filter(daArea);
             const agendas = [], itensIndividuais = [];
             const perfilPrivilegiado = ['tecnico','admin','root'].includes(cargo);
-            const atividades = (perfilPrivilegiado && selecionados.length) || cargo === 'docente'
+            const atividades = (perfilPrivilegiado && (selecionados.length || cargo === 'tecnico')) || cargo === 'docente'
                 ? await C.carregarAtividades(cargo === 'docente' ? C.docenteAtual() : null, range.inicio, range.fim)
                 : [];
             for (let i = 0; i < selecionados.length; i++) {
                 const doc = selecionados[i], idDocente = this._idDocenteFiltro(doc), encontrosDoc = (cargo === 'tecnico' ? encontrosArea : encontrosPeriodo).filter(enc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc)));
                 const podeExibirPlanejamento = perfilPrivilegiado || (cargo === 'docente' && C.corresponde(doc, C.docenteAtual()));
-                const itens = podeExibirPlanejamento ? [...encontrosDoc, ...await this._gerarPlanejamentoSemana(encontrosDoc, range, [doc], atividades.filter(x => C.corresponde(x, doc)))] : encontrosDoc;
+                const itens = podeExibirPlanejamento
+                    ? await Render._comporAgendaSemanal(encontrosDoc, range.inicio, [doc], atividades.filter(x => C.corresponde(x, doc)))
+                    : encontrosDoc;
                 itensIndividuais.push({ doc, itens });
                 const inner = Render._calendarioDocente(itens, range.inicio, { mostrarDocentes: false, mostrarCancelamentos: false });
                 const aberto = agendasAbertas.has(idDocente) ? 'open' : '';
@@ -266,10 +268,11 @@
             const encontrosSemana = cargo === 'tecnico' ? encontrosArea : cargo === 'docente'
                 ? encontrosPeriodo.filter(enc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, docentePrincipal)))
                 : encontrosPeriodo.filter(enc => selecionados.some(doc => (enc.docentes || []).some(pessoa => C.corresponde(pessoa, doc))));
-            const planejamentoSemana = cargo === 'tecnico' ? [] : cargo === 'docente'
-                ? await this._gerarPlanejamentoSemana(encontrosSemana, range, docentePrincipal ? [docentePrincipal] : [], atividades)
-                : itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'));
-            const itensSemana = [...encontrosSemana, ...planejamentoSemana];
+            const docentesSemana = cargo === 'tecnico' ? todos
+                : cargo === 'docente' ? (docentePrincipal ? [docentePrincipal] : []) : selecionados;
+            const itensSemana = cargo === 'tecnico' || cargo === 'docente'
+                ? await Render._comporAgendaSemanal(encontrosSemana, range.inicio, docentesSemana, atividades)
+                : [...encontrosSemana, ...itensIndividuais.flatMap(item => item.itens.filter(enc => enc.tipo === 'planejamento_docente'))];
             const mostrarNomeDocente = cargo !== 'docente' || selecionados.some(doc => !C.corresponde(doc, C.docenteAtual()));
             box.innerHTML = Render._calendarioDocente(itensSemana, range.inicio, { mostrarDocentes: mostrarNomeDocente, mostrarCancelamentos: false });
             const total = document.getElementById('docente-cal-total');

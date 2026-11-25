@@ -5,25 +5,24 @@ window.ViewsDashboard = {
     renderizar() {
         const u=window.usuarioAtual||{},cargo=u.cargo||'pendente';
         if(cargo==='pendente')return window.Views?.dashboard?.()||'<div class="p-6">Aguardando credenciamento.</div>';
-        const admin=['root','admin'].includes(cargo),tecnico=cargo==='tecnico';
-        const abas=[this._aba('tab-dashboard-principal','Principal',true)];
-        if(tecnico||admin){abas.push(this._aba('tab-dashboard-agenda','Calendário Semanal'));abas.push(this._aba('tab-dashboard-alteracoes','Alterações pendentes'));}
-        abas.push(this._aba('tab-dashboard-dados','Meus Dados'),this._aba('tab-dashboard-solicitacoes','Solicitações',false,'dash-sol-pendentes-badge'));
+        const admin=['root','admin'].includes(cargo),tecnico=cargo==='tecnico',docente=cargo==='docente',apoio=cargo==='apoio';
+        const padrao=admin?'tab-dashboard-admin':apoio?'tab-dashboard-alteracoes':docente||tecnico?'tab-dashboard-agenda':'tab-dashboard-dados';
+        const abas=[];
+        if(admin)abas.push(this._aba('tab-dashboard-admin','Credenciamento',padrao==='tab-dashboard-admin'));
+        if(docente||tecnico||admin)abas.push(this._aba('tab-dashboard-agenda','Calendário Semanal',padrao==='tab-dashboard-agenda'));
+        if(apoio||tecnico||admin)abas.push(this._aba('tab-dashboard-alteracoes',apoio?'Alterações recentes':'Alterações pendentes',padrao==='tab-dashboard-alteracoes','dash-alteracoes-pendentes-badge'));
+        abas.push(this._aba('tab-dashboard-solicitacoes','Solicitações',false,'dash-sol-pendentes-badge'),this._aba('tab-dashboard-dados','Meus Dados',padrao==='tab-dashboard-dados'));
         return `<div id="dashboard-root" class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 pt-4 md:px-7">
             <header class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 items-end justify-between gap-3"><div><h1 class="text-xl font-extrabold text-slate-800 md:text-2xl">Dashboard</h1><p class="mt-0.5 text-xs text-slate-500">Olá, ${window.Util.esc(u.nome_completo||u.nome||'')}</p></div><span class="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700">${window.Util.esc(this._cargos()[cargo]||cargo)}</span></header>
             <nav class="mx-auto mb-3 flex w-full max-w-7xl shrink-0 gap-4 overflow-x-auto border-b border-slate-200">${abas.join('')}</nav>
             <main class="mx-auto min-h-0 w-full max-w-7xl flex-1 overflow-y-auto">
-                <section id="tab-dashboard-principal" class="tab-content space-y-4">
-                    ${admin?this._principalAdmin():tecnico?this._principalTecnico():cargo==='docente'?this._principalDocente():this._principalApoio()}
-                </section>
-                ${tecnico||admin?`<section id="tab-dashboard-agenda" class="tab-content hidden space-y-3">${this._agendaTecnica()}</section><section id="tab-dashboard-alteracoes" class="tab-content hidden space-y-3">${this._alteracoesTecnicas()}</section>`:''}
-                <section id="tab-dashboard-dados" class="tab-content hidden space-y-3">${this.meusDados()}</section>
+                ${admin?`<section id="tab-dashboard-admin" class="tab-content ${padrao==='tab-dashboard-admin'?'':'hidden'}">${window.ViewsAdminCredenciamento.renderizar({compacto:true})}</section>`:''}
+                ${docente||tecnico||admin?`<section id="tab-dashboard-agenda" class="tab-content ${padrao==='tab-dashboard-agenda'?'':'hidden'} space-y-3">${docente?this._principalDocente():this._agendaTecnica()}</section>`:''}
+                ${apoio||tecnico||admin?`<section id="tab-dashboard-alteracoes" class="tab-content ${padrao==='tab-dashboard-alteracoes'?'':'hidden'} space-y-3">${apoio?this._principalApoio():this._alteracoesTecnicas()}</section>`:''}
+                <section id="tab-dashboard-dados" class="tab-content ${padrao==='tab-dashboard-dados'?'':'hidden'} space-y-3">${this.meusDados()}</section>
                 <section id="tab-dashboard-solicitacoes" class="tab-content hidden space-y-3">${this.solicitacoes()}</section>
             </main>
-            ${this.modalSolicitacao()}
-            ${cargo==='docente'&&window.ViewsDocente?.modalFiltros?window.ViewsDocente.modalFiltros():''}
-            ${this.modalProcessarSolicitacao()}
-            ${this.modalMeusDados()}
+            ${this.modalSolicitacao()}${docente&&window.ViewsDocente?.modalFiltros?window.ViewsDocente.modalFiltros():''}${this.modalProcessarSolicitacao()}${this.modalMeusDados()}
         </div>`;
     },
     _principalDocente() {
@@ -42,8 +41,6 @@ window.ViewsDashboard = {
         </section>`;
     },
     _principalApoio() { return `<section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><header class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="text-base font-extrabold text-slate-800">Alterações pendentes</h2><p class="text-xs text-slate-500">Itens da sua área que aguardam marcação em SS e SGO.</p></div><div class="flex items-center gap-2"><span id="dash-alteracoes-total" class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-800"></span><button type="button" id="dash-btn-atualizar" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">↻ Atualizar</button></div></header><div id="dash-apoio-recentes" class="mt-3"></div></section>`; },
-    _principalTecnico() { return `<section class="rounded-2xl border border-amber-200 bg-amber-50 p-4 md:p-5"><h2 class="text-base font-extrabold text-amber-900">Principal</h2><p class="mt-1 text-sm text-amber-800">Esta área será desenvolvida após a tela Coordenação. Enquanto isso, use as abas de encontros docentes e alterações pendentes.</p></section>`; },
-    _principalAdmin() { return `<section class="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:p-8"><div class="mx-auto max-w-xl text-center"><span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-2xl text-blue-700" aria-hidden="true">▦</span><h2 class="mt-3 text-lg font-extrabold text-slate-800">Dashboard em construção</h2><p class="mt-2 text-sm leading-relaxed text-slate-600">A página principal de Root/Admin será redesenhada com informações mais relevantes e uma experiência de uso aprimorada.</p></div></section>`; },
     _filtroAreas(id) { return `<label class="flex items-center gap-2 text-xs font-semibold text-slate-600">Área<select id="${id}" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5"><option value="minhas">Minhas áreas</option><option value="todas">Todas (cobertura)</option></select></label>`; },
     _agendaTecnica() {
         const filtro=(tipo,titulo)=>`<details id="dash-agenda-filtro-${tipo}" class="dash-agenda-filter"><summary><span>${titulo}</span><small id="dash-agenda-filtro-${tipo}-resumo">Todos</small></summary><div class="dash-agenda-filter-panel"><label class="dash-agenda-filter-search"><span class="sr-only">Pesquisar ${titulo.toLowerCase()}</span><input type="search" id="dash-agenda-filtro-${tipo}-busca" placeholder="Pesquisar ${titulo.toLowerCase()}…" autocomplete="off"></label><label class="dash-agenda-filter-all"><input type="checkbox" id="dash-agenda-filtro-${tipo}-todos" checked><span>Marcar todos</span></label><div id="dash-agenda-filtro-${tipo}-lista" class="dash-agenda-filter-list"><p class="dash-agenda-filter-empty">Carregando opções…</p></div></div></details>`;

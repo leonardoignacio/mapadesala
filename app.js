@@ -88,7 +88,7 @@ window.auth.onAuthStateChanged(async (user) => {
 
         UI.load.classList.add('hidden');
         UI.root.classList.remove('hidden');
-        // Cada autenticação começa no Dashboard; a view seleciona Principal como guia padrão.
+        // Cada autenticação começa no Dashboard; a view seleciona a guia inicial adequada ao perfil.
         if (window.location.hash && window.location.hash !== '#/dashboard') window.location.hash = '#/dashboard';
         else roteador();
     } else {
@@ -276,7 +276,6 @@ async function roteador() {
         case '#/admin': 
             viewContainer.innerHTML = window.ViewsAdminCredenciamento.renderizar(); 
             if (window.AppAdminCredenciamento) await window.AppAdminCredenciamento.iniciarView();
-            if (window.AppAdminSolicitacoes) await window.AppAdminSolicitacoes.iniciarView();
             break;
         default: viewContainer.innerHTML = window.Views.dashboard();
     }
@@ -390,22 +389,25 @@ document.addEventListener('click', async (e) => {
         if (window.AppTurmaListar && await window.AppTurmaListar.tratarCliques(e)) return;
         if (window.AppTurmaFrm && await window.AppTurmaFrm.tratarCliques(e)) return;
         if (window.AppApoio && await window.AppApoio.tratarCliques(e)) return;
-        if (window.AppAdminSolicitacoes && await window.AppAdminSolicitacoes.tratarCliques(e)) return;
         if (window.AppEspelho && await window.AppEspelho.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
     }
 
     const tabBtn = e.target.closest('.tab-btn');
     if (tabBtn) {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        const target = tabBtn.getAttribute('data-target') || '';
+        const dashboardTab = target.startsWith('tab-dashboard-');
+        const botoes = dashboardTab ? document.querySelectorAll('#dashboard-root > nav .tab-btn') : document.querySelectorAll('.tab-btn');
+        botoes.forEach(btn => {
             btn.classList.remove('font-bold', 'text-blue-600', 'border-blue-600');
             btn.classList.add('font-medium', 'text-slate-500', 'border-transparent');
         });
         tabBtn.classList.remove('font-medium', 'text-slate-500', 'border-transparent');
         tabBtn.classList.add('font-bold', 'text-blue-600', 'border-blue-600');
-        
-        const tabContainer = tabBtn.closest('.flex-col').querySelectorAll('.tab-content');
+        const tabContainer = dashboardTab
+            ? document.querySelectorAll('#dashboard-root > main > .tab-content[id^="tab-dashboard-"]')
+            : tabBtn.closest('.flex-col').querySelectorAll('.tab-content');
         tabContainer.forEach(content => content.classList.add('hidden'));
-        document.getElementById(tabBtn.getAttribute('data-target'))?.classList.remove('hidden');
+        document.getElementById(target)?.classList.remove('hidden');
     }
 });

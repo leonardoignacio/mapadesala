@@ -261,7 +261,8 @@ window.AppDocente = {
     _salvarNoBotao(btn,promise){if(btn){btn.disabled=true;btn.dataset.loading='true';}return promise.finally(()=>{if(btn){btn.disabled=false;delete btn.dataset.loading;}});},
     atualizarSuave(){if(!this._mounted())return;this._renderFiltro();this._renderTabAtiva()?.catch(err=>console.warn('[Docente] Atualização suave não concluída:',err));},
     async tratarCliques(e){
-        if(!this._mounted())return false;
+        const dashboardAtivo=!!document.getElementById('dashboard-root');
+        if(!this._mounted()&&!(dashboardAtivo&&(e.target.closest('.docente-btn-atividade')||e.target.closest('.docente-modal-fechar[data-modal="docente-modal-atividade"]')||e.target.id==='docente-modal-atividade')))return false;
         if(['docente-modal-escala','docente-modal-ferias','docente-modal-atividade'].includes(e.target.id)){this._fecharModal(e.target.id);return true;}
         const t=e.target.closest('button,summary');if(!t)return false;
         if(t.matches('.tab-btn[data-target^="docente-tab-"]')){
@@ -301,7 +302,7 @@ window.AppDocente = {
         return false;
     },
     async tratarSubmits(e){
-        if(!this._mounted())return false;
+        if(!this._mounted()&&!(document.getElementById('dashboard-root')&&e.target.id==='docente-form-atividade'))return false;
         if(e.target.id==='docente-form-escala'){
             const form=e.target,btn=form.querySelector('button[type="submit"]');try{
                 const dias={};for(let d=1;d<=6;d++)dias[String(d)]={entrada:document.getElementById(`docente-escala-entrada-${d}`).value,intervalo_inicio:document.getElementById(`docente-escala-intervalo_inicio-${d}`).value,intervalo_retorno:document.getElementById(`docente-escala-intervalo_retorno-${d}`).value,saida:document.getElementById(`docente-escala-saida-${d}`).value};
@@ -315,7 +316,7 @@ window.AppDocente = {
         }
         if(e.target.id==='docente-form-atividade'){
             const form=e.target,btn=form.querySelector('button[type="submit"]');try{
-                await this._salvarNoBotao(btn,window.ControllerDocente.salvarAtividade({docente:this._proprioDocente(),data:document.getElementById('docente-atividade-data').value,inicio:document.getElementById('docente-atividade-inicio').value,termino:document.getElementById('docente-atividade-termino').value,tipo:document.getElementById('docente-atividade-tipo').value,descricao:document.getElementById('docente-atividade-descricao').value,registroId:document.getElementById('docente-atividade-id').value}));this._fecharModal('docente-modal-atividade');await this._renderizarCalendario();const pl=document.getElementById('docente-planejamento-conteudo');if(pl)await this._renderizarPlanejamento();await window.Dialog.sucesso('Atividade do calendário atualizada.');
+                await this._salvarNoBotao(btn,window.ControllerDocente.salvarAtividade({docente:this._proprioDocente(),data:document.getElementById('docente-atividade-data').value,inicio:document.getElementById('docente-atividade-inicio').value,termino:document.getElementById('docente-atividade-termino').value,tipo:document.getElementById('docente-atividade-tipo').value,descricao:document.getElementById('docente-atividade-descricao').value,registroId:document.getElementById('docente-atividade-id').value}));this._fecharModal('docente-modal-atividade');if(document.getElementById('dashboard-root'))await window.AppDashboard?._renderizarSemanaDocente();else await this._renderizarCalendario();const pl=document.getElementById('docente-planejamento-conteudo');if(pl)await this._renderizarPlanejamento();await window.Dialog.sucesso('Atividade do calendário atualizada.');
             }catch(err){await window.Dialog.erro(err,'Não foi possível salvar a atividade.');}return true;
         }
         return false;

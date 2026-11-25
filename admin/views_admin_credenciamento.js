@@ -1,17 +1,12 @@
 // ./admin/views_admin_credenciamento.js - Interface Visual da View Painel Admin (Aba Credenciamento)
 window.ViewsAdminCredenciamento = {
-    renderizar() {
+    renderizar({compacto=false}={}) {
         return `
-        <div class="px-2 md:px-8 pt-4 pb-6 fade-in flex-1 overflow-hidden flex flex-col w-full relative">
-            
-            <!-- Cabeçalho Global da View Painel Admin -->
-            <h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0 px-2 md:px-0">Painel Admin</h1>
-            
-            <!-- Navegação de Abas do Painel Admin -->
+        <div class="${compacto?'':'px-2 md:px-8 pt-4 pb-6'} fade-in flex-1 overflow-hidden flex flex-col w-full relative">
+            ${compacto?'':`<h1 class="text-xl font-bold mb-3 text-slate-800 w-full lg:w-[90%] mx-auto shrink-0 px-2 md:px-0">Painel Admin</h1>
             <div class="flex border-b border-slate-200 mb-3 gap-4 lg:gap-6 w-full lg:w-[90%] mx-auto overflow-x-auto shrink-0 px-2 md:px-0">
                 <button class="tab-btn active font-bold text-blue-600 border-b-2 border-blue-600 pb-2 transition-colors text-sm md:text-base whitespace-nowrap" data-target="tab-admin-credenciamento">Credenciamento</button>
-                ${window.ViewsAdminSolicitacoes ? window.ViewsAdminSolicitacoes.botaoAba() : ''}
-            </div>
+            </div>`}
 
             <!-- CONTEÚDO: ABA CREDENCIAMENTO -->
             <div id="tab-admin-credenciamento" class="tab-content flex-1 flex flex-col overflow-hidden min-h-0">
@@ -112,7 +107,6 @@ window.ViewsAdminCredenciamento = {
                     </div>
                 </div>
             </div>
-            ${window.ViewsAdminSolicitacoes ? window.ViewsAdminSolicitacoes.conteudoAba() : ''}
         </div>
 
         <!-- MODAL DE CREDENCIAMENTO E HABILITAÇÃO DE PERFIL (Fecha apenas no 'X' ou em 'Cancelar') -->

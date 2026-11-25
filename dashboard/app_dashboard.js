@@ -4,26 +4,19 @@ window.AppDashboard = {
     async iniciarView() {
         if(window.usuarioAtual?.cargo==='pendente')return;
         this.semanaDocente=0;this.semanaTecnica=0;this.semanaAdmin=0;this.modoAreas=['root','admin'].includes(window.usuarioAtual?.cargo)?'todas':'minhas';this.filtrosAgendaTecnica={docentes:null,turmas:null};this.agendaTecnicaCache=null;this.agendaTecnicaAbertas=new Set();this.alteracoesCache=null;this.alteracoesLimite=60;
-        const raiz=document.getElementById('dashboard-root');raiz?.querySelectorAll('.tab-btn').forEach(b=>{const ativa=b.dataset.target==='tab-dashboard-principal';b.classList.toggle('active',ativa);b.classList.toggle('font-bold',ativa);b.classList.toggle('text-blue-600',ativa);b.classList.toggle('border-blue-600',ativa);b.classList.toggle('font-medium',!ativa);b.classList.toggle('text-slate-500',!ativa);b.classList.toggle('border-transparent',!ativa);});raiz?.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!=='tab-dashboard-principal'));
         await window.Store.garantirPronto();
-        await this._renderizarPrincipal();
+        const cargo=window.usuarioAtual?.cargo,admin=['root','admin'].includes(cargo),apoio=cargo==='apoio',docente=cargo==='docente';
+        const padrao=admin?'tab-dashboard-admin':apoio?'tab-dashboard-alteracoes':docente||cargo==='tecnico'?'tab-dashboard-agenda':'tab-dashboard-dados';
+        const raiz=document.getElementById('dashboard-root');raiz?.querySelectorAll('.tab-btn[data-target^="tab-dashboard-"]').forEach(btn=>{const ativa=btn.dataset.target===padrao;btn.classList.toggle('active',ativa);btn.classList.toggle('font-bold',ativa);btn.classList.toggle('text-blue-600',ativa);btn.classList.toggle('border-blue-600',ativa);btn.classList.toggle('font-medium',!ativa);btn.classList.toggle('text-slate-500',!ativa);btn.classList.toggle('border-transparent',!ativa);});raiz?.querySelectorAll('.tab-content[id^="tab-dashboard-"]').forEach(panel=>panel.classList.toggle('hidden',panel.id!==padrao));
+        if(padrao==='tab-dashboard-agenda'){if(docente){await window.Store.garantirPronto();await window.ControllerDocente?.carregarBase();this._renderizarFiltrosCalendarioDocente();await this._renderizarSemanaDocente();}else await this._renderizarAgendaTecnica();}
+        if(padrao==='tab-dashboard-alteracoes'){if(apoio)await this._renderizarApoio();else await this._renderizarAlteracoesTecnicas();}
+        if(admin)await window.AppAdminCredenciamento?.iniciarView();
         this._atualizarBadgeSolicitacoes().catch(err=>console.warn('[Dashboard] Não foi possível atualizar a contagem de solicitações:',err));
-        if(['tecnico','root','admin'].includes(window.usuarioAtual?.cargo))await this._renderizarAlteracoesTecnicas();
+        this._atualizarBadgeAlteracoes().catch(err=>console.warn('[Dashboard] Contagem de alterações indisponível:',err));
     },
+    async _atualizarBadgeAlteracoes(){const badge=document.getElementById('dash-alteracoes-pendentes-badge');if(!badge)return;try{const itens=await this._carregarAlteracoes(),n=this._alteracoesPorArea(itens.filter(x=>x.situacao==='Pendente'),this.modoAreas).length;badge.textContent=String(n);badge.classList.toggle('hidden',n<1);badge.title=`${n} alteração(ões) pendente(s)`;}catch(_){badge.classList.add('hidden');}},
     _esc(v) { return window.Util.esc(v); },
     _mostrarStatus(msg,erro=false) { return erro?window.Dialog.erro(msg):window.Util.toast(msg,{tipo:'sucesso'}); },
-    _faixaPeriodo(encontros,alvo) {
-        const V=window.ViewsDashboard;
-        return ['Manhã','Tarde','Noite'].map(p=>{const lista=encontros.filter(e=>window.ControllerDashboard._periodo(e)===p);return lista.length?`<section class="mb-3"><h3 class="mb-2 text-xs font-extrabold uppercase tracking-wide text-slate-500">${p}</h3><div class="grid grid-cols-1 gap-2 lg:grid-cols-2">${lista.slice(0,alvo||100).map(e=>V.cartaoEncontro(e)).join('')}</div></section>`:'';}).join('')||'<p class="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">Nenhum encontro encontrado.</p>';
-    },
-    _agruparSemana(encontros,inicio) {
-        const V=window.ViewsDashboard,html=[];
-        for(let d=0;d<6;d++){
-            const data=window.ControllerDashboard._addDays(inicio,d),dia=window.Util.diaSemana(data),lista=encontros.filter(e=>e.data===data);
-            html.push(`<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex items-center justify-between"><h3 class="text-xs font-extrabold text-slate-700">${dia}</h3><span class="text-[10px] text-slate-500">${window.Util.dataBR(data)}</span></div>${lista.length?`<div class="space-y-2">${lista.map(e=>V.cartaoEncontro(e)).join('')}</div>`:'<p class="text-[11px] text-slate-400">Sem encontros.</p>'}</section>`);
-        }
-        return `<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">${html.join('')}</div>`;
-    },
     async _carregarAlteracoes() {
         if(this.alteracoesCache)return this.alteracoesCache;
         const C=window.ControllerApoioAlteracoes;
@@ -50,7 +43,7 @@ window.AppDashboard = {
             const mostrar=pend.slice(0,this.alteracoesLimite),cards=mostrar.map(i=>window.ViewsApoio.cartaoAlteracao(i,{podeAlterar:window.ControllerApoioAlteracoes.podeAlterarFlags()})).join('');
             const mais=pend.length>this.alteracoesLimite?`<div class="col-span-full text-center"><button type="button" id="dash-btn-mais-alteracoes" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Mostrar mais (${pend.length-this.alteracoesLimite} restantes)</button></div>`:'';
             box.innerHTML=pend.length?`<div class="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">${cards}${mais}</div>`:'<div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma alteração pendente nas suas áreas.</div>';
-            const total=document.getElementById('dash-alteracoes-total');if(total)total.textContent=`${pend.length} pendente(s)`;
+            const total=document.getElementById('dash-alteracoes-total');if(total)total.textContent=`${pend.length} pendente(s)`;const badge=document.getElementById('dash-alteracoes-pendentes-badge');if(badge){badge.textContent=String(pend.length);badge.classList.toggle('hidden',pend.length<1);}
         }catch(err){box.innerHTML=`<p class="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar as alterações.')}</p>`;}
     },
     async _alternarFlagDashboard(input) {
@@ -77,23 +70,7 @@ window.AppDashboard = {
         if(!areas.length)return itens;
         return itens.filter(i=>areas.some(a=>window.Util.semAcento(a)===window.Util.semAcento(i.area)));
     },
-    async _renderizarPrincipal() {
-        const cargo=window.usuarioAtual?.cargo;
-        if(cargo==='docente'){
-            await this._renderizarSemanaDocente();
-        }else if(cargo==='apoio'){
-            await this._renderizarApoio();
-        }else if(['root','admin'].includes(cargo)){
-            // A tela principal consolidada foi retirada; o dashboard administrativo será redesenhado.
-        }else if(cargo==='tecnico'){
-            const main=document.getElementById('tab-dashboard-principal');if(main&&!main.querySelector('[data-tecnico-principal]'))main.querySelector('section')?.setAttribute('data-tecnico-principal','true');
-        }
-    },
     async _renderizarApoio() { await this._renderizarListaAlteracoesPendentes('dash-apoio-recentes'); },
-    _renderizarSemanaAdmin() {
-        const data=window.ControllerDashboard.listarAgendaDocentes(this.semanaAdmin,'todas'),label=document.getElementById('dash-admin-semana-label'),box=document.getElementById('dash-admin-agenda-semanal');
-        if(label)label.textContent=window.ControllerDashboard.formatarSemana(data.inicio,data.fim);if(box)box.innerHTML=this._agruparSemana(data.encontros,data.inicio);
-    },
     _horaAgenda(valor) {
         const m=String(valor||'').match(/^(\d{1,2}):(\d{2})$/);
         return m?`${String(Number(m[1])).padStart(2,'0')}:${m[2]}`:'Horário não informado';
@@ -142,19 +119,25 @@ window.AppDashboard = {
         const mobile=`<div class="dash-cal-mobile">${dias.map((data,i)=>{const atual=porDia.get(data),avisosDiaLista=avisosDia.get(data),avisosPeriodos=periodos.flatMap(periodo=>avisosPeriodo.get(data).get(periodo)),total=periodos.reduce((s,p)=>s+atual.get(p).length,0)+avisosDiaLista.length+avisosPeriodos.length,todosAvisos=[...avisosDiaLista,...avisosPeriodos],badgePal=todosAvisos.length?paletaAviso(todosAvisos[0]):null,badgeAviso=todosAvisos.length?`<span class="dash-mobile-day-alert" style="--exception-bg:${badgePal.bg};--exception-border:${badgePal.border};--exception-text:${badgePal.text}" title="${e(todosAvisos.map(a=>a.rotulo).join(', '))}">${e(todosAvisos.length>1?`${todosAvisos.length} avisos`:todosAvisos[0].rotulo)}</span>`:'',avisosMobile=avisosDiaLista.map(a=>avisoCard(a,true)).join(''),grupos=periodos.map(periodo=>{const eventos=atual.get(periodo),avisos=avisosPeriodo.get(data).get(periodo);if(!eventos.length&&!avisos.length)return'';return `<section class="dash-mobile-period ${classePeriodo(periodo)}"><h4 class="dash-mobile-period-label">${periodo.toUpperCase()}</h4><div class="dash-mobile-period-events">${avisos.map(a=>avisoCard(a,true)).join('')}${eventos.slice().sort((a,b)=>(a.h_inicio||'').localeCompare(b.h_inicio||'')).map(enc=>cartao(enc,true)).join('')}</div></section>`;}).join(''),conteudo=avisosMobile+grupos||'<p class="dash-mobile-empty">Sem encontros ou avisos neste dia.</p>';return `<details data-date="${data}" class="dash-mobile-day ${data===hoje?'dash-mobile-today':''}" ${data===aberto?'open':''}><summary><span><b>${nomes[i]}</b><span>${Number(data.slice(8,10))} ${mesDia(data)}</span></span>${badgeAviso}<span class="dash-mobile-count">${total}</span></summary><div class="dash-mobile-day-content">${conteudo}</div></details>`;}).join('')}</div>`;
         return desktop+mobile;
     },
+    async _comporAgendaSemanal(encontros,inicio,docs,atividadesBase=null){
+        const A=window.AppDocente,C=window.ControllerDocente,D=window.ControllerDashboard;
+        const base=Array.isArray(encontros)?encontros:[],lista=(docs||[]).filter(Boolean);
+        if(!A||!C||!lista.length)return base;
+        const fim=D._addDays(inicio,5),atividades=atividadesBase||await C.carregarAtividades(window.usuarioAtual?.cargo==='docente'?lista[0]:null,inicio,fim);
+        const planos=await A._gerarPlanejamentoSemana(base,{inicio,fim},lista,atividades);
+        return [...base,...planos];
+    },
     async _agendaComPlanejamento(encontros,inicio,modo='minhas'){
         const cargo=window.usuarioAtual?.cargo;if(!['docente','tecnico','admin','root'].includes(cargo))return encontros;
         const A=window.AppDocente,C=window.ControllerDocente,D=window.ControllerDashboard;if(!A||!C)return encontros;
-        const fim=D._addDays(inicio,5);let docs;
+        let docs;
         if(cargo==='docente')docs=[C.docenteAtual()];
         else{
             const areas=modo==='todas'?[]:D._areasUsuario(),norm=x=>window.Util.semAcento(x||'').toLowerCase();
             docs=C.obterDocentes().filter(d=>!areas.length||A._areasDocente(d).some(a=>areas.some(x=>norm(a)===norm(x))));
             const seleccion=this.filtrosAgendaTecnica?.docentes;if(cargo==='tecnico'&&seleccion!==null&&seleccion!==undefined)docs=docs.filter(d=>seleccion.includes(this._chaveDocenteAgenda(d)));
         }
-        if(!docs.length)return encontros;
-        const actividades=await C.carregarAtividades(window.usuarioActual?.cargo==='docente'?docs[0]:null,inicio,fim);
-        const extra=await A._gerarPlanejamentoSemana(encontros,{inicio,fim},docs,actividades);return [...encontros,...extra];
+        return this._comporAgendaSemanal(encontros,inicio,docs);
     },
     async _renderizarSemanaDocente() {
         const D=window.ControllerDashboard,A=window.AppDocente,C=window.ControllerDocente;
@@ -170,8 +153,8 @@ window.AppDashboard = {
             const encontrosTodos=D.listarEncontros({inicio:data.inicio,fim:data.fim}),principal=docs.some(doc=>C.corresponde(doc,self))?docs.filter(doc=>C.corresponde(doc,self)):[self].filter(Boolean);
             const encontros=encontrosTodos.filter(enc=>(enc.docentes||[]).some(pessoa=>principal.some(doc=>C.corresponde(pessoa,doc))));
             const atividades=self?await C.carregarAtividades(self,data.inicio,data.fim):[];
-            const planejamento=self?await A._gerarPlanejamentoSemana(encontros,{inicio:data.inicio,fim:data.fim},[self],atividades):[];
-            box.innerHTML=this._calendarioDocente([...encontros,...planejamento],data.inicio,{mostrarDocentes:false,mostrarCancelamentos:false});
+            const itensSemana=self?await this._comporAgendaSemanal(encontros,data.inicio,[self],atividades):encontros;
+            box.innerHTML=this._calendarioDocente(itensSemana,data.inicio,{mostrarDocentes:false,mostrarCancelamentos:false});
             const total=document.getElementById('dash-docente-cal-total');if(total)total.textContent=`${encontros.length} encontro(s)`;
             const nome=doc=>doc.nome_completo||[doc.nome,doc.sobrenome].filter(Boolean).join(' ')||doc.email||'Docente';
             const cards=docs.map(doc=>{
@@ -332,8 +315,6 @@ window.AppDashboard = {
         if(t.closest('#dash-semana-tecnica-hoje')){this.semanaTecnica=0;this._renderizarAgendaTecnica();return true;}
         if(t.closest('#dash-semana-tecnica-anterior')){this.semanaTecnica--;this._renderizarAgendaTecnica();return true;}
         if(t.closest('#dash-semana-tecnica-proxima')){this.semanaTecnica++;this._renderizarAgendaTecnica();return true;}
-        if(t.closest('#dash-admin-semana-anterior')){this.semanaAdmin--;this._renderizarSemanaAdmin();return true;}
-        if(t.closest('#dash-admin-semana-proxima')){this.semanaAdmin++;this._renderizarSemanaAdmin();return true;}
         if(t.closest('#dash-btn-editar-dados')){this._abrirModalDados();return true;}
         if(t.closest('.dash-fechar-modal-dados')||t.id==='dash-modal-dados'){this._fecharModal('dash-modal-dados');return true;}
         if(t.closest('#dash-btn-nova-solicitacao')){this._abrirModalSolicitacao();return true;}
@@ -350,8 +331,9 @@ window.AppDashboard = {
         const tab=t.closest('.tab-btn[data-target]')?.dataset.target;
         if(tab==='tab-dashboard-dados')this._renderizarMeusDados();
         if(tab==='tab-dashboard-solicitacoes'){this._carregarSolicitacoes();this._atualizarBadgeSolicitacoes().catch(err=>console.warn('[Dashboard] Contagem pendente indisponível:',err));}
-        if(tab==='tab-dashboard-agenda')this._renderizarAgendaTecnica();
-        if(tab==='tab-dashboard-alteracoes')this._renderizarAlteracoesTecnicas();
+        if(tab==='tab-dashboard-agenda'){if(window.usuarioAtual?.cargo==='docente')this._renderizarSemanaDocente();else this._renderizarAgendaTecnica();}
+        if(tab==='tab-dashboard-admin')window.AppAdminCredenciamento?.iniciarView();
+        if(tab==='tab-dashboard-alteracoes'){if(window.usuarioAtual?.cargo==='apoio')this._renderizarApoio();else this._renderizarAlteracoesTecnicas();}
         return false;
     },
     async tratarMudancas(e) {
