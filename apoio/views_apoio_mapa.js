@@ -32,27 +32,25 @@ window.ViewsApoioMapa = {
             </section>
         </div>`;
     },
-    renderizarGrade({ dias, inicio, salas, ocupacoes, statuses, podeEditar }) {
+    renderizarGrade({ dias, inicio, salas, ocupacoes, statuses, podeEditar, periodoAtivo = 'Manhã' }) {
         const e = v => this.esc(v), periodos = ['Manhã', 'Tarde', 'Noite'], hoje = window.ControllerDashboard._dataLocal();
         if (!salas.length) return `<div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center"><p class="font-bold text-slate-700">Nenhuma sala cadastrada</p><p class="mt-1 text-xs text-slate-500">Cadastre as salas em Espelho de Classe → Recursos para exibi-las neste mapa.</p></div>`;
+        if (!periodos.includes(periodoAtivo)) periodoAtivo = periodos[0];
         const diasNome = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        const cabecalho = `<div class="ap-mapa-head ap-mapa-corner">Sala / período</div>` + dias.map((dia, i) => {
+        const cabecalho = dias.map((dia, i) => {
             const d = new Date(Number(dia.slice(0, 4)), Number(dia.slice(5, 7)) - 1, Number(dia.slice(8, 10)), 12);
             return `<div class="ap-mapa-head ${dia === hoje ? 'ap-mapa-head-today' : ''}"><span class="ap-mapa-head-label">${diasNome[i]}</span><b class="ap-mapa-head-date">${Number(dia.slice(8, 10))} ${e(new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(d).replace('.', ''))}</b></div>`;
         }).join('');
-        const rows = periodos.map(periodo => {
-            const suffix = this._slug(periodo);
-            const cells = dias.map(dia => {
-                const cards = salas.map(sala => {
-                    const slotKey = window.ControllerApoioMapa.chave(sala.id, dia, periodo);
-                    return this._cartaoSala(sala, dia, periodo, ocupacoes.get(slotKey) || [], statuses.get(slotKey) || null, podeEditar);
-                }).join('');
-                return `<div class="ap-mapa-cell ap-mapa-cell-${suffix}">${cards}</div>`;
+        const cells = dias.map(dia => {
+            const cards = salas.map(sala => {
+                const slotKey = window.ControllerApoioMapa.chave(sala.id, dia, periodoAtivo);
+                return this._cartaoSala(sala, dia, periodoAtivo, ocupacoes.get(slotKey) || [], statuses.get(slotKey) || null, podeEditar);
             }).join('');
-            return `<div class="ap-mapa-period ap-mapa-period-${suffix}">${e(periodo)}</div>${cells}`;
+            return `<div class="ap-mapa-cell ${dia === hoje ? 'ap-mapa-cell-today' : ''}">${cards}</div>`;
         }).join('');
-        return `<div class="ap-mapa-scroll"><div class="ap-mapa-grid">${cabecalho}${rows}</div></div>
-            <p class="mt-2 text-[10px] text-slate-500">Semana de ${e(window.Util.dataBR(inicio))} a ${e(window.Util.dataBR(dias[dias.length - 1]))}. Encontros já distribuídos prevalecem sobre status manuais da sala.</p>`;
+        const tabs = periodos.map(periodo => `<button type="button" role="tab" aria-selected="${periodo === periodoAtivo}" class="ap-mapa-period-tab ap-mapa-period-${this._slug(periodo)} ${periodo === periodoAtivo ? 'active' : ''}" data-periodo-mapa="${e(periodo)}" title="${e(periodo)}">${e(periodo.toUpperCase())}</button>`).join('');
+        return `<div class="ap-mapa-layout"><nav class="ap-mapa-period-tabs" role="tablist" aria-label="Período do mapa de sala">${tabs}</nav><div class="ap-mapa-scroll"><div class="ap-mapa-grid">${cabecalho}${cells}</div></div></div>
+            <p class="mt-2 text-[10px] text-slate-500">Semana de ${e(window.Util.dataBR(inicio))} a ${e(window.Util.dataBR(dias[dias.length - 1]))}. ${e(periodoAtivo)}. Encontros já distribuídos prevalecem sobre status manuais da sala.</p>`;
     },
     _slug(v) { return window.Util.semAcento(v).toLowerCase().replace(/[^a-z0-9]+/g, '-'); },
     _cartaoSala(sala, data, periodo, encontros, status, podeEditar) {

@@ -3,7 +3,9 @@
     const A = window.AppApoio;
     if (!A) return;
     A.semanaMapaSalas = 0;
+    A.periodoMapaSalas = A.periodoMapaSalas || 'Manhã';
     A._cacheMapaSalas = null;
+    A._dadosMapaSalaRender = null;
 
     A._intervaloMapaSalas = function () {
         const D = window.ControllerDashboard, inicio = D._addDays(D._segunda(D._dataLocal()), this.semanaMapaSalas * 7);
@@ -21,7 +23,8 @@
             const salas = [...(window.Store.dados.salas || [])].sort((a, b) => (a.referencia || a.nome || '').localeCompare(b.referencia || b.nome || '', 'pt-BR', { sensitivity: 'base' }));
             const [statuses] = await Promise.all([C.carregar(r.inicio, r.fim, forcar)]);
             const ocupacoes = C.mapearOcupacoes(salas, window.Store.dados.encontros || [], r.inicio, r.fim);
-            box.innerHTML = window.ViewsApoioMapa.renderizarGrade({ dias: r.dias, inicio: r.inicio, salas, ocupacoes, statuses, podeEditar: C.podeEditar() });
+            this._dadosMapaSalaRender = { dias: r.dias, inicio: r.inicio, salas, ocupacoes, statuses, podeEditar: C.podeEditar() };
+            box.innerHTML = window.ViewsApoioMapa.renderizarGrade({ ...this._dadosMapaSalaRender, periodoAtivo: this.periodoMapaSalas });
         } catch (err) {
             box.innerHTML = `<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">${window.Util.esc(err.message || 'Não foi possível carregar o mapa de salas.')}</div>`;
         }
@@ -79,6 +82,15 @@
     A._tratarCliquesMapaSalas = async function (event) {
         const t = event.target, btn = t.closest('button');
         if (t.closest('.tab-btn[data-target="tab-apoio-mapa-salas"], .tab-btn[data-target="tab-dashboard-mapa-salas"]')) { await this._renderizarMapaSalas(); return false; }
+        if (btn?.dataset?.periodoMapa) {
+            const periodo = btn.dataset.periodoMapa;
+            if (['Manhã','Tarde','Noite'].includes(periodo) && this._dadosMapaSalaRender) {
+                this.periodoMapaSalas = periodo;
+                const box = document.getElementById('apoio-mapa-salas-conteudo');
+                if (box) box.innerHTML = window.ViewsApoioMapa.renderizarGrade({ ...this._dadosMapaSalaRender, periodoAtivo: periodo });
+            }
+            return true;
+        }
         if (!btn) {
             if (t.id === 'apoio-modal-mapa-sala') { this._fecharModalMapaSala(); return true; }
             return false;
