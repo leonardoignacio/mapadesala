@@ -276,6 +276,7 @@ async function roteador() {
         case '#/admin': 
             viewContainer.innerHTML = window.ViewsAdminCredenciamento.renderizar(); 
             if (window.AppAdminCredenciamento) await window.AppAdminCredenciamento.iniciarView();
+            if (window.AppAdminBackup) await window.AppAdminBackup.iniciarView();
             break;
         default: viewContainer.innerHTML = window.Views.dashboard();
     }
@@ -352,6 +353,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('change', async (e) => {
     if (window.AppDocente && await window.AppDocente.tratarMudancas(e)) return;
     if (window.AppDashboard && await window.AppDashboard.tratarMudancas(e)) return;
+    if (window.AppAdminBackup && await window.AppAdminBackup.tratarMudancas(e)) return;
     if (window.AppApoio && await window.AppApoio.tratarMudancas(e)) return;
     if (window.AppEspelho && await window.AppEspelho.tratarMudancas(e)) return;
 });
@@ -391,6 +393,7 @@ document.addEventListener('click', async (e) => {
         if (window.AppApoio && await window.AppApoio.tratarCliques(e)) return;
         if (window.AppEspelho && await window.AppEspelho.tratarCliques(e)) return;
         if (window.AppAdminCredenciamento && await window.AppAdminCredenciamento.tratarCliques(e)) return;
+        if (window.AppAdminBackup && await window.AppAdminBackup.tratarCliques(e)) return;
     }
 
     const tabBtn = e.target.closest('.tab-btn');
