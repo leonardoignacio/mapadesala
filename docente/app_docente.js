@@ -37,8 +37,9 @@ window.AppDocente = {
         return selecionados;
     },
     _atualizarVisibilidadeFiltro(){
-        const filtro=document.getElementById('docente-filtro');
-        if(filtro)filtro.classList.toggle('hidden',window.usuarioAtual?.cargo==='docente'&&this._tabAtiva()==='docente-tab-calendario');
+        const filtro=document.getElementById('docente-filtro'),cabecalho=document.getElementById('docente-header-actions'),calendario=this._tabAtiva()==='docente-tab-calendario';
+        if(filtro)filtro.classList.toggle('hidden',window.usuarioAtual?.cargo==='docente'&&calendario);
+        if(cabecalho)cabecalho.classList.toggle('hidden',calendario);
     },
     _renderFiltro(){
         const box=document.getElementById('docente-filtro-lista');if(!box)return;
@@ -273,7 +274,9 @@ window.AppDocente = {
         if(t.id==='docente-cal-anterior'){this.semana--;await this._renderizarCalendario();return true;}
         if(t.id==='docente-cal-proxima'){this.semana++;await this._renderizarCalendario();return true;}
         if(t.id==='docente-cal-hoje'){this.semana=0;await this._renderizarCalendario();return true;}
-        if(t.id==='docente-btn-atualizar'){await window.ControllerDocente.carregarBase(true);window.ControllerDocente.atividadesChave='';await this._renderFiltro();await this._renderTabAtiva();window.Util.toast('Dados atualizados.',{tipo:'sucesso'});return true;}
+        if(t.id==='docente-cal-imprimir'){document.body.classList.add('print-week-calendar');window.addEventListener('afterprint',()=>document.body.classList.remove('print-week-calendar'),{once:true});window.print();return true;}
+        if(t.id==='docente-cal-btn-atualizar'){await window.ControllerDocente.carregarBase(true);window.ControllerDocente.atividadesChave='';await this._renderFiltro();await this._renderTabAtiva();window.Util.toast('Dados atualizados.',{tipo:'sucesso'});return true;}
+        if(t.id==='docente-btn-atualizar'){ await window.ControllerDocente.carregarBase(true);window.ControllerDocente.atividadesChave='';await this._renderFiltro();await this._renderTabAtiva();window.Util.toast('Dados atualizados.',{tipo:'sucesso'});return true;}
         if(t.id==='docente-filtro-todos'||t.id==='docente-filtro-limpar'){this.docentesSelecionados=t.id.endsWith('todos')?window.ControllerDocente.obterDocentes().map(d=>String(d.id||d.email)):[];this._renderFiltro();await this._renderTabAtiva();return true;}
         if(t.classList.contains('docente-btn-nova-escala')){if(window.ControllerDocente.podeEditarProprio(this._proprioDocente()))this._abrirModalEscala();return true;}
         if(t.classList.contains('docente-btn-nova-ferias')){this._abrirModalFerias();return true;}

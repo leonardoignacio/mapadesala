@@ -13,9 +13,8 @@
         const box = document.getElementById('apoio-mapa-salas-conteudo');
         if (!box) return;
         const D = window.ControllerDashboard, C = window.ControllerApoioMapa, r = this._intervaloMapaSalas(),
-            label = document.getElementById('apoio-mapa-semana-label'), badge = document.getElementById('apoio-mapa-permissao');
+            label = document.getElementById('apoio-mapa-semana-label');
         if (label) label.textContent = D.formatarSemana(r.inicio, r.fim);
-        if (badge) badge.textContent = C.podeEditar() ? 'Edição habilitada' : 'Somente visualização';
         box.innerHTML = '<div class="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Carregando mapa de salas…</div>';
         try {
             await window.Store.garantirPronto();
@@ -88,6 +87,7 @@
         if (btn.id === 'apoio-mapa-proxima') { this.semanaMapaSalas++; await this._renderizarMapaSalas(true); return true; }
         if (btn.id === 'apoio-mapa-hoje') { this.semanaMapaSalas = 0; await this._renderizarMapaSalas(true); return true; }
         if (btn.id === 'apoio-mapa-atualizar') { await this._renderizarMapaSalas(true); return true; }
+        if (btn.id === 'apoio-mapa-imprimir') { document.body.classList.add('print-room-map'); window.addEventListener('afterprint',()=>document.body.classList.remove('print-room-map'),{once:true}); window.print(); return true; }
         if (btn.classList.contains('apoio-mapa-fechar')) { this._fecharModalMapaSala(); return true; }
         return false;
     };

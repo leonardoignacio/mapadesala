@@ -157,11 +157,18 @@ window.AppDashboard = {
             box.innerHTML=this._calendarioDocente(itensSemana,data.inicio,{mostrarDocentes:false,mostrarCancelamentos:false});
             const total=document.getElementById('dash-docente-cal-total');if(total)total.textContent=`${encontros.length} encontro(s)`;
             const nome=doc=>doc.nome_completo||[doc.nome,doc.sobrenome].filter(Boolean).join(' ')||doc.email||'Docente';
-            const cards=docs.map(doc=>{
-                const id=A._idDocenteFiltro(doc),lista=encontros.filter(enc=>(enc.docentes||[]).some(pessoa=>C.corresponde(pessoa,doc))),planos=planejamento.filter(enc=>(enc.docentes||[]).some(pessoa=>C.corresponde(pessoa,doc))),html=this._calendarioDocente([...lista,...planos],data.inicio,{mostrarDocentes:false,mostrarCancelamentos:false});
-                return `<details ${abertas.has(id)?'open':''} data-docente-agenda="${this._esc(id)}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-extrabold text-slate-800"><span>${this._esc(nome(doc))}</span><span class="text-xs font-semibold text-slate-500">Agenda individual</span></summary><div class="docente-cal-scroll-livre border-t border-slate-200">${html}</div></details>`;
-            }).join('');
-            agendaBox.innerHTML=cards||A._mensagemSemSelecao();
+            const cards=[];
+            for (const doc of docs) {
+                const id=A._idDocenteFiltro(doc),lista=encontrosTodos.filter(enc=>(enc.docentes||[]).some(pessoa=>C.corresponde(pessoa,doc)));
+                // Perfil docente só recebe detalhes de planejamento/atividade do próprio usuário.
+                // Para outros docentes, permanece visível somente a grade pública de encontros.
+                const propriaAgenda=self&&C.corresponde(doc,self),atividadesDoc=propriaAgenda?atividades:[];
+                const agendaIndividual=propriaAgenda?itensSemana:lista;
+                const html=this._calendarioDocente(agendaIndividual,data.inicio,{mostrarDocentes:false,mostrarCancelamentos:false});
+                cards.push(`<details ${abertas.has(id)?'open':''} data-docente-agenda="${this._esc(id)}" class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-extrabold text-slate-800"><span>${this._esc(nome(doc))}</span><span class="text-xs font-semibold text-slate-500">Agenda individual</span></summary><div class="docente-cal-scroll-livre border-t border-slate-200">${html}</div></details>`);
+            }
+            const cardsHtml=cards.join('');
+            agendaBox.innerHTML=cardsHtml||A._mensagemSemSelecao();
             A._atualizarBotaoFiltro?.();
         }catch(err){const msg=`<p class="m-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Não foi possível carregar o calendário.')}</p>`;box.innerHTML=msg;agendaBox.innerHTML=msg;}
         if(painel&&top!==undefined){painel.scrollTop=top;painel.scrollLeft=left;}
@@ -236,15 +243,19 @@ window.AppDashboard = {
         const opcoes=this._opcoesAgendaTecnica(encontros),docs=document.getElementById('dash-agenda-filtro-docentes-lista'),turmas=document.getElementById('dash-agenda-filtro-turmas-lista');
         if(docs)docs.innerHTML=this._htmlListaFiltroAgenda('docentes',opcoes.docentes);
         if(turmas)turmas.innerHTML=this._htmlListaFiltroAgenda('turmas',opcoes.turmas);
+        const area=document.getElementById('dash-agenda-areas');if(area)area.value=this.modoAreas;
         this._atualizarResumoFiltrosAgendaTecnica();
     },
     _atualizarResumoFiltrosAgendaTecnica() {
+        let alterado=this.modoAreas!==(['root','admin'].includes(window.usuarioAtual?.cargo)?'todas':'minhas');
         for(const tipo of ['docentes','turmas']){
             const prefix=`dash-agenda-filtro-${tipo}`,lista=document.getElementById(`${prefix}-lista`),master=document.getElementById(`${prefix}-todos`),resumo=document.getElementById(`${prefix}-resumo`);if(!lista)continue;
             const checks=[...lista.querySelectorAll(`.dash-agenda-item-${tipo}`)],n=checks.filter(x=>x.checked).length;
             if(master){master.checked=checks.length>0&&n===checks.length;master.indeterminate=n>0&&n<checks.length;master.disabled=!checks.length;}
             if(resumo)resumo.textContent=checks.length?(n===checks.length?`Todos (${checks.length})`:`${n}/${checks.length}`):'Nenhum';
+            alterado ||= (this.filtrosAgendaTecnica?.[tipo]!=null && n!==checks.length);
         }
+        const btn=document.getElementById('dash-agenda-filtros-abrir');if(btn){btn.innerHTML=alterado?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z"/><path d="m17 17 5 5m0-5-5 5"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z"/></svg>';btn.title=alterado?'Remover filtros personalizados':'Abrir filtros';btn.setAttribute('aria-label',btn.title);btn.classList.toggle('border-blue-300',alterado);btn.classList.toggle('bg-blue-50',alterado);btn.classList.toggle('text-blue-700',alterado);}
     },
     _filtrarAgendaTecnica(encontros) {
         const filtros=this.filtrosAgendaTecnica||{docentes:null,turmas:null};
@@ -308,10 +319,18 @@ window.AppDashboard = {
         }catch(err){box.innerHTML=`<p class="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">${this._esc(err.message||'Falha ao carregar solicitações.')}</p>`;}
     },
     async tratarCliques(e) {
+        if(window.AppApoio?._tratarCliquesMapaSalas && await window.AppApoio._tratarCliquesMapaSalas(e))return true;
         const t=e.target;
         if(t.closest('#dash-semana-docente-hoje')||t.closest('#dash-docente-cal-hoje')){this.semanaDocente=0;this._renderizarSemanaDocente();return true;}
         if(t.closest('#dash-semana-docente-anterior')){this.semanaDocente--;this._renderizarSemanaDocente();return true;}
         if(t.closest('#dash-semana-docente-proxima')){this.semanaDocente++;this._renderizarSemanaDocente();return true;}
+        if(t.closest('#dash-docente-cal-atualizar')){if(window.ControllerDocente){await window.ControllerDocente.carregarBase(true);window.ControllerDocente.atividadesChave='';}await this._renderizarSemanaDocente();return true;}
+        if(t.closest('#dash-agenda-atualizar')){this.agendaTecnicaCache=null;await this._renderizarAgendaTecnica(true);return true;}
+        if(t.closest('#dash-agenda-imprimir')||t.closest('#dash-docente-cal-imprimir')){document.body.classList.add('print-week-calendar');window.addEventListener('afterprint',()=>document.body.classList.remove('print-week-calendar'),{once:true});window.print();return true;}
+        if(t.closest('#dash-agenda-filtros-abrir')){document.getElementById('dash-agenda-filtros-modal')?.classList.remove('hidden');document.getElementById('dash-agenda-filtros-modal')?.classList.add('flex');return true;}
+        if(t.closest('.dash-agenda-filtros-fechar')||t.id==='dash-agenda-filtros-modal'){document.getElementById('dash-agenda-filtros-modal')?.classList.add('hidden');document.getElementById('dash-agenda-filtros-modal')?.classList.remove('flex');return true;}
+        if(t.closest('#dash-agenda-filtros-limpar')){this.modoAreas=['root','admin'].includes(window.usuarioAtual?.cargo)?'todas':'minhas';this.filtrosAgendaTecnica={docentes:null,turmas:null};this.agendaTecnicaCache=null;this._renderizarAgendaTecnica(true);return true;}
+        if(t.closest('#dash-agenda-filtros-imprimir')){document.body.classList.add('print-week-calendar');window.addEventListener('afterprint',()=>document.body.classList.remove('print-week-calendar'),{once:true});window.print();return true;}
         if(t.closest('#dash-semana-tecnica-hoje')){this.semanaTecnica=0;this._renderizarAgendaTecnica();return true;}
         if(t.closest('#dash-semana-tecnica-anterior')){this.semanaTecnica--;this._renderizarAgendaTecnica();return true;}
         if(t.closest('#dash-semana-tecnica-proxima')){this.semanaTecnica++;this._renderizarAgendaTecnica();return true;}

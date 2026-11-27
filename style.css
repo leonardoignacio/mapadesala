@@ -218,3 +218,27 @@
   .ap-mapa-meeting-item b { font-size:11px; }
   .ap-mapa-meeting-teacher { font-size:12px; }
 }
+
+/* Calendários semanais: uma única faixa de controles, com datas elásticas e ações compactas. */
+.docente-week-toolbar,.dash-week-toolbar,.ap-mapa-toolbar { box-sizing:border-box; white-space:nowrap; }
+.docente-week-toolbar > *, .dash-week-toolbar > *, .ap-mapa-toolbar > * { flex-shrink:0; }
+.docente-week-toolbar > p, .dash-week-toolbar > p, .dash-week-toolbar > span, .ap-mapa-toolbar > strong { flex:1 1 0%; }
+@media(max-width:640px) { .ap-mapa-toolbar { display:flex !important; grid-template-columns:none !important; } }
+@media(max-width:420px) {
+  .docente-week-toolbar,.dash-week-toolbar,.ap-mapa-toolbar { gap:4px; padding-left:6px; padding-right:6px; }
+  .docente-week-toolbar button[id$="-hoje"],.dash-week-toolbar button[id$="-hoje"],.ap-mapa-toolbar #apoio-mapa-hoje { padding-left:7px; padding-right:7px; font-size:10px; }
+  .docente-week-toolbar > p,.dash-week-toolbar > p,.dash-week-toolbar > span,.ap-mapa-toolbar > strong { font-size:9px; }
+}
+/* Impressão direta do calendário semanal ou do mapa: sem abas, menus e barras de rolagem. */
+@media print {
+  body.print-week-calendar * { visibility:hidden !important; }
+  body.print-week-calendar #docente-tab-calendario, body.print-week-calendar #docente-tab-calendario *, body.print-week-calendar #tab-dashboard-agenda, body.print-week-calendar #tab-dashboard-agenda * { visibility:visible !important; }
+  body.print-week-calendar #docente-root, body.print-week-calendar #dashboard-root, body.print-week-calendar #docente-root main, body.print-week-calendar #dashboard-root main { position:static !important; height:auto !important; max-height:none !important; overflow:visible !important; }
+  body.print-week-calendar #docente-tab-calendario, body.print-week-calendar #tab-dashboard-agenda { display:block !important; position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; overflow:visible !important; }
+  body.print-week-calendar .docente-cal-scroll-livre, body.print-week-calendar .dash-cal-scroll, body.print-week-calendar .dash-cal-period-cell { max-height:none !important; overflow:visible !important; }
+  body.print-room-map * { visibility:hidden !important; }
+  body.print-room-map #tab-apoio-mapa-salas, body.print-room-map #tab-apoio-mapa-salas *, body.print-room-map #tab-dashboard-mapa-salas, body.print-room-map #tab-dashboard-mapa-salas * { visibility:visible !important; }
+  body.print-room-map #dashboard-root, body.print-room-map #dashboard-root main, body.print-room-map .apoio-mapa-shell { position:static !important; height:auto !important; max-height:none !important; overflow:visible !important; }
+  body.print-room-map #tab-apoio-mapa-salas, body.print-room-map #tab-dashboard-mapa-salas { display:flex !important; position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; height:auto !important; overflow:visible !important; }
+  body.print-room-map .ap-mapa-scroll { max-height:none !important; overflow:visible !important; }
+}

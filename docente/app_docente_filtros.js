@@ -50,15 +50,12 @@
         return !iguais(atual.areas, padrao.areas) || !iguais(atual.docentes, padrao.docentes) || !iguais(atual.dias, padrao.dias) || !iguais(atual.periodos, padrao.periodos) || atual.busca !== padrao.busca || atual.anoAquisitivo !== padrao.anoAquisitivo;
     };
     A._atualizarBotaoFiltro = function () {
-        const btn = document.getElementById('docente-btn-filtros'), icon = document.getElementById('docente-icone-filtros');
-        if (!btn || !icon) return;
-        const ativo = this._filtrosAtivos();
-        icon.innerHTML = ativo
+        const botoes = [document.getElementById('docente-btn-filtros'), document.getElementById('docente-cal-btn-filtros')].filter(Boolean);
+        if (!botoes.length) return;
+        const ativo = this._filtrosAtivos(), svg = ativo
             ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z"/><path d="m17 17 5 5m0-5-5 5"/></svg>'
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z"/></svg>';
-        btn.title = ativo ? 'Remover filtros personalizados' : 'Abrir filtros';
-        btn.setAttribute('aria-label', btn.title);
-        btn.classList.toggle('border-blue-300', ativo); btn.classList.toggle('bg-blue-50', ativo); btn.classList.toggle('text-blue-700', ativo);
+        botoes.forEach(btn => { const icon=btn.querySelector('span'); if(icon)icon.innerHTML=svg; btn.title=ativo?'Remover filtros personalizados':'Abrir filtros'; btn.setAttribute('aria-label',btn.title); btn.classList.toggle('border-blue-300',ativo); btn.classList.toggle('bg-blue-50',ativo); btn.classList.toggle('text-blue-700',ativo); });
     };
     A._renderModalFiltros = function () {
         const box = document.getElementById('docente-filtros-conteudo');
@@ -336,7 +333,7 @@
             await this._aplicarFiltroAlterado({ dataset: { filtro: tipo } });
             return true;
         }
-        if (t?.id === 'docente-btn-filtros') {
+        if (t?.id === 'docente-btn-filtros' || t?.id === 'docente-cal-btn-filtros') {
             if (this._filtrosAtivos()) {
                 this.filtrosPorAba[this._tabAtiva()] = this._defaultsFiltro(this._tabAtiva());
                 this._atualizarBotaoFiltro(); await this._renderTabAtiva();
